@@ -6,7 +6,7 @@ using Il2CppInterop.Runtime;
 using UnityEngine.Events;
 using SprocketUiKit;
 namespace SprocketExpandedBallistics;
-[BepInPlugin("sprocket.expandedballistics", "Sprocket Expanded Ballistics", "0.22.76")]
+[BepInPlugin("sprocket.expandedballistics", "Sprocket Expanded Ballistics", "0.22.77")]
 [BepInDependency("sprocket.jsoneditor", ">=0.1.5 <0.2.0")]
 [BepInDependency(UiKit.PluginGuid, ">=0.1.7 <0.2.0")]
 [BepInDependency("sprocket.keybinds", BepInDependency.DependencyFlags.SoftDependency)]

@@ -6,7 +6,7 @@ using System.Text.Json.Nodes;
 namespace SprocketExpandedBallistics;
 internal static class Feat02275FollowWallTests
 {
-    internal static bool IsPlanned(string rel)=>new[]{"ComposerFill.cs","CompositePlate.cs","CassetteComposerModel.cs","CassetteComposerPanel.cs","RuntimeComposerFill.cs","RuntimeCompositePlateEdit.cs","Plugin.cs","SprocketExpandedBallistics.csproj","RELEASE-NOTES.md"}.Contains(rel);
+    internal static bool IsPlanned(string rel)=>new[]{"ComposerFill.cs","CompositePlate.cs","CassetteComposerModel.cs","CassetteComposerPanel.cs","RuntimeComposerFill.cs","RuntimeCompositePlateEdit.cs","Plugin.cs","SprocketExpandedBallistics.csproj","RELEASE-NOTES.md"}.Contains(rel)||Feat02277SolidBlockTests.IsPlanned(rel); // 0.22.77: its planned files count too
     static double Area(Vector3[] p)=>CheekShellFill.Newell(p).Length()*.5;
     internal static void Run(Action<bool,string> sink)
     {

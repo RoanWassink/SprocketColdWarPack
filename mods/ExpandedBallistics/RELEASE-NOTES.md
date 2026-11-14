@@ -1,5 +1,14 @@
 # Expanded Ballistics
 
+## 0.22.77 (proof build: a closed block counts as one solid shape)
+
+- A composite plate whose mesh name carries the marker `[Solid block]` ("Composite armour plate [Solid block]") and whose material is a recipe counts as one solid shape. The front and back skin are paid exactly as before; the cavity between them is paid in the block of the front skin at the table factor of the recipe x the path (not the uniform layer scale), through the existing passive loss and the ray ledger, once per plate per shot line.
+- The surfaces of the plate on the shot line are sorted by distance and paired on that order (not on the Enter/Exit flags); skins less than 1 mm apart are one skin. An odd number of skins (open shape, seam, glancing shot) pays the skins only and says so in the report.
+- One report line per cavity ("solid block: front skin, cavity mm × factor = mm RHA-eq, back skin"), and with Composite fill / Layer hit log on one "[Solid block]" log line. An error in the new path keeps the old calculation for that block and logs once per plate per session.
+- The marker is not set from the window yet (proof blueprint only). No new hook, no weight or overlay change; plates without the marker calculate bit-identically to 0.22.76.
+
+Separate fix (Convert to layers, the check after Apply): the copy check compared the edge slot (`te`) of every corner, but on corners that are not in AlongEdgeManual the game picks that edge again at every build, so a valid conversion was refused with "face N rib slot changed". `te` is now compared only on AlongEdgeManual corners; points, edges, faces, counts, thickness and thicken mode are compared exactly as before. Cheek fill (shell) uses the same check and keeps its output.
+
 ## 0.22.76 (robust selected fronts on edited closed pieces)
 
 - Convert to layers orients each selected closed piece independently and preserves warped-face fan diagonals. Missing normal rays try neighboring lines and same-piece interior/back-skin directions; failed layouts try alternate correspondences before retaining a selected face as wall.

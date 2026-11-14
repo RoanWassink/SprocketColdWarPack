@@ -19,6 +19,9 @@ internal static class CompositePlate
         string.Equals(PlainName(name),LayersName,StringComparison.Ordinal)?ThicknessMode.Layers:string.Equals(PlainName(name),LayerBlocksName,StringComparison.Ordinal)?ThicknessMode.LayerBlocks:ThicknessMode.Uniform;
     /// <summary>0.22.60: the layout of a plate in layers, from its mesh name; null for every other plate.</summary>
     internal static LayerLayoutKind? LayoutFromName(string? name)=>string.Equals(PlainName(name),LayersName,StringComparison.Ordinal)?LayerLayoutKind.PerLayer:string.Equals(PlainName(name),LayerBlocksName,StringComparison.Ordinal)?LayerLayoutKind.PerBlock:null;
+    // 0.22.77 (proef): a closed block that the hit counts as one solid shape. The marker lives in the mesh name, as [Layers] does; no geometry in the name.
+    internal const string SolidBlockName=Name+" [Solid block]";
+    internal static bool IsSolidBlock(string? name)=>string.Equals(PlainName(name),SolidBlockName,StringComparison.Ordinal);
     internal const string PrefabGuid="e229025a-a35f-47df-a018-f0eabc220001";
     internal const string IconFile="compositeArmourPlate-icon.png";
     /// <summary>The native cube add-on prefab, the only prefab the game lists itself.</summary>
@@ -368,4 +371,119 @@ internal static class BackplaneThickness
         for(int i=0;i<points.Count;i++)sum+=NVector.Cross(points[i],points[(i+1)%points.Count]);
         return sum.Length()*.5f;
     }
+}
+
+// ======== 0.22.77 proef "Solid block": a closed block counts as one solid shape (pure; the hit runs in RuntimeGroupedProtection.cs) ========
+/// <summary>One stretch of the shot line, metres on the persistent ray.</summary>
+internal readonly record struct SolidSpan(double StartM,double EndM)
+{
+    internal double LengthMm=>(EndM-StartM)*1000;
+}
+/// <summary>One closed passage through a solid block: the front skin, the back skin, and between them the cavity. Inside runs from the entry of the front skin to the exit of the back skin.</summary>
+internal readonly record struct SolidPassage(SolidSpan Front,SolidSpan Back)
+{
+    internal SolidSpan Cavity=>new(Front.EndM,Back.StartM);
+    internal SolidSpan Inside=>new(Front.StartM,Back.EndM);
+}
+/// <summary>What one shot line sees of one plate marked [Solid block]: the surfaces it crosses, its skins (merged pieces) and the passages (pairs of skins). Odd: the skins cannot be paired.</summary>
+internal sealed record SolidLine(int Surfaces,SolidSpan[] Skins,SolidPassage[] Passages,bool Odd);
+/// <summary>One cavity this block pays: the passage, its place in the line, and the ledger plan of what the line has not paid yet.</summary>
+internal sealed record SolidCharge(SolidPassage Passage,int Number,int Count,double Factor,double Angle,MaterialIntervalPlan Plan)
+{
+    internal double CavityMm=>Plan.Pieces.Sum(p=>p.LengthMm);
+    internal double RhaMm=>Plan.RhaMm;
+}
+
+/// <summary>
+/// 0.22.77 (proef, user decision 14-11: "Een dichte doos voor complexe vormen"). A plate whose mesh name carries [Solid block] and whose material is a recipe counts as one
+/// solid shape: what lies between its front and back skin is paid as the recipe, at the table factor of the recipe x the path (not the uniform layer scale).
+/// The game hands every block the whole intersection list of the shot (not sorted along the line; Enter/Exit come from the winding of the triangle, and the user's mesh has
+/// reversed faces), so the surfaces of this plate are sorted by distance and paired on that order: 1-2, 3-4, ... are its skins. Skins that overlap or lie less than
+/// 1 mm apart are one skin. The skins are paired on parity again: inside runs from the entry of the first to the exit of the second skin. An odd count (an open shape,
+/// a seam or a glancing shot) pays the skins only. Pure and read-only: the ledger is planned, never committed here.
+/// </summary>
+internal static class SolidBlock
+{
+    /// <summary>Skins closer than this are one skin (1 mm).</summary>
+    internal const double MergeGapM=.001;
+    /// <summary>Surfaces closer than this along the line are one surface when the count is odd (a shot along an edge shared by two triangles reports it twice).</summary>
+    internal const double DuplicateM=1e-6;
+    /// <summary>The surfaces of one plate on the shot line (distances in metres on the persistent ray, any order, flags ignored) as skins and passages.</summary>
+    internal static SolidLine Analyse(IEnumerable<double> distancesM)
+    {
+        var raw=distancesM.Where(double.IsFinite).OrderBy(d=>d).ToList();
+        var surfaces=raw;
+        if(raw.Count%2!=0)
+        {
+            surfaces=new List<double>(raw.Count);
+            foreach(var d in raw)if(surfaces.Count==0||d-surfaces[^1]>DuplicateM)surfaces.Add(d);
+        }
+        if(surfaces.Count==0)return new(0,Array.Empty<SolidSpan>(),Array.Empty<SolidPassage>(),false);
+        if(surfaces.Count%2!=0)return new(surfaces.Count,Array.Empty<SolidSpan>(),Array.Empty<SolidPassage>(),true);
+        var skins=new List<SolidSpan>();
+        for(int i=0;i+1<surfaces.Count;i+=2)
+        {
+            var piece=new SolidSpan(surfaces[i],surfaces[i+1]);
+            if(skins.Count>0&&piece.StartM-skins[^1].EndM<MergeGapM)skins[^1]=new(skins[^1].StartM,Math.Max(skins[^1].EndM,piece.EndM));
+            else skins.Add(piece);
+        }
+        if(skins.Count%2!=0)return new(surfaces.Count,skins.ToArray(),Array.Empty<SolidPassage>(),true);
+        var passages=new SolidPassage[skins.Count/2];
+        for(int i=0;i<passages.Length;i++)passages[i]=new(skins[2*i],skins[2*i+1]);
+        return new(surfaces.Count,skins.ToArray(),passages,false);
+    }
+    /// <summary>The passages whose front skin lies in this block: the block of the front skin pays the cavity. A block that starts behind the front skin (a child that starts inside) never does.</summary>
+    internal static IEnumerable<(SolidPassage Passage,int Number)> Due(SolidLine line,double blockStartM,double blockEndM)
+    {
+        if(line.Odd||!(blockEndM>blockStartM))yield break;
+        for(int i=0;i<line.Passages.Length;i++)
+        {
+            var p=line.Passages[i];
+            if(p.Front.StartM<blockEndM&&p.Front.EndM>blockStartM+DuplicateM&&p.Cavity.EndM>p.Cavity.StartM)yield return(p,i+1);
+        }
+    }
+    /// <summary>
+    /// The cavities this block pays, each planned on the ledger of the ray (what the line already paid, for instance by the parent of a child fragment, stays out).
+    /// The factor is the table factor of the recipe at the entry angle of the front skin (<paramref name="angleOf"/>, NaN: that passage is not paid).
+    /// </summary>
+    internal static List<SolidCharge> Plan(SolidLine line,double blockStartM,double blockEndM,MaterialIntervalLedger ledger,int entity,string material,string label,
+        Func<SolidPassage,double> angleOf,Func<double,double> factorAt)
+    {
+        var result=new List<SolidCharge>();
+        foreach(var (p,number) in Due(line,blockStartM,blockEndM))
+        {
+            var angle=angleOf(p);if(!double.IsFinite(angle))continue;
+            var factor=factorAt(angle);if(!double.IsFinite(factor)||factor<0)continue;
+            var plan=ledger.Plan(p.Cavity.StartM,p.Cavity.EndM,new[]{new MaterialInterval(entity,material,label,p.Cavity.StartM,p.Cavity.EndM,factor,angle)});
+            if(plan==null||plan.Pieces.Length==0)continue;
+            result.Add(new(p,number,line.Passages.Length,factor,angle,plan));
+        }
+        return result;
+    }
+    /// <summary>
+    /// Runs the new path for one plate; an exception falls back to the old calculation for that block (the caller then pays the skins only) with one log line per plate per
+    /// session. Never throws.
+    /// </summary>
+    internal static bool Guard(int plate,ISet<int> failed,Action<string> log,Action body)
+    {
+        try{body();return true;}
+        catch(Exception error)
+        {
+            try{if(failed.Count<4096&&failed.Add(plate))log("[Solid block] Plate #"+plate.ToString(System.Globalization.CultureInfo.InvariantCulture)+": the solid-block calculation failed ("+error.GetType().Name+": "+error.Message+"); this block keeps the calculation without the cavity (skins only). Logged once per plate per session.");}
+            catch(Exception){}
+            return false;
+        }
+    }
+    /// <summary>The line in the combat report (a materialReaction note in the block of the front skin): front skin, cavity x factor = steel equivalent, back skin.</summary>
+    internal static string ReportText(string label,SolidCharge c,string threat)=>string.Create(System.Globalization.CultureInfo.InvariantCulture,
+        $"{label}: solid block{(c.Count>1?$", passage {c.Number} of {c.Count}":"")}: front skin {c.Passage.Front.LengthMm:0.#} mm, cavity {c.CavityMm:0.#} mm × {c.Factor:0.00} ({threat} @{c.Angle:0}°) = {c.RhaMm:0} mm RHA-eq, back skin {c.Passage.Back.LengthMm:0.#} mm");
+    /// <summary>The report line of an odd count of skins: only the skins are paid.</summary>
+    internal static string OddText(string label,SolidLine line)=>string.Create(System.Globalization.CultureInfo.InvariantCulture,
+        $"{label}: solid block, {line.Surfaces} surfaces on this shot line (odd): the shape is not closed here (open side, seam or glancing shot); only the skins are paid.");
+    /// <summary>The log line (Composite fill / Layer hit log): every number of the cavity this block pays, and the budget before and after.</summary>
+    internal static string LogText(long entity,SolidCharge c,double beforeMm,double afterMm)=>string.Create(System.Globalization.CultureInfo.InvariantCulture,
+        $"[Solid block] plate #{entity}: passage {c.Number} of {c.Count}: front skin [{c.Passage.Front.StartM:0.######},{c.Passage.Front.EndM:0.######}] {c.Passage.Front.LengthMm:0.###} mm; cavity [{c.Passage.Cavity.StartM:0.######},{c.Passage.Cavity.EndM:0.######}] {c.CavityMm:0.###} mm x {c.Factor:0.####} = {c.RhaMm:0.###} mm RHA-eq at {c.Angle:0.#}°; back skin [{c.Passage.Back.StartM:0.######},{c.Passage.Back.EndM:0.######}] {c.Passage.Back.LengthMm:0.###} mm; budget {beforeMm:0.#} -> {afterMm:0.#} mm.");
+    /// <summary>The log line of an odd count of skins.</summary>
+    internal static string OddLogText(long entity,SolidLine line)=>string.Create(System.Globalization.CultureInfo.InvariantCulture,
+        $"[Solid block] plate #{entity}: {line.Surfaces} surfaces, {line.Skins.Length} skins on this line (odd): skins only.");
 }

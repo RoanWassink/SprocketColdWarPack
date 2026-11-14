@@ -58,7 +58,7 @@ Every mod has its own folder under [`mods/`](mods) with a README (features, sett
 
 | Mod | Version | What it does | Needs |
 |---|---|---|---|
-| [Expanded Ballistics](mods/ExpandedBallistics) | 0.22.76 | Dated shell profiles, guided ATGMs, armour materials with placeable ERA, cassette composer, combat report | JSON Editor, UI Kit |
+| [Expanded Ballistics](mods/ExpandedBallistics) | 0.22.77 | Dated shell profiles, guided ATGMs, armour materials with placeable ERA, cassette composer, combat report | JSON Editor, UI Kit |
 | [Thermal Sight](mods/ThermalSight) | 0.4.0 | Thermal, image intensifier and active IR sights, IR searchlight, laser rangefinders | Keybinds |
 | [Gun Sights](mods/GunSights) | 0.2.4 | 33 period gunner's sights with true optics and reticles | |
 | [Carousel Autoloader](mods/CarouselAutoloader) | 0.2.34 | Bustle, semi and revolver autoloaders, carousel basket | |

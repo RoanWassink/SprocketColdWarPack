@@ -60,6 +60,8 @@ internal static partial class NativeMaterialReactions
             if(entry>=0&&exit>=0&&entry<reached.IntersectionCount&&exit<reached.IntersectionCount&&entry<hits.Length&&exit<hits.Length)
             {
                 var first=hits[entry];var last=hits[exit];
+                // 0.22.77: a plate marked [Solid block] pays its cavity here, before the unchanged route below pays the skins (SolidCavities; it only reads without such a plate).
+                if(first.objectIndex>=0&&first.objectIndex<sim.objects.Length)SolidCavities(reached,first,last);
                 if(first.objectIndex>=0&&first.objectIndex<sim.objects.Length&&ReachedLayered(reached,first,last))return;
             }
         }
@@ -269,5 +271,101 @@ internal static partial class NativeMaterialReactions
             return true;
         }
         catch(Exception){face=-1;return false;}
+    }
+}
+// 0.22.77 (proef "Solid block", user decision 14-11): a plate whose mesh name carries [Solid block] and whose material is a recipe counts as one solid shape. Its cavity
+// (inside minus its own skins, SolidBlock in CompositePlate.cs) is paid in the block of its front skin, before the route above pays that skin: through the existing
+// ApplyPassive (the native law, WriteBudget) at the table factor of the recipe x the path, and claimed on the ray ledger (Commit) at once, so a native block that spans the
+// cavity pays only the skins and a child that starts inside never pays it again. The skins are paid exactly as before. No new hook; no other native write (rhaFactor stays
+// with WriteFactor and its finalizer). An exception falls back to the old calculation for that block with one log line per plate per session (SolidBlock.Guard).
+internal static partial class NativeMaterialReactions
+{
+    private sealed class SolidShot{internal readonly Dictionary<int,(PlateStructure Plate,long Spawn)?> Plates=new();internal readonly HashSet<int> Odd=new();}
+    private static readonly ConditionalWeakTable<ShellImpactContext,SolidShot> solidShots=new();
+    private static readonly HashSet<int> solidFailed=new();
+    private static bool solidScanFailed;
+    /// <summary>The plate marked [Solid block] behind an entity, once per shot; null for everything else. Only cassette plates read their mesh name (cached per mesh).</summary>
+    private static (PlateStructure Plate,long Spawn)? SolidPlate(NativeArmourBlockContext reached,SolidShot shot,int entity)
+    {
+        if(shot.Plates.TryGetValue(entity,out var known))return known;
+        (PlateStructure,long)? result=null;
+        if(RuntimeArmourResponses.TryResolvePlate(reached.Impact,reached.Sim,entity,out var component,out var spawn,out _)&&component.TryCast<PlateStructure>() is {} plate&&
+            CompositePlate.IsCassette(plate.armourTechID)&&CompositePlate.IsSolidBlock(RuntimeLayerFaces.MeshName(plate)))result=(plate,spawn);
+        if(shot.Plates.Count<1024)shot.Plates[entity]=result;
+        return result;
+    }
+    /// <summary>Pays the cavities of the plates marked [Solid block] whose front skin lies in this block. Never throws; without such a plate on the line it only reads.</summary>
+    private static void SolidCavities(NativeArmourBlockContext reached,StructureIntersection first,StructureIntersection last)
+    {
+        Dictionary<int,List<(double Distance,int Hit)>>? plates=null;SolidShot? shot=null;
+        try
+        {
+            if(reached.Impact==null||reached.Impact.ArmourSnapshot?.Cassettes is not {Count:>0})return;
+            var sim=reached.Sim;var block=reached.Block;
+            if(block.MaterialIndex<0||block.MaterialIndex>=sim.materials.Length)return;
+            shot=solidShots.GetOrCreateValue(reached.Impact);
+            for(int i=0;i<reached.IntersectionCount&&i<reached.Intersections.Length;i++)
+            {
+                var hit=reached.Intersections[i];var o=hit.objectIndex;
+                if(o<0||o>=sim.objects.Length)continue;
+                var entity=sim.objects[o].ID;
+                if(SolidPlate(reached,shot,entity)==null)continue;
+                plates??=new();if(!plates.TryGetValue(entity,out var list))plates[entity]=list=new();
+                list.Add((hit.distance,i));
+            }
+        }
+        catch(Exception error)
+        {
+            if(!solidScanFailed){solidScanFailed=true;Plugin.ModLog.LogWarning("[Solid block] The shot line could not be read ("+error.GetType().Name+": "+error.Message+"); blocks keep the calculation without the cavity. Logged once per session.");}
+            return;
+        }
+        if(plates==null||shot==null)return;
+        foreach(var pair in plates)
+            SolidBlock.Guard(pair.Key,solidFailed,text=>Plugin.ModLog.LogWarning(text),()=>SolidCavity(reached,first,last,shot,pair.Key,pair.Value));
+    }
+    private static void SolidCavity(NativeArmourBlockContext reached,StructureIntersection first,StructureIntersection last,SolidShot shot,int entity,List<(double Distance,int Hit)> own)
+    {
+        var sim=reached.Sim;var fragment=sim.fragments[reached.Index];
+        if((fragment.flags&(FragmentFlag.OriginalPenetrator|FragmentFlag.Killed))!=FragmentFlag.OriginalPenetrator)return;
+        if(fragment.projectileProfileIndex<0||fragment.projectileProfileIndex>=sim.projectileProfiles.Length)return;
+        if(ProtectionFactorTable.ThreatOf(Threats(reached.Impact,true)) is not {} threat)return;
+        double nativeLength=last.distance-first.distance;
+        if(!double.IsFinite(nativeLength)||nativeLength<=0)return;
+        if(SolidPlate(reached,shot,entity) is not {} found)return;
+        var material=found.Plate.armourTechID;
+        if(!Usable(reached,found.Plate,found.Spawn,entity,material,reached.Impact.ArmourSnapshot?.Protection,out var table)||table==null)return;
+        // The persistent ray of this penetrator line, found or made exactly as ReachedIntervals does (it then finds the same one).
+        var state=impacts.GetOrCreateValue(reached.Impact);var key=(sim.Pointer,IntervalLineageRoot(sim,reached.Index));
+        if(!state.Rays.TryGetValue(key,out var rays))state.Rays[key]=rays=new();
+        var direction=fragment.direction.normalized;
+        var ray=rays.LastOrDefault(r=>r.Contains(fragment.spawnPoint,direction));
+        if(ray==null){ray=new(fragment.spawnPoint,direction);rays.Add(ray);}
+        double start=ray.Distance(fragment.spawnPoint,direction,first.distance),end=ray.Distance(fragment.spawnPoint,direction,last.distance);
+        var along=new List<(double At,int Hit)>(own.Count);
+        foreach(var (distance,hit) in own){var at=ray.Distance(fragment.spawnPoint,direction,distance);if(double.IsFinite(at))along.Add((at,hit));}
+        var line=SolidBlock.Analyse(along.Select(a=>a.At));
+        if(line.Odd)
+        {
+            if(shot.Odd.Count<1024&&shot.Odd.Add(entity))
+            {
+                Report(reached,entity,"materialReaction",SolidBlock.OddText(table.Label,line));
+                if(RuntimeGroupedProtection.LayerHitLog)Plugin.ModLog.LogInfo(SolidBlock.OddLogText(entity,line));
+            }
+            return;
+        }
+        double EntryAngle(SolidPassage passage)
+        {
+            int best=-1;double gap=double.PositiveInfinity;
+            foreach(var (at,hit) in along){var d=Math.Abs(at-passage.Front.StartM);if(d<gap){gap=d;best=hit;}}
+            return best<0?double.NaN:AngleOf(reached,reached.Intersections[best]);
+        }
+        var charges=SolidBlock.Plan(line,start,end,ray.Ledger,entity,material,table.Label,EntryAngle,angle=>table.Factor(threat,angle));
+        foreach(var charge in charges)
+        {
+            if(!ApplyPassive(reached,entity,"Solid block cavity",charge.RhaMm,out var before,out var after))continue;
+            ray.Ledger.Commit(charge.Plan);
+            Note(reached,entity,null,SolidBlock.ReportText(table.Label,charge,ProtectionFactorTable.Text(threat)),before,after,"materialReaction");
+            if(RuntimeGroupedProtection.LayerHitLog)Plugin.ModLog.LogInfo(SolidBlock.LogText(entity,charge,before,after));
+        }
     }
 }

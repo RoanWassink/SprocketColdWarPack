@@ -2,7 +2,7 @@
 
 Ammunition and armour for Sprocket in one plugin: dated shell profiles and guided ATGMs, an armour material and reactive-armour (ERA) system, a layered cassette composer, and a combat report that shows how each hit was resolved.
 
-- Version: 0.22.76
+- Version: 0.22.77
 - Plugin GUID: `sprocket.expandedballistics`
 - Author: Nero. MIT licence (see `LICENSE`).
 - Requires: Sprocket JSON Editor (`sprocket.jsoneditor`, 0.1.5 or later 0.1.x) and Sprocket UI Kit (`sprocket.uikit`, 0.1.7 or later 0.1.x)
@@ -52,7 +52,7 @@ Shipping data: part, Technology and localization JSON in `Sprocket_Data\Streamin
 
 ## Status
 
-Tested in the game in earlier 0.22.x builds: shell editor and ammunition HUD, the gimbal ATGM sight, player guidance and computer-controlled aiming (reported as accepted), material textures with save and load, and the combat report with Forensic. The composer fill tools were tested on several tanks in November with fixes still following. 0.22.72 to 0.22.76 (Forensic module icons, four Kontakt-5 size variants, choose-then-Apply in the composer, selected fronts that follow the wall) are installed but not yet tested in game. The renamed pack has not been re-tested.
+Tested in the game in earlier 0.22.x builds: shell editor and ammunition HUD, the gimbal ATGM sight, player guidance and computer-controlled aiming (reported as accepted), material textures with save and load, and the combat report with Forensic. The composer fill tools were tested on several tanks in November with fixes still following. 0.22.72 to 0.22.77 (Forensic module icons, four Kontakt-5 size variants, choose-then-Apply in the composer, selected fronts that follow the wall) are installed but not yet tested in game. The renamed pack has not been re-tested.
 
 ## Building
 

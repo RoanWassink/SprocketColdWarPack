@@ -451,11 +451,21 @@ internal static class CheekShellFill
                 if(!fa[i].GetProperty("v").EnumerateArray().Select(x=>x.GetInt32()).SequenceEqual(fb[i].GetProperty("v").EnumerateArray().Select(x=>x.GetInt32())))return LinkedBackMarker+$" (face {i+1} corners changed)";
                 if(!fa[i].GetProperty("t").EnumerateArray().Select(x=>x.GetInt32()).SequenceEqual(fb[i].GetProperty("t").EnumerateArray().Select(x=>x.GetInt32())))return LinkedBackMarker+$" (face {i+1} thickness changed)";
                 if(Token(fa[i],"tm")!=Token(fb[i],"tm"))return LinkedBackMarker+$" (face {i+1} direction mode changed)";
-                if(Token(fa[i],"te")!=Token(fb[i],"te"))return LinkedBackMarker+$" (face {i+1} rib slot changed)";
+                // 0.22.77: te is only compared on corners in AlongEdgeManual (tm byte 4); on other corners the game picks the edge again at every build.
+                if(!ManualRibSlotsEqual(Token(fa[i],"tm"),Token(fa[i],"te"),Token(fb[i],"te"),fa[i].GetProperty("v").GetArrayLength()))return LinkedBackMarker+$" (face {i+1} rib slot changed)";
             }
             return null;
         }
         catch(Exception ex){return LinkedBackMarker+" (the copy could not be checked: "+ex.Message+")";}
+        // 0.22.77: per corner j, tm byte j (bits 8j..8j+7) and te slot j (bits 16j..16j+15). Unreadable tokens or more than four corners: the literal te text as before.
+        static bool ManualRibSlotsEqual(string tm,string planned,string copy,int corners)
+        {
+            if(planned==copy)return true;
+            if(corners>4||!ulong.TryParse(tm,NumberStyles.None,CultureInfo.InvariantCulture,out var modes)||
+                !ulong.TryParse(planned,NumberStyles.None,CultureInfo.InvariantCulture,out var a)||!ulong.TryParse(copy,NumberStyles.None,CultureInfo.InvariantCulture,out var b))return false;
+            for(int j=0;j<corners;j++)if(((modes>>(8*j))&0xFF)==4&&((a>>(16*j))&0xFFFF)!=((b>>(16*j))&0xFFFF))return false;
+            return true;
+        }
     }
     internal static string Invariant(double value)=>value.ToString(CultureInfo.InvariantCulture);
 }
