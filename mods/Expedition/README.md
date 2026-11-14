@@ -30,7 +30,7 @@ A campaign mode for Sprocket: a numbered run through the installed eras, where y
 - `[Diagnostics]`: `DetailedLogging = false`, `BattleStatsHooks = true` (turn it off if the designer or game crashes), `AllowFixtureCatalogue = false`.
 - Keys: none; the mod is operated with the mouse, and Esc acts like the screen's Close or Cancel button. It does not use Sprocket Keybinds.
 - Shipped files in `BepInEx\plugins\SprocketExpedition\`: `SprocketExpedition.Game.dll`, `SprocketExpedition.Core.dll`, `Audio\` and `THIRD-PARTY-NOTICES.md`. No parts, technology or localization files. Saves and statistics go to `BepInEx\config\SprocketExpedition\`.
-- The soundtrack (six WAV tracks, about 136 MB) is supplied by the author and is not in this repository copy; it ships in the release. Its rights statement is in `Audio\MUSIC-NOTICE.md` of the release (copy in `assets\audio\`).
+- The soundtrack (six WAV tracks, about 136 MB) is supplied by the author and is not in this repository copy; it ships in the release. All six tracks were created by the author with his own Suno account; the statement is in `Audio\MUSIC-NOTICE.md` of the release (copy in `assets\audio\`).
 - One method (the designer event handoff) is adapted from the MIT-licensed Sprocket Battle Editor; see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## Status

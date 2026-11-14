@@ -33,7 +33,7 @@ public sealed class Plugin : BasePlugin
     internal static ConfigEntry<bool> Enabled = null!;
     internal static ConfigEntry<bool>? DetailedLogging;
     /// <summary>Diagnostics.DetailedLogging: gate every trace line with "if (Plugin.Detailed)".</summary>
-    internal static bool Detailed => DetailedLogging?.Value ?? true;
+    internal static bool Detailed => DetailedLogging?.Value ?? false;
     internal static void Trace(string message) => Instance.Log.LogInfo(message);
     internal const string PanelActionId = "hinge-panel";
     internal static ModKeybind? PanelBinding;
@@ -47,7 +47,7 @@ public sealed class Plugin : BasePlugin
         Io.IoApiCore.Log = message => Log.LogWarning(message);
         try { Io.IoApiCore.ConfigurePluginRoot(Paths.PluginPath); } catch (Exception ex) { Log.LogWarning("[IO API] Icon root unavailable: " + ex.Message); }
         Enabled = Config.Bind("General", "Enabled", true, "Enable mast movement; disabling retracts the masts.");
-        DetailedLogging = Config.Bind("Diagnostics", "DetailedLogging", true, "Verbose trace lines for testing. Warnings and errors are always logged.");
+        DetailedLogging = Config.Bind("Diagnostics", "DetailedLogging", false, "Verbose trace lines for testing. Warnings and errors are always logged.");
         legacyRaise = Config.Bind("Keys", "Raise", Key.Insert, "Legacy migration only. Change Mast / Raise in the vanilla Settings keybind menu.");
         legacyLower = Config.Bind("Keys", "Lower", Key.Delete, "Legacy migration only. Change Mast / Lower in the vanilla Settings keybind menu.");
         RegisterBindings();

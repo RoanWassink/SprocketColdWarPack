@@ -26,7 +26,7 @@ Coordinator installs separately with the game closed. This build did not install
    and existing mod-key suspension work; blur back to panel: game keys remain blocked.
 4. Alt-tab, return, open native pause (including StayOpenWhilePaused) and close panels: keys
    restore and remain restored until a fresh panel open/press. Change scene and unload as well.
-   Check DetailedLogging counts/reasons and no orphaned suspended actions in Window.
+   With DetailedLogging=true (default is false), check counts/reasons and no orphaned suspended actions in Window.
 5. Set BlockKeysWhilePanelFocused=false: panel-only suspension ends. Check both values of
    SuspendGameKeysWhileTyping independently; restore defaults. Re-enable game actions while
    focused: rescans disable them within one second, without per-frame resource searches.

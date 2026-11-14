@@ -18,7 +18,7 @@ public sealed class Plugin : BasePlugin
     {
         ModLog=Log;
         MainThreadId=Environment.CurrentManagedThreadId;
-        Detailed=Config.Bind("Diagnostics","DetailedLogging",true,"Verbose trace lines for testing. Warnings and errors are always logged.").Value;
+        Detailed=Config.Bind("Diagnostics","DetailedLogging",false,"Verbose trace lines for testing. Warnings and errors are always logged.").Value;
         string assembly=Path.Combine(Paths.GameRootPath,"GameAssembly.dll");
         string hash="unreadable";
         try { using var file=File.OpenRead(assembly);using var sha=SHA256.Create();hash=Convert.ToHexString(sha.ComputeHash(file)); }

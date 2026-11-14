@@ -10,4 +10,4 @@ No part of this checklist was run in the game. Use a disposable vehicle copy. Pr
 6. Save As, exit, restart, clean reload: GUID, offsets, two models, paint, mirrored parts, commander and viewport survive; then repeat the drive/return test.
 7. Native cook-off may hide the lid; observe Blown/visibility/pose without writes. There is no ordinary lid animation or control in this version.
 
-Prepared 0.1.0 is not native acceptance. Keep DetailedLogging=true until user-confirmed testing; the owner can then apply the standard logging-off release step.
+Prepared 0.1.0 is not native acceptance. DetailedLogging is false by default; set `[Diagnostics] DetailedLogging = true` in sprocket.cupolas.cfg for this acceptance run so the READY / ADOPT / SWAP / STATE records above are logged.

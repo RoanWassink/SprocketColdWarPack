@@ -33,7 +33,7 @@ internal static class Diagnostics
         _detailed = config.Bind(
             "Diagnostics",
             "DetailedLogging",
-            true,
+            false,
             "Write one X-ray/pose line per overlay switch or correction. No per-frame spam.");
         Plugin.Info("[Xray diag] DetailedLogging=" + Detailed);
     }

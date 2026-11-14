@@ -64,7 +64,7 @@
 - Twin transmission (engine drives a splitter junction) is not supported: the toggle is disabled there, with a tooltip.
 - Housing: +`Powerpack.HousingMassFraction` (0.10) of engine mass and +`Powerpack.HousingCostFraction` (0.15) of engine material cost, only while the powerpack is date-effective. A saved powerpack on a too-early vehicle keeps its layout; only the housing lapses, with one warning.
 - Save metadata schema 2 (`Powerpack`) is written only for powerpack engines; schema 1 reads as no powerpack, and unknown schemas are preserved byte for byte.
-- New `Diagnostics.DetailedLogging` (default true) gates the existing SYNC/PROFILE trace lines and the new POWERPACK lines.
+- New `Diagnostics.DetailedLogging` (default false) gates the existing SYNC/PROFILE trace lines and the new POWERPACK lines.
 - `TransmissionVolumeMultiplier` and all other 0.1.1 behaviour are unchanged.
 
 ## 0.1.1 - 2026-11-01

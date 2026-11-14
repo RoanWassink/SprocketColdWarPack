@@ -26,7 +26,7 @@ public sealed class Plugin : BasePlugin
     public override void Load()
     {
         Instance = this;
-        detailed = Config.Bind("Diagnostics", "DetailedLogging", true, "Verbose trace lines for testing. Warnings and errors are always logged.");
+        detailed = Config.Bind("Diagnostics", "DetailedLogging", false, "Verbose trace lines for testing. Warnings and errors are always logged.");
         harmony = new Harmony(Guid);
         try { IconHooks.Install(harmony); } // Exactly H3; no PatchAll and no save/load callbacks.
         catch(Exception ex) { Error("hook failed: "+ex.Message);harmony.UnpatchSelf();throw; }

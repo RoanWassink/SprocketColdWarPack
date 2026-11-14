@@ -221,6 +221,6 @@ Purely additive: every public type and member of 0.1.1 is unchanged (checked by 
   popup that flips up), TextField, Tabs, ListView<T>, Lamp, ProgressBar, Chip, Tooltip, WarningRow.
 - Central behaviour: Input System clicks/typing, cursor, 9 gameplay input-block hooks, designer
   click-through guard, Esc, z-order, remembered positions, scale = screen height/1080 × factor,
-  close on pause/scene change, Guard around every callback, Diagnostics.DetailedLogging (true).
+  close on pause/scene change, Guard around every callback, Diagnostics.DetailedLogging (default false).
 - Demo panel (keybind "UI Kit / Demo", factory default F6) with all components, a mini I/O
   example, rule rows (IF [source] [event] THEN [command] after [stepper]) and a click log.

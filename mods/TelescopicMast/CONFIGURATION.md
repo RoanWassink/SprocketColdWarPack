@@ -6,7 +6,7 @@ Rotators are controlled only through the vehicle flow. There are no new key acti
 
 The native part scaler accepts 0.1–5 per axis. X sets both horizontal diameters, Z is ignored, Y sets height. This is mesh compensation; native scale values remain as set by the player. Plate and Base retain independent scales. Current rotation is not saved; every spawn/designer starts at zero. Both parts carry `ioFlowV1`/`ioPartId` copies.
 
-The Radar and Turntable templates use a Key block with `signal = held`; ordinary Key blocks default to `press`. This setting belongs only to the flow node. Configure actions in the vanilla Settings keybind menu. `Diagnostics.DetailedLogging` remains true and enables `[ROTATOR PERF]` every 10 active game seconds per vehicle (avg/max ms per tick, rotators, attached descendants). Native performance results remain pending the game test.
+The Radar and Turntable templates use a Key block with `signal = held`; ordinary Key blocks default to `press`. This setting belongs only to the flow node. Configure actions in the vanilla Settings keybind menu. `Diagnostics.DetailedLogging` is off by default; when set to true it enables `[ROTATOR PERF]` every 10 active game seconds per vehicle (avg/max ms per tick, rotators, attached descendants). Native performance results remain pending the game test.
 
 ## 0.8.1 - templates en draadselectie
 
@@ -21,7 +21,7 @@ Voor een klep tijdens herladen is een directe level-verbinding naar **Follow** v
 
 Kanonvoetteksten tonen de modus, het voertuiggebonden kanon en de groep, plus een eventuele ontbrekende-bronfallback. De bronkeuzelijst valt niet langer terug op kanonnen van andere voertuigen. De pending wire start/stopt alleen bij een wijziging van de gekozen poort; ongewijzigde 10 Hz-refreshes wijzigen alleen live vlaggen/tekst. De zoomlabel-getter is veilig voordat de graph bestaat; getters zijn ook gecontroleerd zonder voertuig/selectie en na teardown.
 
-`Diagnostics.DetailedLogging` blijft standaard `true`. `[FLOW] save/load` (ook API en editor-publicatie) vermeldt `rev`, `blocks`, `wires`, `part`; outputovergangen geven `[FLOW] out <titel> on/off (by <blok>)`. Er is geen nieuwe config-sleutel, API-signature of Harmony-callback.
+`Diagnostics.DetailedLogging` staat standaard uit (`false`); staat hij aan, dan geldt: `[FLOW] save/load` (ook API en editor-publicatie) vermeldt `rev`, `blocks`, `wires`, `part`; outputovergangen geven `[FLOW] out <titel> on/off (by <blok>)`. Er is geen nieuwe config-sleutel, API-signature of Harmony-callback.
 
 Een native/visuele test in de game is nog nodig (zie TESTPLAN.md).
 
@@ -37,7 +37,7 @@ De designer heeft een geïsoleerde simulatie: Fire geeft één tick, Hold/Releas
 
 Opslag: `ioPartId` en een volledige flowkopie op Leaf/Mount en de vier mastmodel-componenten; API-parts via `saveRules`/`loadRules`, met `{partId,flow}`. Hoogste `rev` wint; dubbele part-id krijgt één waarschuwing en een nieuwe GUID. `hingeIoV1` blijft onaangeroerd. Onbekende nodes/velden blijven bewaard.
 
-Vereist **Sprocket UI Kit >=0.1.9 <0.2.0** en de bestaande Keybinds API. `Diagnostics.DetailedLogging` blijft `true`. Geen nieuwe configuratiesleutels of hooks: 24 callbacks op 14 targets. Native gedrag en de paneelopmaak zijn pas in de game te bevestigen.
+Vereist **Sprocket UI Kit >=0.1.9 <0.2.0** en de bestaande Keybinds API. `Diagnostics.DetailedLogging` staat standaard uit (`false`). Geen nieuwe configuratiesleutels of hooks: 24 callbacks op 14 targets. Native gedrag en de paneelopmaak zijn pas in de game te bevestigen.
 
 De omzetting van regels (`hingeIoV1`) naar de flow staat in `tests/MigrationFixtures.cs`; de zes gemengde-Toggle-gevallen wijken daar bewust af.
 

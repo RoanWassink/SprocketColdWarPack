@@ -22,7 +22,7 @@ Objects are visual only: no damage, no forces on the tank, no sound. The Emitter
 
 ## Settings and keys
 
-- Config file: `BepInEx\config\sprocket.emitter.cfg`, written on first start. Defaults: `Meshes.AllowEmbeddedFallback` false, `Limits.MaxObjects` 64, `Limits.MaxCastsPerFrame` 512, `Limits.MaxLifetime` 60 s, `Slope.MaxDegrees` 35, `Slope.Friction` 0.65, `Diagnostics.DetailedLogging` true (verbose log lines in this development build).
+- Config file: `BepInEx\config\sprocket.emitter.cfg`, written on first start. Defaults: `Meshes.AllowEmbeddedFallback` false, `Limits.MaxObjects` 64, `Limits.MaxCastsPerFrame` 512, `Limits.MaxLifetime` 60 s, `Slope.MaxDegrees` 35, `Slope.Friction` 0.65, `Diagnostics.DetailedLogging` false (set it to true for verbose log lines).
 - The `Defaults` section (casing, 30 mm, 3 m/s, 8 deg, 180 deg/s, count 1, repeat off, 0.5 s, 10 s, inherit on) only applies with a Mast older than 0.9.9. With 0.9.9 or later, edit values per part in the Mast I/O Flow inspector.
 - No keys of its own. Use the Mast's I/O Flow keys (default F8, see the Telescopic Mast README) to build the flow.
 - Shipping data: part definition and English localization under `Sprocket_Data\StreamingAssets`, DLL and icon in `BepInEx\plugins\SprocketEmitter\`.

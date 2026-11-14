@@ -27,7 +27,7 @@ Config file: `BepInEx\config\sprocket.engineexpansion.cfg`, created by BepInEx o
 
 | Section / entry | Default |
 |---|---|
-| `Diagnostics` / `DetailedLogging` | true (verbose trace lines; warnings and errors are always logged) |
+| `Diagnostics` / `DetailedLogging` | false (set to true for verbose trace lines; warnings and errors are always logged) |
 | `Drivetrain` / `TransmissionVolumeMultiplier`, `DriveshaftAngleMultiplier`, `RepairInvalidShiftRPM` | 0.5, 2, true |
 | `Powerpack` / `AvailableFrom`, `HousingMassFraction`, `HousingCostFraction` | 1965.01.01, 0.10, 0.15 |
 | `Powerpack.Layout` / `CollapseJunctions`, `MaxCollapseDistance` | true, 1.75 |

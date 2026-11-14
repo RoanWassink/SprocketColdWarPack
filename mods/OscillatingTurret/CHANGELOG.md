@@ -18,7 +18,7 @@
 
 - Fixed the X-ray (O) roll: when an owned behaviour loses its registry entry, the plugin now restores the native up axis before native Apply can run. Native Apply with the plugin's local -X axis produced the 90-degree rolled upper turret.
 - Ownership recovery attempts are now keyed by behaviour and transform, so a rebuilt transform gets a fresh recovery window instead of inheriting an exhausted counter.
-- Added `Diagnostics.DetailedLogging` (on in this build): one line per overlay switch and one line per unclaimed Apply correction, with ring id, X-ray state and the rotation before/after.
+- Added `Diagnostics.DetailedLogging` (off by default): one line per overlay switch and one line per unclaimed Apply correction, with ring id, X-ray state and the rotation before/after.
 
 ## 0.2.10 - 2026-11-01
 

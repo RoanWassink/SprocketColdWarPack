@@ -57,7 +57,7 @@ Tested in the game in earlier 0.22.x builds: shell editor and ammunition HUD, th
 ## Building
 
 .NET project in this folder (`SprocketExpandedBallistics.csproj`, net6.0); it builds against the game's interop assemblies and the built Sprocket JSON Editor, Keybinds and UI Kit plugins:
-`dotnet build SprocketExpandedBallistics.csproj -c Release -p:GameDir=<path to Sprocket folder>`. The two ATGM launch sounds (`audio\atgm.wav`, `audio\atgm_gun.wav`) are embedded at build time and are not part of this repository; supply PCM16 WAVs of your own under those names. Test fixtures are not included either. See [BUILD.md](BUILD.md).
+`dotnet build SprocketExpandedBallistics.csproj -c Release -p:GameDir=<path to Sprocket folder>`. The two ATGM launch sounds (`audio\atgm.wav`, `audio\atgm_gun.wav`) are embedded at build time and are not part of this repository (the released DLL contains them; both were created by the author with his own Suno account); supply PCM16 WAVs of your own under those names to build from this repository. Test fixtures are not included either. See [BUILD.md](BUILD.md).
 
 ## Documents
 

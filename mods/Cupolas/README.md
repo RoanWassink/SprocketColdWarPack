@@ -21,7 +21,7 @@ Adds a commander's cupola in the style of the T-90A (not an exact copy) to the S
 
 ## Settings and keys
 
-- Config file: `BepInEx\config\sprocket.cupolas.cfg` (shipped with the mod; do not overwrite an existing file when copying). The only entry is `Diagnostics.DetailedLogging`, default true (verbose log lines in this development build: READY, SCAN, REJECT, ADOPT, SWAP, STATE, BALANCE, RELEASE).
+- Config file: `BepInEx\config\sprocket.cupolas.cfg` (shipped with the mod; do not overwrite an existing file when copying). The only entry is `Diagnostics.DetailedLogging`, default false (set it to true for verbose log lines: READY, SCAN, REJECT, ADOPT, SWAP, STATE, BALANCE, RELEASE).
 - No keys.
 - Shipping data: part definition (`t90aCupolaPart.json`), English localization (`t90aCupola.xml`) under `Sprocket_Data\StreamingAssets`, and DLL and icon in `BepInEx\plugins\SprocketCupolas\`.
 

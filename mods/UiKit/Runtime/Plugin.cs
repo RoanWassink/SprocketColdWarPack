@@ -15,7 +15,7 @@ public sealed class Plugin : BasePlugin
     internal static ConfigEntry<bool>? BlockGameplay, SuspendGameKeys, BlockKeysWhilePanelFocused;
     internal static ConfigEntry<string>? FontSource;
     /// <summary>Diagnostics.DetailedLogging: gate every trace line with "if (Plugin.Detailed)".</summary>
-    internal static bool Detailed => DetailedLogging?.Value ?? true;
+    internal static bool Detailed => DetailedLogging?.Value ?? false;
     internal static void Trace(string message) => Instance.Log.LogInfo(message);
     private readonly List<Harmony> harmonies = new();
 
@@ -23,7 +23,7 @@ public sealed class Plugin : BasePlugin
     {
         Instance = this;
         Guard.Sink = m => Log.LogWarning(m);
-        DetailedLogging = Config.Bind("Diagnostics", "DetailedLogging", true, "Verbose trace lines for testing. Warnings and errors are always logged.");
+        DetailedLogging = Config.Bind("Diagnostics", "DetailedLogging", false,"Verbose trace lines for testing. Warnings and errors are always logged.");
         ScaleFactor = Config.Bind("Display", "Scale", 1f, new ConfigDescription("Multiplier on the automatic UI scale (screen height / 1080).", new AcceptableValueRange<float>(KitMath.MinFactor, KitMath.MaxFactor)));
         FontSource = Config.Bind("Display", "FontSource", "Default", new ConfigDescription("TMP font route: Default = TMP_Settings.defaultFontAsset first, Scene = the most used font of the game's visible UI first. The other route is the fallback.", new AcceptableValueList<string>("Default", "Scene")));
         BlockGameplay = Config.Bind("Input", "BlockGameplayInput", true, "In game, while a panel is open: block firing, scope, orders and camera turning (panels can opt out).");

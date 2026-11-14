@@ -7,21 +7,18 @@
 - Triumph Complete - victory
 - Skill Issue - defeat (replaces Mechanical Fadeout on 24 October 2026)
 
-Provided by the user on 23 October 2026. The user states they hold rights to all
-three original tracks through Suno and authorizes their use in this mod. This
-records the user's statement, not an independent license audit. The code's
-third-party MIT notice does not grant rights to these recordings.
+All six tracks were created by the author (Nero) with his own Suno account; this
+is the author's statement, not an independent license audit. The code's
+third-party MIT notice (THIRD-PARTY-NOTICES.md) covers code only and does not
+cover these recordings.
 
-The Final Blow was supplied separately by the user on 24 October 2026 with the
-explicit request to use it as this mod's boss battle music. Minimal Focus Loop,
-Heavy Industry and Skill Issue were supplied by the user on 24 October 2026 with
-the request to use them for build mode, normal combat and defeat respectively.
-The earlier Suno rights statement above refers to the original three tracks. No
-broader license or public redistribution permission is inferred for the newer
-recordings.
+The tracks were supplied as MP3s on 23 and 24 October 2026: Mechanical Tension
+and Triumph Complete on 23 October, The Final Blow with the explicit request to
+use it as this mod's boss battle music, and Minimal Focus Loop, Heavy Industry
+and Skill Issue with the request to use them for build mode, normal combat and
+defeat respectively.
 
 Local playback assets are stereo PCM16 WAV conversions of the supplied MP3s at
 44100 Hz, with no normalization, remixing or edits. Original MP3s are unchanged.
 Mechanical Fadeout is no longer part of the active soundtrack; its reviewed WAV
 is kept locally under assets/audio/retired/ and is not installed or packaged.
-This local test package is not a public release or a standalone music license.

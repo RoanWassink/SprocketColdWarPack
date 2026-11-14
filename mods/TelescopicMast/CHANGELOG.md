@@ -25,7 +25,7 @@
 
 ## 0.9.5 - 2026-11-09
 
-- Fix API lamp discovery in designer and game: read VehicleObjectReader.Items, merge known Save/Load/RegisterFlowPart objects for managed and v1 outputs, preserve external keys and sequence, list mirrored copies through duplicate identity handling, warn once for an unlisted managed PartId, and log scan changes with reader/known/registration counts. Brake light can target the discovered lamp. Require UI Kit >=0.1.12 <0.2.0 (focus-only shortcuts); DetailedLogging stays true. No added hooks, native writes, installation, Kit or Visual Effects changes.
+- Fix API lamp discovery in designer and game: read VehicleObjectReader.Items, merge known Save/Load/RegisterFlowPart objects for managed and v1 outputs, preserve external keys and sequence, list mirrored copies through duplicate identity handling, warn once for an unlisted managed PartId, and log scan changes with reader/known/registration counts. Brake light can target the discovered lamp. Require UI Kit >=0.1.12 <0.2.0 (focus-only shortcuts); DetailedLogging is off by default. No added hooks, native writes, installation, Kit or Visual Effects changes.
 
 ## 0.9.4 - 2026-11-08
 
@@ -96,7 +96,7 @@
   Build/OnModelLoaded, Enable/DisablePhysics, SaveState/ToBlueprint,
   LoadData/LoadState, Release, Cannon.Build/OnVehicleBuilt/Release and icons.
 - Version 0.7.1. Existing 0.5/0.6 `hingeIoV1` configs still load and save
-  byte-identically. `Diagnostics.DetailedLogging` remains on by default.
+  byte-identically. `Diagnostics.DetailedLogging` is off by default.
 
 ## 0.7.0 - 2026-11-05
 
@@ -119,7 +119,7 @@
 - Pure `BrakingPolicy`, `OutputChangeGate` and `IoApiCore` support the new tests;
   `Verify.ps1` checks the exact public `IoApi` signatures in the built DLL.
 - Version 0.7.0. Existing 0.5/0.6 `hingeIoV1` configs still load and save
-  byte-identically. `Diagnostics.DetailedLogging` remains on by default.
+  byte-identically. `Diagnostics.DetailedLogging` is off by default.
 
 ## 0.6.1 - 2026-11-01
 
@@ -214,7 +214,7 @@
 - IMGUI I/O panel (Hinge / I/O panel, factory F8): Inputs | Links | Outputs,
   cursor release and gameplay mouse block in game, designer click-through guard
   through `Inputs.pointerOverGUI`, on-screen marker for the selected hinge.
-- `Diagnostics.DetailedLogging` (default **true** in this build) gates all
+- `Diagnostics.DetailedLogging` (default **false**) gates all
   `[Mast SPAWN]`/`[Mast CHILD]`/mast traces and the new `[Hinge ...]`,
   `[IO ...]` and `[Mast TILT]` traces. Warnings and errors are always logged.
 - Verify.ps1: game hash updated to 0.2.56.2; checks all new hook signatures,

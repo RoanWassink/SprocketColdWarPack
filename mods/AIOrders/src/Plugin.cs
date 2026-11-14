@@ -23,11 +23,11 @@ public sealed class Plugin : BasePlugin
     private static ConfigEntry<bool> detailedLogging = null!;
     private static ConfigEntry<int> mapRedrawFps = null!;
     internal static int MapRedrawFps => mapRedrawFps?.Value ?? 12;
-    internal static bool Detailed => detailedLogging?.Value ?? true;
+    internal static bool Detailed => detailedLogging?.Value ?? false;
     public override void Load()
     {
         Instance = this;
-        detailedLogging = Config.Bind("Diagnostics", "DetailedLogging", true, "Verbose trace lines for testing. Warnings and errors are always logged.");
+        detailedLogging = Config.Bind("Diagnostics", "DetailedLogging", false,"Verbose trace lines for testing. Warnings and errors are always logged.");
         mapRedrawFps = Config.Bind("Map", "RedrawFps", 12, new ConfigDescription("Map redraws per second; pan, zoom and selection also invalidate immediately.", new AcceptableValueRange<int>(1, 30)));
         OrdersHost.Stopped = false;
         using var file = File.OpenRead(Path.Combine(Paths.GameRootPath, "GameAssembly.dll"));

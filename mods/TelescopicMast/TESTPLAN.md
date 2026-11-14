@@ -22,13 +22,13 @@ Vooraf: Sprocket UI Kit **>=0.1.12 <0.2.0** staat in `BepInEx\plugins\SprocketUi
 
 ## v0.9.6 (3 stappen; nog niet in de game getest)
 
-1. Open I/O Flow in de designer: de lamp en zijn gespiegelde kopie staan met leesbare, afzonderlijke namen in de partlijst. Bewaar de `[IO EXT] designer list`-regel bij DetailedLogging.
+1. Open I/O Flow in de designer: de lamp en zijn gespiegelde kopie staan met leesbare, afzonderlijke namen in de partlijst. Bewaar de `[IO EXT] designer list`-regel met DetailedLogging aan (standaard uit).
 2. Kies Brake light: Vehicle braking wordt met de lamp verbonden; sla het voertuig op en controleer na herladen dat de draad blijft bestaan (`ioPartId` en `ioFlowV1` op de lamp-parts).
 3. Start de game: de lamp gaat aan bij remmen en uit bij loslaten.
 
 ## v0.9.5 (3 stappen; nog niet in de game getest)
 
-1. Open I/O Flow in de designer van "T80 bvm proporties": een geplaatste lamp verschijnt met een leesbare naam; een gespiegelde lamp staat als eigen output in de lijst. DetailedLogging blijft aan; bewaar de gewijzigde `[IO EXT] scan`-regels.
+1. Open I/O Flow in de designer van "T80 bvm proporties": een geplaatste lamp verschijnt met een leesbare naam; een gespiegelde lamp staat als eigen output in de lijst. Zet DetailedLogging aan (standaard uit); bewaar de gewijzigde `[IO EXT] scan`-regels.
 2. Kies Brake light: het sjabloon is actief en verbindt Vehicle braking met de lamp-output.
 3. Start de game: de lamp gaat aan bij remmen en uit bij loslaten.
 
@@ -83,7 +83,7 @@ Vooraf: Sprocket UI Kit **>=0.1.12 <0.2.0** staat in `BepInEx\plugins\SprocketUi
 4. Kies **Brake light** met een vrije API-bulb; rijden/remmen/loslaten schakelt de lamp. Zonder vrije API-output wordt het geselecteerde scharnier gebruikt. Controleer dat een tweede template een bezet niet-geselecteerd part overslaat en dat geen part dubbel op het canvas komt.
 5. Voertuig opslaan, game sluiten/heropenen en laden: templateblokken, draden, params en hinge-instellingen blijven staan; de hoogste flow-rev keert terug. Bewaar `[FLOW] save/load` (rev/blocks/wires/part), `[FLOW] out ... (by ...)`, IO FIRE/RELOADED en een screenshot.
 
-Voorbereiding: Sprocket dicht, de mast installeren (bestanden kopiëren of `install-all.ps1`), `Diagnostics.DetailedLogging = true` (standaard in deze build). Na de test `BepInEx\LogOutput.log` en het opgeslagen `.blueprint` bewaren.
+Voorbereiding: Sprocket dicht, de mast installeren (bestanden kopiëren of `install-all.ps1`), `Diagnostics.DetailedLogging = true` zetten (standaard uit). Na de test `BepInEx\LogOutput.log` en het opgeslagen `.blueprint` bewaren.
 
 ## v0.8-blok (7 stappen)
 

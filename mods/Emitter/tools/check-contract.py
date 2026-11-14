@@ -125,7 +125,7 @@ check(re.search(r'if\(native\.InteractionMesh!=arrow\)', raw) and 'void Update()
 plugin = (R / 'Plugin.cs').read_text(encoding='utf-8'); proj = (R / 'SprocketEmitter.csproj').read_text(encoding='utf-8')
 check('Version="0.1.1"' in plugin.replace(' ', '') and '<Version>0.1.1</Version>' in proj, 'version 0.1.1 in Plugin and csproj')
 check('"Meshes","AllowEmbeddedFallback",false' in plugin.replace(' ', ''), 'embedded fallback shapes are off by default')
-check('"DetailedLogging",true' in plugin.replace(' ', '') and 'DetailedLogging = true' in (R / 'sprocket.emitter.cfg').read_text(), 'DetailedLogging on in this development build')
+check('"DetailedLogging",false' in plugin.replace(' ', '') and 'DetailedLogging = false' in (R / 'sprocket.emitter.cfg').read_text(), 'DetailedLogging off by default')
 check('SoftDependency' in plugin and '"sprocket.emitter"' in plugin, 'plugin id sprocket.emitter, Mast soft dependency')
 # Lookup by name (RENAME-MAP section 4): Mast GUID and facade type. The soft dependency, the lookup constant and the contract agree.
 client = (R / 'IoApiClient.cs').read_text(encoding='utf-8')

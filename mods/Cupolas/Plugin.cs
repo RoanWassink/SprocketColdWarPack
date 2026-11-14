@@ -13,7 +13,7 @@ public sealed class Plugin : BasePlugin
     public override void Load()
     {
         Instance = this;
-        Detailed = Config.Bind("Diagnostics", "DetailedLogging", true,
+        Detailed = Config.Bind("Diagnostics", "DetailedLogging", false,
             "Verbose trace lines for testing. Warnings and errors are always logged.");
         IconClient.Register();
         driver = AddComponent<CupolaRuntime>();

@@ -117,7 +117,7 @@ internal static class Runtime
     private static bool legacyKeysImported;
     private static ConfigEntry<bool> enabled = null!;
     private static ConfigEntry<bool>? detailedLogging;
-    internal static bool DetailedLogging => detailedLogging?.Value ?? true;
+    internal static bool DetailedLogging => detailedLogging?.Value ?? false;
     private static Dictionary<string, ThermalProfile> models = new(StringComparer.Ordinal);
     private static string defaultProfileId = "thermalSightModel3";
     internal const string VerticalId = "thermalSightVertical";
@@ -164,7 +164,7 @@ internal static class Runtime
     }
     internal static void Configure(ConfigFile config)
     {
-        detailedLogging = config.Bind("Diagnostics", "DetailedLogging", true, "Log sensor layouts and detailed development diagnostics.");
+        detailedLogging = config.Bind("Diagnostics", "DetailedLogging", false,"Log sensor layouts and detailed development diagnostics.");
         enabled = config.Bind("General", "Enabled", true, "Enable thermal only on recognized thermal sight parts.");
         toggle = config.Bind("Keys", "Toggle", Key.N, "Legacy import only; edit Thermal / Toggle in Settings / keybinds.");
         reload = config.Bind("Keys", "ReloadProfiles", Key.F8, "Legacy import only; edit Thermal / Reload profiles in Settings / keybinds. Invalid profiles keep the last accepted catalog.");

@@ -63,7 +63,7 @@ Volg daarna [TESTPLAN.md](TESTPLAN.md) (10 stappen).
 
 ## Diagnostiek en beperkingen
 
-`[Diagnostics] DetailedLogging = true` is de standaard voor deze testbuild. Een reeds opgeslagen cfg-waarde blijft leidend. De switch regelt onder andere `AI Orders quick HUD open/closed`, kaart open/dicht, `AI Orders Kit button: ...`, kaartklikken met knop/wereldpositie/raakobject, `AI Orders map ...` en `Order state: ...`. Warnings en errors blijven altijd zichtbaar. Na een geslaagde in-game test kan de standaard én de geïnstalleerde cfg naar false.
+`[Diagnostics] DetailedLogging = false` is de standaard; zet hem op `true` voor uitgebreide logregels bij het testen. Een reeds opgeslagen cfg-waarde blijft leidend. De switch regelt onder andere `AI Orders quick HUD open/closed`, kaart open/dicht, `AI Orders Kit button: ...`, kaartklikken met knop/wereldpositie/raakobject, `AI Orders map ...` en `Order state: ...`. Warnings en errors blijven altijd zichtbaar.
 
 - De HUD is niet-modaal: geen cursor, geen inputblokkade en geen Esc-afhandeling. De kaart gebruikt nog steeds het Kit-paneel met cursor.
 - De cijfertoetsen zijn gedeeld met game-acties. AI Orders leest ze alleen bij een zichtbare HUD; de toets wordt niet geconsumeerd, dus een native actie op hetzelfde cijfer kan ook afgaan.

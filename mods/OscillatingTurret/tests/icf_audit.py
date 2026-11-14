@@ -257,7 +257,7 @@ def main():
             require(current.read_text(encoding='utf-8-sig') == expected.replace('\r\n', '\n'), 'csproj changed beyond version')
         else:
             require(hashlib.sha256(current.read_bytes()).hexdigest() == record['sha256'], 'out-of-scope source/asset edit: ' + path)
-    print('PASS runtime scope: cleanup body, identity, signal, ring path, Heavy Trunnion, assets and logging default unchanged')
+    print('PASS runtime scope: cleanup body, identity, signal, ring path, Heavy Trunnion, assets unchanged; DetailedLogging default is false')
     targets = extract(sources, baseline)
     resolve = resolver(metadata, primary)
     audit = [resolve(t) for t in targets]

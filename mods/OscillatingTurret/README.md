@@ -33,7 +33,7 @@ Config file: `BepInEx\config\sprocket.oscillatingturret.cfg`, created on first s
 | `Heavy Trunnion / ExtraMassKg` | `250` | Mass the Heavy Trunnion Mount adds. |
 | `Heavy Trunnion / CostFactor` | `2` | Cost multiple on the native price of that mass. |
 | `Heavy Trunnion / MaxDistanceFactor` | `1.5` | Allowed drive-to-trunnion distance as a multiple of 1 m. |
-| `Diagnostics / DetailedLogging` | `true` | One log line per X-ray switch, per correction and per build. |
+| `Diagnostics / DetailedLogging` | `false` | One log line per X-ray switch, per correction and per build. |
 
 Shipped data: three part definitions (`oscillatingElevationDrivePart.json`, `heavyTrunnionMantletPart.json`, `heavyTrunnionDrivePart.json`) and two English localization files in `Sprocket_Data\StreamingAssets`; the plugin folder is `BepInEx\plugins\SprocketOscillatingTurret\`.
 

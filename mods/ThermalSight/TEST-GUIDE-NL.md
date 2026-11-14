@@ -1,6 +1,6 @@
 # Testgids — Thermal Sight 0.4.0: warmtemodel (Nederlands)
 
-Installeren: de uitlevering `dist\thermal-sight\` (via `dist\install-all.ps1`, Sprocket gesloten). `Diagnostics.DetailedLogging` staat aan.
+Installeren: de uitlevering `dist\thermal-sight\` (via `dist\install-all.ps1`, Sprocket gesloten). `Diagnostics.DetailedLogging` staat standaard uit; zet hem voor de tests met logcontrole aan (`DetailedLogging = true` in `sprocket.thermalsight.cfg`, Sprocket gesloten).
 
 ## 0. Vooraf
 - `BepInEx\LogOutput.log`: `Thermal sight v0.4.0 loaded; shared Settings keybinds, dynamic-resolution rendering and per-vehicle heat model supported.`
@@ -194,7 +194,7 @@ paden toe als dat niet nodig is.
 
 ## 10. Thermal Sight 0.3.3 — laser-rangefinder en drop
 
-Laat `Diagnostics.DetailedLogging = true` staan in `sprocket.thermalsight.cfg`.
+Zet `Diagnostics.DetailedLogging = true` in `sprocket.thermalsight.cfg` (staat standaard uit).
 Controleer eerst `Thermal sight v0.3.3 loaded` in de log.
 
 1. Sandbox, dezelfde T-84 met `automaticLaserRangefinder`, t72StyleSight en de

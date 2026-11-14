@@ -19,7 +19,7 @@ public sealed class Plugin:BasePlugin
     internal Settings Defaults=>new Settings {Item=item.Value,Caliber=caliber.Value,Speed=speed.Value,Spread=spread.Value,Spin=spin.Value,Count=count.Value,Continuous=continuous.Value,Interval=interval.Value,Lifetime=lifetime.Value,Inherit=inherit.Value}.Sanitize();
     public override void Load() {
         Instance=this;
-        Detailed=Config.Bind("Diagnostics","DetailedLogging",true,"Verbose trace lines for testing. Warnings and errors are always logged.");
+        Detailed=Config.Bind("Diagnostics","DetailedLogging",false,"Verbose trace lines for testing. Warnings and errors are always logged.");
         AllowFallback=Config.Bind("Meshes","AllowEmbeddedFallback",false,"Use the plain embedded Carousel shapes when no stock rack mesh is available. Off: nothing is thrown without a stock mesh.");
         item=Config.Bind("Defaults","item","casing","casing or projectile");
         caliber=Config.Bind("Defaults","caliber",30f,"Diameter in mm (5-155).");

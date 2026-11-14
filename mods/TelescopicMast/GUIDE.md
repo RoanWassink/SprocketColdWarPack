@@ -59,7 +59,7 @@ even when the designer vehicle has no runtime VehicleBehaviour or ready external
 output. Each row uses its PartId, registration type/provider and M2 part name/number;
 a ready external output wins for the same PartId. Only an unregistered carrier warns.
 Brake light can select the lamp and save its wire as ioFlowV1/ioPartId on the parts.
-DetailedLogging remains **true** and logs changed designer lists as
+DetailedLogging is off by default; when set to true it logs changed designer lists as
 `[IO EXT] designer list parts=<n> registration=<id>:<n>`.
 Gameplay Items discovery, external carrier identity and apply ticking are unchanged.
 Requires **Sprocket UI Kit >=0.1.12 <0.2.0**. No new hooks.
@@ -75,7 +75,7 @@ Managed and v1 outputs share discovery, readable part names and stable sequencin
 Mirrored copies receive their own identity via the existing duplicate path.
 Brake light connects Vehicle braking to a discovered lamp output.
 In 0.9.5 a managed PartId without a ready output emitted one `[IO EXT] managed part not listed:`
-warning (superseded by the registered-carrier list in 0.9.6). DetailedLogging stays **true**; changed discovery emits
+warning (superseded by the registered-carrier list in 0.9.6). DetailedLogging is off by default; when set to true, changed discovery emits
 `[IO EXT] scan vehicle=<ptr> reader=<n> known=<n> found=<registration>:<n>`.
 Requires **Sprocket UI Kit >=0.1.12 <0.2.0**, whose shortcuts reach only the focused
 panel. No new hooks, native writes, Kit or Visual Effects changes.
@@ -232,7 +232,7 @@ Voor een klep tijdens herladen is een directe level-verbinding naar **Follow** v
 
 Kanonvoetteksten tonen de modus, het voertuiggebonden kanon en de groep, plus een eventuele ontbrekende-bronfallback. De bronkeuzelijst valt niet langer terug op kanonnen van andere voertuigen. De pending wire start/stopt alleen bij een wijziging van de gekozen poort; ongewijzigde 10 Hz-refreshes wijzigen alleen live vlaggen/tekst. De zoomlabel-getter is veilig voordat de graph bestaat; getters zijn ook gecontroleerd zonder voertuig/selectie en na teardown.
 
-`Diagnostics.DetailedLogging` blijft standaard `true`. `[FLOW] save/load` (ook API en editor-publicatie) vermeldt `rev`, `blocks`, `wires`, `part`; outputovergangen geven `[FLOW] out <titel> on/off (by <blok>)`. Er is geen nieuwe config-sleutel, API-signature of Harmony-callback.
+`Diagnostics.DetailedLogging` staat standaard uit (`false`); staat hij aan, dan geldt: `[FLOW] save/load` (ook API en editor-publicatie) vermeldt `rev`, `blocks`, `wires`, `part`; outputovergangen geven `[FLOW] out <titel> on/off (by <blok>)`. Er is geen nieuwe config-sleutel, API-signature of Harmony-callback.
 
 Een native/visuele test in de game is nog nodig (zie TESTPLAN.md).
 
@@ -248,7 +248,7 @@ De designer heeft een geïsoleerde simulatie: Fire geeft één tick, Hold/Releas
 
 Opslag: `ioPartId` en een volledige flowkopie op Leaf/Mount en de vier mastmodel-componenten; API-parts via `saveRules`/`loadRules`, met `{partId,flow}`. Hoogste `rev` wint; dubbele part-id krijgt één waarschuwing en een nieuwe GUID. `hingeIoV1` blijft onaangeroerd. Onbekende nodes/velden blijven bewaard.
 
-Vereist **Sprocket UI Kit >=0.1.12 <0.2.0** en de bestaande Keybinds API. `Diagnostics.DetailedLogging` blijft `true`. Geen nieuwe configuratiesleutels of hooks: 24 callbacks op 14 targets. Native gedrag en de paneelopmaak zijn pas in de game te bevestigen.
+Vereist **Sprocket UI Kit >=0.1.12 <0.2.0** en de bestaande Keybinds API. `Diagnostics.DetailedLogging` staat standaard uit (`false`). Geen nieuwe configuratiesleutels of hooks: 24 callbacks op 14 targets. Native gedrag en de paneelopmaak zijn pas in de game te bevestigen.
 
 De omzetting van regels (`hingeIoV1`) naar de flow staat in `tests/MigrationFixtures.cs`; de zes gemengde-Toggle-gevallen wijken daar bewust af.
 

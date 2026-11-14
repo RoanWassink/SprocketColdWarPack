@@ -47,6 +47,6 @@ Version 0.2.34 was installed on 2026-11-09 and is waiting for in-game tests. Ear
 
 ## Building
 
-.NET project in this folder (`SprocketCarouselAutoloader.csproj`, net6.0); build with `dotnet build SprocketCarouselAutoloader.csproj -c Release -p:GameDir=<path to Sprocket folder>`. The UI Kit DLL is taken from `$(GameDir)\BepInEx\plugins\SprocketUiKit` or from `-p:UiKitDll=<path>`. The three reload sound files (`Assets\Audio\t90.wav`, `t64.wav`, `bustle.wav`) are embedded by the project but are not in this folder: the audio files ship with the release only.
+.NET project in this folder (`SprocketCarouselAutoloader.csproj`, net6.0); build with `dotnet build SprocketCarouselAutoloader.csproj -c Release -p:GameDir=<path to Sprocket folder>`. The UI Kit DLL is taken from `$(GameDir)\BepInEx\plugins\SprocketUiKit` or from `-p:UiKitDll=<path>`. The three reload sound files (`Assets\Audio\t90.wav`, `t64.wav`, `bustle.wav`) are embedded by the project but are not in this folder: the audio files ship with the release only. The three sounds were created by the author with his own Suno account.
 
 Release notes: [CHANGELOG.md](CHANGELOG.md). Tests: `dotnet run --project tests\Carousel.Tests.csproj -c Release`. The bustle and revolver meshes come from the OpenSCAD sources in `Models\scad`; the two carousel models are `Models\carousel_t72.obj` and `carousel_t80.obj`.

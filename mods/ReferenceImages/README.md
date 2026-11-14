@@ -22,7 +22,7 @@ Adds a "Reference Image" board part to the vehicle designer. You pick a PNG or J
 
 ## Settings and keys
 
-- Config: `BepInEx\config\sprocket.referenceimages.cfg` (created by BepInEx on first start). One entry: `[Diagnostics] DetailedLogging = true` (verbose log lines; warnings and errors are always logged).
+- Config: `BepInEx\config\sprocket.referenceimages.cfg` (created by BepInEx on first start). One entry: `[Diagnostics] DetailedLogging = false` by default (set to true for verbose log lines; warnings and errors are always logged).
 - Keys, both unbound by default: `Reference Images / Panel` (open the panel for the selected board) and `Reference Images / Paste` (paste the clipboard image onto the selected board). Bind them in the game's Settings > Controls/keybinds > Mod keybinds, which Sprocket Keybinds provides.
 - Select exactly one board before opening the panel; the panel only opens in the designer.
 - Shipped files: `BepInEx\plugins\SprocketReferenceImages\SprocketReferenceImages.dll`, one part JSON (`Sprocket_Data\StreamingAssets\Parts`) and one English localization XML (`Sprocket_Data\StreamingAssets\Localization\en-UK\Parts`).

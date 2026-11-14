@@ -13,7 +13,7 @@ callbacks. Mods only describe content; values update every frame through getters
 - Demo: keybind **UI Kit / Demo**, factory default **unbound** since 0.1.2 (F6 clashed with QoL flashlight): bind it in Settings > keybinds > Mod keybinds.
 - Config `BepInEx\config\sprocket.uikit.cfg`: `Display.Scale` (0.5–2, multiplies screen height/1080),
   `Display.FontSource` (Default/Scene), `Input.BlockGameplayInput`, `Input.BlockKeysWhilePanelFocused` (default true), `Input.SuspendGameKeysWhileTyping`,
-  `Input.SkipBlockTargets`, `Diagnostics.DetailedLogging` (true in this development build).
+  `Input.SkipBlockTargets`, `Diagnostics.DetailedLogging` (default false).
   Panel positions: `sprocket.uikit.panels.cfg` (delete a line to re-centre). Since 0.1.4 a line is
   `x,y` (original size), `x,y,w,h` (resized) or `x,y,w,h,max` (maximized; x,y,w,h = restore rectangle).
 

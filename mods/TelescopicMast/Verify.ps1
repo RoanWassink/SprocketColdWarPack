@@ -134,7 +134,7 @@ $icons=Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'IconHooks.cs')
 foreach($h in $hinge) { if($icons -notmatch [regex]::Escape('"'+$h[1]+'" => "'+$h[6]+'"')) { throw "Icon hook missing for $($h[2])" } }
 'PASS Hinge Mount non-damageable/selectable and icon hooks.'
 $source=Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'Plugin.cs')
-if($source -notmatch 'Config\.Bind\("Diagnostics", "DetailedLogging", true,') { throw 'Diagnostics.DetailedLogging must exist (default true in this development build).' }
+if($source -notmatch 'Config\.Bind\("Diagnostics", "DetailedLogging", false,') { throw 'Diagnostics.DetailedLogging must exist (default false).' }
 if($source -notmatch '"sprocket\.telescopicmast"' -or $source -notmatch 'BepInPlugin\(ModGuid, "Sprocket Telescopic Mast", "0.9.9"\)') { throw 'Mast GUID or version changed.' }
 $dll=if([string]::IsNullOrWhiteSpace($DllPath)){Join-Path $PSScriptRoot 'bin/Release/net6.0/SprocketTelescopicMast.dll'}else{$DllPath}
 $a=[Mono.Cecil.AssemblyDefinition]::ReadAssembly($dll)

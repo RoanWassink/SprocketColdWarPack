@@ -1,6 +1,6 @@
 # Expedition soundtrack — 23 October 2026
 
-The user supplied three MP3s and states they hold rights through Suno for use in
+The author supplied three MP3s, created with his own Suno account, for use in
 the mod. Originals remain unchanged. Local stereo PCM16/44100 Hz WAV conversions
 retain the whole recordings, with no level normalization or remixing:
 

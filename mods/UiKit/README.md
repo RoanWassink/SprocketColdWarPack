@@ -23,7 +23,7 @@ This is a shared library with no gameplay of its own. Other mods in this pack us
 
 ## Settings and keys
 
-- Config file: `BepInEx\config\sprocket.uikit.cfg`. Entries and defaults: `Display.Scale` 1.0 (multiplies the automatic screen-height/1080 scale), `Display.FontSource` Default, `Input.BlockGameplayInput` true, `Input.BlockKeysWhilePanelFocused` true, `Input.SuspendGameKeysWhileTyping` true, `Input.SkipBlockTargets` empty, `Diagnostics.DetailedLogging` true (verbose log lines in this development build).
+- Config file: `BepInEx\config\sprocket.uikit.cfg`. Entries and defaults: `Display.Scale` 1.0 (multiplies the automatic screen-height/1080 scale), `Display.FontSource` Default, `Input.BlockGameplayInput` true, `Input.BlockKeysWhilePanelFocused` true, `Input.SuspendGameKeysWhileTyping` true, `Input.SkipBlockTargets` empty, `Diagnostics.DetailedLogging` false (set it to true for verbose log lines).
 - Panel positions and sizes are stored in `BepInEx\config\sprocket.uikit.panels.cfg`. Delete a line there to re-centre that panel.
 - Key: "UI Kit / Demo" opens the demo panel. It is unbound by default; bind it in Settings > Controls > Mod keybinds.
 - Plugin folder: `BepInEx\plugins\SprocketUiKit\`. It ships no parts, technology or localization data.

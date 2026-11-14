@@ -6,7 +6,7 @@ Prepared development build for the locally inspected Sprocket 0.2.56.2 Experimen
 
 With Sprocket closed, copy the five shipped files into the Sprocket folder, keeping the folder layout: `BepInEx/plugins/SprocketCupolas/SprocketCupolas.dll` and `t90a-cupola-icon.png`, `Sprocket_Data/StreamingAssets/Parts/t90aCupolaPart.json`, `Sprocket_Data/StreamingAssets/Localization/en-UK/Parts/t90aCupola.xml` and the default `BepInEx/config/sprocket.cupolas.cfg` (do not overwrite an existing config). `Build-Package.ps1 -Out <empty folder>` stages exactly these files in that layout after a build. To uninstall, remove the plugin folder `BepInEx/plugins/SprocketCupolas` and the two part files.
 
-`BepInEx/config/sprocket.cupolas.cfg` has `[Diagnostics] DetailedLogging = true` in this development build. Logs include bounded READY / SCAN / REJECT / ADOPT / SWAP / STATE / BALANCE / RELEASE records. `CLOSED_REFERENCE` means the initial measured pose; it is not a native open/closed state. There are no new Harmony hooks, UI or controls.
+`BepInEx/config/sprocket.cupolas.cfg` has `[Diagnostics] DetailedLogging = false` by default; set it to `true` for diagnosis. With it on, logs include bounded READY / SCAN / REJECT / ADOPT / SWAP / STATE / BALANCE / RELEASE records. `CLOSED_REFERENCE` means the initial measured pose; it is not a native open/closed state. There are no new Harmony hooks, UI or controls.
 
 The supplied approved icon registers through the optional Telescopic Mast IO-API revision 1 already present in that mod. Without that API, the native fallback icon appears and the part remains usable. This mod does not register any flow output or save data.
 

@@ -22,7 +22,7 @@ It also offers an I/O API that other mods use to put their own parts into the sa
 
 ## Settings and keys
 
-- Config file: `BepInEx\config\sprocket.telescopicmast.cfg`. Defaults: `General.Enabled` true, `Mechanism.StrokeMetres` 1.0 (0.05-1), `Mechanism.SpeedMetresPerSecond` 0.2 (0.01-1), `Diagnostics.DetailedLogging` true (verbose log lines in this development build), `Diagnostics.PassiveAtStartup` false. `Keys.Raise` and `Keys.Lower` are only read once to migrate old bindings.
+- Config file: `BepInEx\config\sprocket.telescopicmast.cfg`. Defaults: `General.Enabled` true, `Mechanism.StrokeMetres` 1.0 (0.05-1), `Mechanism.SpeedMetresPerSecond` 0.2 (0.01-1), `Diagnostics.DetailedLogging` false (set it to true for verbose log lines), `Diagnostics.PassiveAtStartup` false. `Keys.Raise` and `Keys.Lower` are only read once to migrate old bindings.
 - Keys (rebind in Settings > Controls > Mod keybinds): Mast / Raise Insert, Mast / Lower Delete, I/O Flow / Open panel F8, I/O Flow / Action 1 to 4 Numpad 1 to 4. F8 is also the factory key of some other mod actions.
 - Panel position is stored by the UI Kit in `sprocket.uikit.panels.cfg`.
 - Shipping data: eight part definitions and their English localization under `Sprocket_Data\StreamingAssets`, and part icons in `BepInEx\plugins\SprocketTelescopicMast\assets`.

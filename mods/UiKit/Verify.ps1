@@ -280,10 +280,10 @@ if($dispatch -match '\btop\b' -or $dispatch -notmatch 'shortcutOwner\.ModalOpen'
 'PASS keyboard dispatch: Enter and shortcuts use the focused panel (modal/default action), mutation-safe snapshot.'
 
 $plugin=Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'Runtime/Plugin.cs')
-if($plugin -notmatch 'Config\.Bind\("Diagnostics", "DetailedLogging", true,') { throw 'Diagnostics.DetailedLogging must exist (default true in this development build).' }
+if($plugin -notmatch 'Config\.Bind\("Diagnostics", "DetailedLogging", false,') { throw 'Diagnostics.DetailedLogging must exist (default false).' }
 [xml]$project=Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'SprocketUiKit.csproj')
 $reference=@($project.Project.ItemGroup.Reference | Where-Object Include -eq 'SprocketKeybinds')
 if($reference.Count -ne 1 -or $reference[0].Private -ne 'false') { throw 'Keybinds API must be referenced Private=false.' }
 if(Test-Path (Join-Path (Split-Path -Parent $dll) 'SprocketKeybinds.dll')) { throw 'Do not ship a Keybinds API copy.' }
-'PASS DetailedLogging default true, Keybinds reference Private=false, no Keybinds copy next to the UI Kit DLL.'
+'PASS DetailedLogging default false, Keybinds reference Private=false, no Keybinds copy next to the UI Kit DLL.'
 'ALL PASS. Not proven here: drawing, font, clicks, typing, cursor, click-through and input block in game (see TESTPLAN.md).'

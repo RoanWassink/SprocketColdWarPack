@@ -46,7 +46,7 @@ public sealed class Plugin:BasePlugin
     {
         Instance=this;
         Enabled=Config.Bind("Visuals","Enabled",true,"Optional cannon-shot overlay. Native flash/audio/damage stay active.");
-        Detailed=Config.Bind("Diagnostics","DetailedLogging",true,"Verbose trace lines for testing. Warnings and errors are always logged.");
+        Detailed=Config.Bind("Diagnostics","DetailedLogging",false,"Verbose trace lines for testing. Warnings and errors are always logged.");
         Minimum=Config.Bind("Visuals","MinimumCalibreMm",50f,new ConfigDescription("Minimum cannon calibre in millimetres.",new AcceptableValueRange<float>(20,500)));
         Multiplier=Config.Bind("Visuals","ScaleMultiplier",1f,new ConfigDescription("Visual scale; calibre/120mm is separately clamped to 0.35-2.5.",new AcceptableValueRange<float>(.25f,3)));
         Capacity=Config.Bind("Visuals","MaxConcurrentEffects",12,new ConfigDescription("Preallocated pool. Restart to change capacity; oldest shot recycled when full.",new AcceptableValueRange<int>(1,24)));

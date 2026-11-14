@@ -27,7 +27,7 @@ Adds a visual overlay to cannon shots (muzzle blast, lit smoke puffs, ground dus
 - `[Visuals]`: `Enabled = true`, `MinimumCalibreMm = 50`, `MaxDistance = 1500`, `MuzzleLight = true`, `GroundDust = true`, `WindSpeed = 2.5`, `WindDirection = 200`, `FallbackToBillboard = true`.
 - `[Smoke]`: `SmokeAmount`, `SmokeSize`, `SmokeLifetime`, `SmokeBrightness`, `DustAmount` (all 1 by default; 0 for no smoke or dust).
 - `[Lamps]`: `LampDefaultOn = false`, `MaxLamps = 24`, `MaxDistance = 250`, per-shape fallback colour, intensity and range, `LensBrightness`, `HaloStrength`.
-- `[Diagnostics]`: `DetailedLogging` is `true` by default (verbose test trace); set it to `false` for normal play.
+- `[Diagnostics]`: `DetailedLogging` is `false` by default; set it to `true` for a verbose test trace.
 - Keys: none. The mod does not use Sprocket Keybinds.
 - Shipped data: three part JSON files (`Sprocket_Data\StreamingAssets\Parts`), English localization XML files, muzzle atlases and `effect-manifest.json`, lamp icons and halo texture, in `BepInEx\plugins\SprocketVisualEffects\`.
 - `sprocketvfx.bundle` (Unity AssetBundle with the volumetric shader and material) is not in this repository copy; it is part of the release and is installed next to the DLL.

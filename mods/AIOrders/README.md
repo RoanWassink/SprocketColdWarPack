@@ -21,7 +21,7 @@ Lets you give orders to your AI allies in battle: a small number-key menu on F9 
 
 ## Settings and keys
 
-- Config: `BepInEx\config\sprocket.aiorders.cfg` (created by BepInEx on first start). `[Map] RedrawFps = 12` (1 to 30) and `[Diagnostics] DetailedLogging = true` (verbose trace; set to `false` for normal play).
+- Config: `BepInEx\config\sprocket.aiorders.cfg` (created by BepInEx on first start). `[Map] RedrawFps = 12` (1 to 30) and `[Diagnostics] DetailedLogging = false` by default (set to `true` for a verbose trace).
 - Keys (defaults): `F9` Quick orders HUD, `M` Tactical map, `1` to `9` Menu choice, `0` Menu back / close. Rebind them under "AI Orders" in the game's Settings > Controls/keybinds > Mod keybinds, which Sprocket Keybinds provides.
 - On the map the number keys select tanks 1 to 9 (Shift adds) and 0 toggles all or none.
 - Shipped files: `BepInEx\plugins\SprocketAIOrders\SprocketAIOrders.dll` only; no part, technology or localization files.

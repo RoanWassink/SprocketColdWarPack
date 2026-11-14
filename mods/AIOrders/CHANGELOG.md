@@ -41,5 +41,5 @@
 - De bestaande topokaart, markers, routes en labels blijven IMGUI-tekeningen rechts van het Kit-paneel.
 - Cursorbeheer, gameplay-inputblokkering, Esc en pauze/scènewissel verlopen via de Kit.
 - Eigen inputpatches, cursorcode en IMGUI-knoppen verwijderd; orderbeleid, GUID en keybind-ID's behouden.
-- `Diagnostics.DetailedLogging` standaard aan voor deze testbuild.
+- `Diagnostics.DetailedLogging` aanwezig, standaard uit.
 - Verify.ps1, voorbereide Install.ps1, pure regressietests en TESTPLAN.md toegevoegd.

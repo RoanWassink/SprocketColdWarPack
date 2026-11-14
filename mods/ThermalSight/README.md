@@ -30,7 +30,7 @@ Config file: `BepInEx\config\sprocket.thermalsight.cfg`, created on first start.
 | `Rangefinder / MaximumDistanceMetres`, `MinimumDistanceMetres` | `4000`, `50` | Measurable distance window. |
 | `Rangefinder / CooldownSeconds`, `DisplaySeconds` | `3`, `5` | Time between readings, and how long one stays visible. |
 | `Heat / Enabled`, `Heat / InvertSpotY` | `true`, `false` | Heat model on or off; flip hot spots vertically if they look mirrored. |
-| `Diagnostics / DetailedLogging` | `true` | Detailed sensor and heat log lines. |
+| `Diagnostics / DetailedLogging` | `false` | Detailed sensor and heat log lines. |
 
 The `Heat` section has many more tuning values (ambient temperature, warm-up and cool-down times, polling rate, range). Keys are bound in the game's Settings keybind menu (Sprocket Keybinds), group "Thermal": Toggle (default N), Reload profiles (default F8) and Measure range (unbound by default). The `[Keys]` entries in the cfg are legacy values imported once.
 
