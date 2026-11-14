@@ -1,0 +1,509 @@
+{
+  "schemaVersion": 2,
+  "matchMode": "componentId",
+  "bindings": [
+    {
+      "cassetteComponentId": "kontakt1Cassette",
+      "mountComponentId": "kontakt1Mount",
+      "materialId": "kontakt1Cassette",
+      "responseId": "kontakt1Cassette",
+      "kind": "lightEra"
+    },
+    {
+      "cassetteComponentId": "kontakt5Cassette",
+      "mountComponentId": "kontakt5Mount",
+      "materialId": "kontakt5Cassette",
+      "responseId": "kontakt5Cassette",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "experimentalKontakt5Cassette",
+      "mountComponentId": "experimentalKontakt5Mount",
+      "materialId": "experimentalKontakt5Cassette",
+      "responseId": "experimentalKontakt5Cassette",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "reliktCassette",
+      "mountComponentId": "reliktMount",
+      "materialId": "reliktCassette",
+      "responseId": "reliktCassette",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "experimentalReliktCassette",
+      "mountComponentId": "experimentalReliktMount",
+      "materialId": "experimentalReliktCassette",
+      "responseId": "experimentalReliktCassette",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "reliktTurretCassette",
+      "mountComponentId": "reliktTurretMount",
+      "materialId": "reliktCassette",
+      "responseId": "reliktCassette",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "nizhCassette",
+      "mountComponentId": "nizhMount",
+      "materialId": "nizhCassette",
+      "responseId": "nizhCassette",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "experimentalNizhCassette",
+      "mountComponentId": "experimentalNizhMount",
+      "materialId": "experimentalNizhCassette",
+      "responseId": "experimentalNizhCassette",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "experimentalNizh34Insert",
+      "mountComponentId": "experimentalNizh34Housing",
+      "materialId": "experimentalNizh34Insert",
+      "responseId": "experimentalNizh34Insert",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "experimentalNizh19Insert",
+      "mountComponentId": "experimentalNizh19Housing",
+      "materialId": "experimentalNizh19Insert",
+      "responseId": "experimentalNizh19Insert",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "dupletCassette",
+      "mountComponentId": "dupletMount",
+      "materialId": "dupletCassette",
+      "responseId": "dupletCassette",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "dupletHullCassette",
+      "mountComponentId": "dupletHullMount",
+      "materialId": "dupletCassette",
+      "responseId": "dupletCassette",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "dupletHullFrontCassette",
+      "mountComponentId": "dupletHullFrontMount",
+      "materialId": "dupletCassette",
+      "responseId": "dupletCassette",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "dupletHullMiddleCassette",
+      "mountComponentId": "dupletHullMiddleMount",
+      "materialId": "dupletCassette",
+      "responseId": "dupletCassette",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "dupletHullRearCassette",
+      "mountComponentId": "dupletHullRearMount",
+      "materialId": "dupletCassette",
+      "responseId": "dupletCassette",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "experimentalDupletFrontCassette",
+      "mountComponentId": "experimentalDupletFrontMount",
+      "materialId": "experimentalNizhCassette",
+      "responseId": "experimentalNizhCassette",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "experimentalDupletRearCassette",
+      "mountComponentId": "experimentalDupletRearMount",
+      "materialId": "experimentalNizhCassette",
+      "responseId": "experimentalNizhCassette",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "kontakt1Stage1Cell1",
+      "mountComponentId": "kontakt1Housing",
+      "materialId": "kontakt1Active",
+      "responseId": "kontakt1Active",
+      "kind": "lightEra"
+    },
+    {
+      "cassetteComponentId": "kontakt5Stage1Cell1",
+      "mountComponentId": "kontakt5Housing",
+      "materialId": "kontakt5Active",
+      "responseId": "kontakt5Active",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "kontakt5Stage1Cell2",
+      "mountComponentId": "kontakt5Housing",
+      "materialId": "kontakt5Active",
+      "responseId": "kontakt5Active",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "reliktStage1Cell1",
+      "mountComponentId": "reliktHousing",
+      "materialId": "reliktActive",
+      "responseId": "reliktActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "reliktStage1Cell2",
+      "mountComponentId": "reliktHousing",
+      "materialId": "reliktActive",
+      "responseId": "reliktActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "reliktTurretStage1Cell1",
+      "mountComponentId": "reliktTurretHousing",
+      "materialId": "reliktTurretActive",
+      "responseId": "reliktTurretActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "reliktTurretStage1Cell2",
+      "mountComponentId": "reliktTurretHousing",
+      "materialId": "reliktTurretActive",
+      "responseId": "reliktTurretActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "nizhLegacyStage1Cell1",
+      "mountComponentId": "nizhLegacyHousing",
+      "materialId": "nizhLegacyActive",
+      "responseId": "nizhLegacyActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "dupletLegacySingleStage1Cell1",
+      "mountComponentId": "dupletLegacySingleHousing",
+      "materialId": "dupletLegacySingleActive",
+      "responseId": "dupletLegacySingleActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "dupletLegacyIntegratedStage1Cell1",
+      "mountComponentId": "dupletLegacyIntegratedHousing",
+      "materialId": "dupletLegacyIntegratedActive",
+      "responseId": "dupletLegacyIntegratedActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "dupletLegacyIntegratedStage2Cell1",
+      "mountComponentId": "dupletLegacyIntegratedHousing",
+      "materialId": "dupletLegacyIntegratedActive",
+      "responseId": "dupletLegacyIntegratedActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "dupletHullStage1Cell1",
+      "mountComponentId": "dupletHullHousing",
+      "materialId": "dupletHullActive",
+      "responseId": "dupletHullActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "dupletHullStage2Cell1",
+      "mountComponentId": "dupletHullHousing",
+      "materialId": "dupletHullActive",
+      "responseId": "dupletHullActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "dupletHullZonesStage1Cell1",
+      "mountComponentId": "dupletHullZonesHousing",
+      "materialId": "dupletHullZonesActive",
+      "responseId": "dupletHullZonesActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "dupletHullZonesStage1Cell2",
+      "mountComponentId": "dupletHullZonesHousing",
+      "materialId": "dupletHullZonesActive",
+      "responseId": "dupletHullZonesActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "dupletHullZonesStage1Cell3",
+      "mountComponentId": "dupletHullZonesHousing",
+      "materialId": "dupletHullZonesActive",
+      "responseId": "dupletHullZonesActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "dupletHullZonesStage2Cell1",
+      "mountComponentId": "dupletHullZonesHousing",
+      "materialId": "dupletHullZonesActive",
+      "responseId": "dupletHullZonesActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "dupletHullZonesStage2Cell2",
+      "mountComponentId": "dupletHullZonesHousing",
+      "materialId": "dupletHullZonesActive",
+      "responseId": "dupletHullZonesActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "dupletHullZonesStage2Cell3",
+      "mountComponentId": "dupletHullZonesHousing",
+      "materialId": "dupletHullZonesActive",
+      "responseId": "dupletHullZonesActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "nizh34Stage1Cell1",
+      "mountComponentId": "nizh34Housing",
+      "materialId": "nizh34Active",
+      "responseId": "nizh34Active",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "nizh19Stage1Cell1",
+      "mountComponentId": "nizh19Housing",
+      "materialId": "nizh19Active",
+      "responseId": "nizh19Active",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "nizh1MStage1Cell1",
+      "mountComponentId": "nizh1MHousing",
+      "materialId": "nizh1MActive",
+      "responseId": "nizh1MActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "duplet2MStage1Cell1",
+      "mountComponentId": "duplet2MHousing",
+      "materialId": "duplet2MActive",
+      "responseId": "duplet2MActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "duplet2MStage2Cell1",
+      "mountComponentId": "duplet2MHousing",
+      "materialId": "duplet2MActive",
+      "responseId": "duplet2MActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "duplet2MHullStage1Cell1",
+      "mountComponentId": "duplet2MHullHousing",
+      "materialId": "duplet2MHullActive",
+      "responseId": "duplet2MHullActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "duplet2MHullStage2Cell1",
+      "mountComponentId": "duplet2MHullHousing",
+      "materialId": "duplet2MHullActive",
+      "responseId": "duplet2MHullActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "nizhLmInsert",
+      "mountComponentId": "nizhLmHousing",
+      "materialId": "nizhLmInsert",
+      "responseId": "nizhLmInsert",
+      "kind": "lightEra"
+    },
+    {
+      "cassetteComponentId": "dupletModularStage1Cell",
+      "mountComponentId": "dupletModularHousing",
+      "materialId": "dupletHullActive",
+      "responseId": "dupletHullActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "dupletModularStage2Cell",
+      "mountComponentId": "dupletModularHousing",
+      "materialId": "dupletHullActive",
+      "responseId": "dupletHullActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "dupletModularSlimStage1Cell",
+      "mountComponentId": "dupletModularSlimHousing",
+      "materialId": "dupletHullActive",
+      "responseId": "dupletHullActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "dupletModularSlimStage2Cell",
+      "mountComponentId": "dupletModularSlimHousing",
+      "materialId": "dupletHullActive",
+      "responseId": "dupletHullActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "reliktPanelTurretCell",
+      "mountComponentId": "reliktPanelTurretHousing",
+      "materialId": "reliktActive",
+      "responseId": "reliktActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "reliktPanelHullCell",
+      "mountComponentId": "reliktPanelHullHousing",
+      "materialId": "reliktActive",
+      "responseId": "reliktActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "reliktSideBoxCell",
+      "mountComponentId": "reliktSideBoxHousing",
+      "materialId": "reliktActive",
+      "responseId": "reliktActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "nizhPanelCell",
+      "mountComponentId": "nizhPanelHousing",
+      "materialId": "nizh34Active",
+      "responseId": "nizh34Active",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "dupletPanelTurretStage1Cell",
+      "mountComponentId": "dupletPanelTurretHousing",
+      "materialId": "dupletHullActive",
+      "responseId": "dupletHullActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "dupletPanelTurretStage2Cell",
+      "mountComponentId": "dupletPanelTurretHousing",
+      "materialId": "dupletHullActive",
+      "responseId": "dupletHullActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "dupletPanelHullStage1Cell",
+      "mountComponentId": "dupletPanelHullHousing",
+      "materialId": "dupletHullActive",
+      "responseId": "dupletHullActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "dupletPanelHullStage2Cell",
+      "mountComponentId": "dupletPanelHullHousing",
+      "materialId": "dupletHullActive",
+      "responseId": "dupletHullActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "dupletSideModuleStage1Cell",
+      "mountComponentId": "dupletSideModuleHousing",
+      "materialId": "dupletHullActive",
+      "responseId": "dupletHullActive",
+      "kind": "heavyEra"
+    },
+    {
+      "cassetteComponentId": "dupletSideModuleStage2Cell",
+      "mountComponentId": "dupletSideModuleHousing",
+      "materialId": "dupletHullActive",
+      "responseId": "dupletHullActive",
+      "kind": "heavyEra"
+    }
+  ],
+  "sharedHousings": [
+    {
+      "mountComponentId": "kontakt5Housing",
+      "cassetteComponentIds": [
+        "kontakt5Stage1Cell1",
+        "kontakt5Stage1Cell2"
+      ]
+    },
+    {
+      "mountComponentId": "reliktHousing",
+      "cassetteComponentIds": [
+        "reliktStage1Cell1",
+        "reliktStage1Cell2"
+      ]
+    },
+    {
+      "mountComponentId": "reliktTurretHousing",
+      "cassetteComponentIds": [
+        "reliktTurretStage1Cell1",
+        "reliktTurretStage1Cell2"
+      ]
+    },
+    {
+      "mountComponentId": "dupletLegacyIntegratedHousing",
+      "cassetteComponentIds": [
+        "dupletLegacyIntegratedStage1Cell1",
+        "dupletLegacyIntegratedStage2Cell1"
+      ]
+    },
+    {
+      "mountComponentId": "dupletHullHousing",
+      "cassetteComponentIds": [
+        "dupletHullStage1Cell1",
+        "dupletHullStage2Cell1"
+      ]
+    },
+    {
+      "mountComponentId": "dupletHullZonesHousing",
+      "cassetteComponentIds": [
+        "dupletHullZonesStage1Cell1",
+        "dupletHullZonesStage1Cell2",
+        "dupletHullZonesStage1Cell3",
+        "dupletHullZonesStage2Cell1",
+        "dupletHullZonesStage2Cell2",
+        "dupletHullZonesStage2Cell3"
+      ]
+    },
+    {
+      "mountComponentId": "duplet2MHousing",
+      "cassetteComponentIds": [
+        "duplet2MStage1Cell1",
+        "duplet2MStage2Cell1"
+      ]
+    },
+    {
+      "mountComponentId": "duplet2MHullHousing",
+      "cassetteComponentIds": [
+        "duplet2MHullStage1Cell1",
+        "duplet2MHullStage2Cell1"
+      ]
+    },
+    {
+      "mountComponentId": "dupletModularHousing",
+      "cassetteComponentIds": [
+        "dupletModularStage1Cell",
+        "dupletModularStage2Cell"
+      ]
+    },
+    {
+      "mountComponentId": "dupletModularSlimHousing",
+      "cassetteComponentIds": [
+        "dupletModularSlimStage1Cell",
+        "dupletModularSlimStage2Cell"
+      ]
+    },
+    {
+      "mountComponentId": "dupletPanelTurretHousing",
+      "cassetteComponentIds": [
+        "dupletPanelTurretStage1Cell",
+        "dupletPanelTurretStage2Cell"
+      ]
+    },
+    {
+      "mountComponentId": "dupletPanelHullHousing",
+      "cassetteComponentIds": [
+        "dupletPanelHullStage1Cell",
+        "dupletPanelHullStage2Cell"
+      ]
+    },
+    {
+      "mountComponentId": "dupletSideModuleHousing",
+      "cassetteComponentIds": [
+        "dupletSideModuleStage1Cell",
+        "dupletSideModuleStage2Cell"
+      ]
+    }
+  ]
+}

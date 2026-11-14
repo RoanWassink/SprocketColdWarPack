@@ -1,0 +1,7 @@
+{
+  "v": "0.0",
+  "id": "sprocket.stabilization.traverse",
+  "type": "traverseMotor",
+  "date": "1948.01.01",
+  "properties": { "maxMotorTorque": 8000 }
+}

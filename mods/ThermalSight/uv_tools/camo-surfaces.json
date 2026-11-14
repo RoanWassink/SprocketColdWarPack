@@ -1,0 +1,224 @@
+[
+  {
+    "part": "irSearchlight",
+    "asset": "ir-searchlight.obj",
+    "paint": [
+      "housing"
+    ],
+    "fixed": [
+      "lens"
+    ],
+    "reason": "Behuizing in exterior paint; IR-filterglas vast.",
+    "source": "package/Sprocket_Data/StreamingAssets/Parts/irSearchlightPart.json"
+  },
+  {
+    "part": "laserBoxSight",
+    "asset": "box-sight.obj",
+    "paint": [
+      "paint"
+    ],
+    "fixed": [
+      "steel",
+      "dark",
+      "lens"
+    ],
+    "reason": "Bestaande 0.3.6-verdeling behouden: kast/klep/lensranden camo; donker blankstaal/beslag, donkere details en optiek vast.",
+    "source": "package/Sprocket_Data/StreamingAssets/Parts/laserBoxSightPart.json"
+  },
+  {
+    "part": "thermalSightLens",
+    "asset": "LensAssets procedural",
+    "paint": [],
+    "fixed": [
+      "glass",
+      "nativeRim"
+    ],
+    "reason": "Geen behuizing: front/achtervlak zijn glas; nativeRim is de donkere optische bevelrand, geen structureel frame.",
+    "source": "package/Sprocket_Data/StreamingAssets/Parts/thermalSightLensPart.json"
+  },
+  {
+    "part": "thermalSightMk3BlackHot",
+    "asset": "thermal-head.obj",
+    "paint": [
+      "Paint"
+    ],
+    "fixed": [
+      "Dark",
+      "Lens"
+    ],
+    "reason": "Behuizing camo; donkere apertuurranden en IR-lens vast. Ook legacy-profielonderdelen gebruiken dit model.",
+    "source": "package/Sprocket_Data/StreamingAssets/Parts/thermalSightMk3BlackHotPart.json"
+  },
+  {
+    "part": "thermalSightMk3WhiteHot",
+    "asset": "thermal-head.obj",
+    "paint": [
+      "Paint"
+    ],
+    "fixed": [
+      "Dark",
+      "Lens"
+    ],
+    "reason": "Behuizing camo; donkere apertuurranden en IR-lens vast. Ook legacy-profielonderdelen gebruiken dit model.",
+    "source": "package/Sprocket_Data/StreamingAssets/Parts/thermalSightMk3WhiteHotPart.json"
+  },
+  {
+    "part": "thermalSightModel1",
+    "asset": "thermal-head.obj",
+    "paint": [
+      "Paint"
+    ],
+    "fixed": [
+      "Dark",
+      "Lens"
+    ],
+    "reason": "Behuizing camo; donkere apertuurranden en IR-lens vast. Ook legacy-profielonderdelen gebruiken dit model.",
+    "source": "package/Sprocket_Data/StreamingAssets/Parts/thermalSightModel1Part.json"
+  },
+  {
+    "part": "thermalSightModel2",
+    "asset": "thermal-head.obj",
+    "paint": [
+      "Paint"
+    ],
+    "fixed": [
+      "Dark",
+      "Lens"
+    ],
+    "reason": "Behuizing camo; donkere apertuurranden en IR-lens vast. Ook legacy-profielonderdelen gebruiken dit model.",
+    "source": "package/Sprocket_Data/StreamingAssets/Parts/thermalSightModel2Part.json"
+  },
+  {
+    "part": "thermalSightModel3",
+    "asset": "thermal-head.obj",
+    "paint": [
+      "Paint"
+    ],
+    "fixed": [
+      "Dark",
+      "Lens"
+    ],
+    "reason": "Behuizing camo; donkere apertuurranden en IR-lens vast. Ook legacy-profielonderdelen gebruiken dit model.",
+    "source": "package/Sprocket_Data/StreamingAssets/Parts/thermalSightModel3Part.json"
+  },
+  {
+    "part": "thermalSight",
+    "asset": "thermal-head.obj",
+    "paint": [
+      "Paint"
+    ],
+    "fixed": [
+      "Dark",
+      "Lens"
+    ],
+    "reason": "Behuizing camo; donkere apertuurranden en IR-lens vast. Ook legacy-profielonderdelen gebruiken dit model.",
+    "source": "package/Sprocket_Data/StreamingAssets/Parts/thermalSightPart.json"
+  },
+  {
+    "part": "thermalSightVertical",
+    "asset": "thermal-head-vertical.obj",
+    "paint": [
+      "Paint"
+    ],
+    "fixed": [
+      "Dark",
+      "Lens"
+    ],
+    "reason": "Behuizing camo; donkere apertuurranden en IR-lens vast. Ook legacy-profielonderdelen gebruiken dit model.",
+    "source": "package/Sprocket_Data/StreamingAssets/Parts/thermalSightVerticalPart.json"
+  },
+  {
+    "part": "sightConsole",
+    "asset": "fcs-console.obj",
+    "paint": [
+      "Housing"
+    ],
+    "fixed": [
+      "Glass (lege submesh)"
+    ],
+    "reason": "Behuizing camo; de gereserveerde optische submesh en eventueel scherm blijven vast.",
+    "source": "Native part (alleen gelezen); routing in src/"
+  },
+  {
+    "part": "t72StyleSight",
+    "asset": "t72-style-sight.obj",
+    "paint": [
+      "Housing"
+    ],
+    "fixed": [
+      "Glass",
+      "AmberGlass"
+    ],
+    "reason": "Behuizing inclusief montageframe camo; beide optische materialen vast.",
+    "source": "Native part (alleen gelezen); routing in src/"
+  },
+  {
+    "part": "laserRangefinderSight",
+    "asset": "lrf-concept.obj",
+    "paint": [
+      "Paint",
+      "PaintLight",
+      "Mount"
+    ],
+    "fixed": [
+      "Glass"
+    ],
+    "reason": "Alle kastdelen en montagepoten zijn structureel; alle glasvlakken vast.",
+    "source": "Native part (alleen gelezen); routing in src/"
+  },
+  {
+    "part": "automaticLaserRangefinder",
+    "asset": "automatic-lrf.obj",
+    "paint": [
+      "Paint"
+    ],
+    "fixed": [
+      "Integrated rangefinder glass"
+    ],
+    "reason": "Kast, voet en vensterrand camo; los ge\u00efntegreerd optisch vlak vast.",
+    "source": "Native part (alleen gelezen); routing in src/"
+  },
+  {
+    "part": "opticalCoincidenceRangefinder",
+    "asset": "optical-rangefinder.obj",
+    "paint": [
+      "Paint",
+      "Tube"
+    ],
+    "fixed": [
+      "Glass"
+    ],
+    "reason": "Kast, structurele dwarsbuis en eindhuizen camo; optische vensters vast.",
+    "source": "Native part (alleen gelezen); routing in src/"
+  },
+  {
+    "part": "clearWindowPane",
+    "asset": "LensAssets procedural",
+    "paint": [],
+    "fixed": [
+      "glass"
+    ],
+    "reason": "Frameloze heldere ruit, uitsluitend glas.",
+    "source": "Native part (alleen gelezen); routing in src/"
+  },
+  {
+    "part": "tintedWindowPane",
+    "asset": "LensAssets procedural",
+    "paint": [],
+    "fixed": [
+      "glass"
+    ],
+    "reason": "Frameloze getinte ruit, uitsluitend glas.",
+    "source": "Native part (alleen gelezen); routing in src/"
+  },
+  {
+    "part": "yellowWindowPane",
+    "asset": "LensAssets procedural",
+    "paint": [],
+    "fixed": [
+      "glass"
+    ],
+    "reason": "Frameloze gele ruit, uitsluitend glas.",
+    "source": "Native part (alleen gelezen); routing in src/"
+  }
+]

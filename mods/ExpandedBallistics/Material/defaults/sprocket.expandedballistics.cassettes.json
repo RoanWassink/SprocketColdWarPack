@@ -1,0 +1,4199 @@
+{
+  "schemaVersion": 1,
+  "presets": [
+    {
+      "id": "t64k",
+      "label": "T-64 combination K",
+      "date": "1964.01.01",
+      "location": "hull",
+      "layers": [
+        {
+          "material": "rha",
+          "thicknessMm": 80,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "cwepGlassTextolite",
+          "thicknessMm": 100,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 150,
+        "maxDepthMm": 250
+      }
+    },
+    {
+      "id": "burlington",
+      "label": "Challenger 1 (Burlington)",
+      "date": "1983.01.01",
+      "location": "turret",
+      "layers": [
+        {
+          "material": "rha",
+          "thicknessMm": 60,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "ceramicArray",
+          "thicknessMm": 100,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 15,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 75,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 450,
+        "maxDepthMm": 750
+      }
+    },
+    {
+      "id": "leopard2a4",
+      "label": "Leopard 2A4",
+      "date": "1985.01.01",
+      "location": "turret",
+      "layers": [
+        {
+          "material": "rha",
+          "thicknessMm": 70,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 80,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 623.426,
+        "maxDepthMm": 1039.0433
+      }
+    },
+    {
+      "id": "t72b",
+      "label": "T-72B reflecting plates",
+      "date": "1985.01.01",
+      "location": "turret",
+      "layers": [
+        {
+          "material": "castArmour",
+          "thicknessMm": 125,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 95,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 590.7716,
+        "maxDepthMm": 984.6194
+      }
+    },
+    {
+      "id": "t80u",
+      "label": "T-80U cellular cast armour",
+      "date": "1985.01.01",
+      "location": "turret",
+      "layers": [
+        {
+          "material": "castArmour",
+          "thicknessMm": 100,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 135,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 602.0216,
+        "maxDepthMm": 1003.3694
+      }
+    },
+    {
+      "id": "m1a1ha",
+      "label": "M1A1HA",
+      "date": "1988.01.01",
+      "location": "turret",
+      "layers": [
+        {
+          "material": "rha",
+          "thicknessMm": 130,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "duMesh",
+          "thicknessMm": 50,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 280,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 712.5,
+        "maxDepthMm": 1187.5
+      }
+    },
+    {
+      "id": "t72m1",
+      "label": "T-72M1 quartz cavity",
+      "date": "1982.01.01",
+      "location": "turret",
+      "layers": [
+        {
+          "material": "castArmour",
+          "thicknessMm": 200,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "quartzFiller",
+          "thicknessMm": 240,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 160,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 450,
+        "maxDepthMm": 750
+      }
+    },
+    {
+      "id": "nera",
+      "label": "NERA cassette",
+      "date": "1979.01.01",
+      "location": "turret",
+      "layers": [
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 99.5596,
+        "maxDepthMm": 165.9327
+      }
+    },
+    {
+      "id": "passive",
+      "label": "Passive composite",
+      "date": "1975.01.01",
+      "location": "turret",
+      "layers": [
+        {
+          "material": "rha",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "ceramicArray",
+          "thicknessMm": 40,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 10,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "cwepGlassTextolite",
+          "thicknessMm": 40,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 97.5,
+        "maxDepthMm": 162.5
+      }
+    },
+    {
+      "id": "t72a_hull",
+      "label": "T-72A glacis",
+      "date": "1979.01.01",
+      "location": "hull",
+      "layers": [
+        {
+          "material": "rha",
+          "thicknessMm": 60,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "cwepGlassTextolite",
+          "thicknessMm": 105,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 50,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 161.25,
+        "maxDepthMm": 268.75
+      }
+    },
+    {
+      "id": "t72b_hull",
+      "label": "T-72B glacis",
+      "date": "1985.01.01",
+      "location": "hull",
+      "layers": [
+        {
+          "material": "highHardnessSteel",
+          "thicknessMm": 16,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 60,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "cwepGlassTextolite",
+          "thicknessMm": 105,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 50,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 173.25,
+        "maxDepthMm": 288.75
+      }
+    },
+    {
+      "id": "t80u_hull",
+      "label": "T-80U glacis",
+      "date": "1985.01.01",
+      "location": "hull",
+      "layers": [
+        {
+          "material": "rha",
+          "thicknessMm": 70,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "cwepGlassTextolite",
+          "thicknessMm": 110,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 70,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 187.5,
+        "maxDepthMm": 312.5
+      }
+    },
+    {
+      "id": "leopard2a4_hull",
+      "label": "Leopard 2A4 hull",
+      "date": "1985.01.01",
+      "location": "hull",
+      "layers": [
+        {
+          "material": "rha",
+          "thicknessMm": 30,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 25,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 30,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 25,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 30,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 30,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 155.7609,
+        "maxDepthMm": 259.6016
+      }
+    },
+    {
+      "id": "m1a1_hull",
+      "label": "M1A1 hull",
+      "date": "1985.01.01",
+      "location": "hull",
+      "layers": [
+        {
+          "material": "rha",
+          "thicknessMm": 30,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 25,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 25,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 25,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 25,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 25,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 276.9023,
+        "maxDepthMm": 461.5039
+      }
+    },
+    {
+      "id": "challenger1_hull",
+      "label": "Challenger 1 (Burlington) hull",
+      "date": "1983.01.01",
+      "location": "hull",
+      "layers": [
+        {
+          "material": "rha",
+          "thicknessMm": 30,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "ceramicArray",
+          "thicknessMm": 80,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 10,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 179.5477,
+        "maxDepthMm": 299.2462
+      }
+    },
+    {
+      "id": "t64a",
+      "label": "T-64A turret (corundum balls)",
+      "date": "1967.01.01",
+      "location": "turret",
+      "layers": [
+        {
+          "material": "castArmour",
+          "thicknessMm": 100,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "aluminaCeramic",
+          "thicknessMm": 180,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "castArmour",
+          "thicknessMm": 180,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 345,
+        "maxDepthMm": 575
+      }
+    },
+    {
+      "id": "t64b",
+      "label": "T-64B turret (corundum balls)",
+      "date": "1976.01.01",
+      "location": "turret",
+      "layers": [
+        {
+          "material": "castArmour",
+          "thicknessMm": 150,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "aluminaCeramic",
+          "thicknessMm": 200,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "castArmour",
+          "thicknessMm": 200,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 412.5,
+        "maxDepthMm": 687.5
+      }
+    },
+    {
+      "id": "t64a_hull",
+      "label": "T-64A glacis",
+      "date": "1967.01.01",
+      "location": "hull",
+      "layers": [
+        {
+          "material": "rha",
+          "thicknessMm": 80,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "cwepGlassTextolite",
+          "thicknessMm": 105,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 153.75,
+        "maxDepthMm": 256.25
+      }
+    },
+    {
+      "id": "t90",
+      "label": "T-90 turret (reflecting plates)",
+      "date": "1992.01.01",
+      "location": "turret",
+      "layers": [
+        {
+          "material": "castArmour",
+          "thicknessMm": 100,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 130,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 640.8488,
+        "maxDepthMm": 1068.0813
+      }
+    },
+    {
+      "id": "t90_hull",
+      "label": "T-90 glacis",
+      "date": "1992.01.01",
+      "location": "hull",
+      "layers": [
+        {
+          "material": "highHardnessSteel",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 60,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "cwepGlassTextolite",
+          "thicknessMm": 105,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 60,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 183.75,
+        "maxDepthMm": 306.25
+      }
+    },
+    {
+      "id": "t90a",
+      "label": "T-90A welded turret",
+      "date": "2004.01.01",
+      "location": "turret",
+      "layers": [
+        {
+          "material": "highHardnessSteel",
+          "thicknessMm": 120,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 160,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 720.926,
+        "maxDepthMm": 1201.5433
+      }
+    },
+    {
+      "id": "t90m",
+      "label": "T-90M turret (base array)",
+      "date": "2017.01.01",
+      "location": "turret",
+      "layers": [
+        {
+          "material": "highHardnessSteel",
+          "thicknessMm": 120,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "siliconCarbide",
+          "thicknessMm": 60,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 160,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 723.3488,
+        "maxDepthMm": 1205.5813
+      }
+    },
+    {
+      "id": "oplot",
+      "label": "Oplot (T-84) turret",
+      "date": "2001.01.01",
+      "location": "turret",
+      "layers": [
+        {
+          "material": "rha",
+          "thicknessMm": 120,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 25,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 25,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 25,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 25,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 25,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 25,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 25,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "highHardnessSteel",
+          "thicknessMm": 100,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 637.5,
+        "maxDepthMm": 1062.5
+      }
+    },
+    {
+      "id": "oplot_hull",
+      "label": "Oplot (T-84) glacis",
+      "date": "2001.01.01",
+      "location": "hull",
+      "layers": [
+        {
+          "material": "highHardnessSteel",
+          "thicknessMm": 25,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 40,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "aluminaCeramic",
+          "thicknessMm": 100,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 50,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 161.25,
+        "maxDepthMm": 268.75
+      }
+    },
+    {
+      "id": "oplotm",
+      "label": "Oplot-M turret (base array)",
+      "date": "2015.01.01",
+      "location": "turret",
+      "layers": [
+        {
+          "material": "highHardnessSteel",
+          "thicknessMm": 120,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "siliconCarbide",
+          "thicknessMm": 40,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 30,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 25,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 25,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 25,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 25,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 25,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 25,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 5,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "highHardnessSteel",
+          "thicknessMm": 180,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 682.5,
+        "maxDepthMm": 1137.5
+      }
+    },
+    {
+      "id": "leopard2a5_wedge",
+      "label": "Leopard 2A5 / 2A6 turret wedge (add-on)",
+      "date": "1995.01.01",
+      "location": "turret",
+      "layers": [
+        {
+          "material": "highHardnessSteel",
+          "thicknessMm": 25,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 30,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "left"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 30,
+          "tiltDirection": "left"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "left"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "left"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 30,
+          "tiltDirection": "left"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "left"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "perforatedHhs",
+          "thicknessMm": 30,
+          "tiltDegrees": 30,
+          "tiltDirection": "left"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 25,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 140.8113,
+        "maxDepthMm": 328.5596
+      }
+    },
+    {
+      "id": "leopard2a7_wedge",
+      "label": "Leopard 2A7 turret wedge (add-on)",
+      "date": "2010.01.01",
+      "location": "turret",
+      "layers": [
+        {
+          "material": "highHardnessSteel",
+          "thicknessMm": 30,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 30,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 30,
+          "tiltDirection": "left"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 30,
+          "tiltDirection": "left"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 30,
+          "tiltDirection": "left"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 30,
+          "tiltDirection": "left"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 30,
+          "tiltDirection": "left"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 30,
+          "tiltDirection": "left"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "siliconCarbide",
+          "thicknessMm": 30,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 10,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "perforatedHhs",
+          "thicknessMm": 40,
+          "tiltDegrees": 30,
+          "tiltDirection": "left"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 25,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 177.5108,
+        "maxDepthMm": 414.1918
+      }
+    },
+    {
+      "id": "leclerc",
+      "label": "Leclerc turret",
+      "date": "1993.01.01",
+      "location": "turret",
+      "layers": [
+        {
+          "material": "highHardnessSteel",
+          "thicknessMm": 60,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "siliconCarbide",
+          "thicknessMm": 120,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 30,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 60,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 515.3894,
+        "maxDepthMm": 858.9823
+      }
+    },
+    {
+      "id": "merkava4",
+      "label": "Merkava 4 turret (modular spaced)",
+      "date": "2004.01.01",
+      "location": "turret",
+      "layers": [
+        {
+          "material": "rha",
+          "thicknessMm": 40,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 80,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "highHardnessSteel",
+          "thicknessMm": 50,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 50,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "perforatedHhs",
+          "thicknessMm": 40,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 25,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 25,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 25,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 25,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 25,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 25,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 20,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 4,
+          "tiltDegrees": 45,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 25,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 120,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 624.1394,
+        "maxDepthMm": 1040.2323
+      }
+    },
+    {
+      "id": "challenger2",
+      "label": "Challenger 2 turret (Dorchester)",
+      "date": "1998.01.01",
+      "location": "turret",
+      "layers": [
+        {
+          "material": "rha",
+          "thicknessMm": 60,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "siliconCarbide",
+          "thicknessMm": 140,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 30,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "siliconCarbide",
+          "thicknessMm": 100,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 30,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 60,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 120,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 639,
+        "maxDepthMm": 1065
+      }
+    },
+    {
+      "id": "gen_corundum_light",
+      "label": "Light corundum block (generic)",
+      "date": "1975.01.01",
+      "location": "turret",
+      "layers": [
+        {
+          "material": "rha",
+          "thicknessMm": 8,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "aluminaCeramic",
+          "thicknessMm": 60,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 6,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 44.4,
+        "maxDepthMm": 118.4
+      }
+    },
+    {
+      "id": "gen_ti_sic_block",
+      "label": "Titanium / SiC block (generic)",
+      "date": "1990.01.01",
+      "location": "turret",
+      "layers": [
+        {
+          "material": "titaniumArmour",
+          "thicknessMm": 25,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "siliconCarbide",
+          "thicknessMm": 70,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 10,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 63,
+        "maxDepthMm": 168
+      }
+    },
+    {
+      "id": "gen_heavy_wedge",
+      "label": "Heavy spaced wedge (generic)",
+      "date": "1985.01.01",
+      "location": "turret",
+      "layers": [
+        {
+          "material": "highHardnessSteel",
+          "thicknessMm": 50,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 60,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "perforatedHhs",
+          "thicknessMm": 40,
+          "tiltDegrees": 35,
+          "tiltDirection": "left"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 50,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "perforatedHhs",
+          "thicknessMm": 40,
+          "tiltDegrees": 35,
+          "tiltDirection": "left"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 40,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "highHardnessSteel",
+          "thicknessMm": 40,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 202.5972,
+        "maxDepthMm": 540.2591
+      }
+    },
+    {
+      "id": "gen_sic_block",
+      "label": "SiC modular block (generic)",
+      "date": "1990.01.01",
+      "location": "turret",
+      "layers": [
+        {
+          "material": "rha",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "siliconCarbide",
+          "thicknessMm": 100,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 84,
+        "maxDepthMm": 224
+      }
+    },
+    {
+      "id": "gen_du_array",
+      "label": "DU-mesh heavy array (generic)",
+      "date": "1990.01.01",
+      "location": "turret",
+      "layers": [
+        {
+          "material": "rha",
+          "thicknessMm": 40,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "duMesh",
+          "thicknessMm": 45,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 40,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "duMesh",
+          "thicknessMm": 45,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 60,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ],
+      "window": {
+        "minDepthMm": 172.5,
+        "maxDepthMm": 287.5
+      }
+    }
+  ]
+}

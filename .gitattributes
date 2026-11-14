@@ -1,0 +1,4 @@
+* text=auto
+*.png binary
+*.obj text eol=lf
+*.md text eol=lf

@@ -1,0 +1,53 @@
+{
+  "date": "1990.01.01",
+  "label": "Challenger 2 TES side module (ASPRO-HMT ERA)",
+  "layers": [
+    {
+      "name": "backplate",
+      "thicknessMm": 40,
+      "density": 7850,
+      "keMassEfficiency": 1,
+      "heatMassEfficiency": 1
+    },
+    {
+      "name": "composite core",
+      "thicknessMm": 200,
+      "density": 2500,
+      "keMassEfficiency": 2.2,
+      "heatMassEfficiency": 5
+    },
+    {
+      "name": "passive cover plates",
+      "thicknessMm": 50,
+      "density": 7850,
+      "keMassEfficiency": 1,
+      "heatMassEfficiency": 1
+    },
+    {
+      "name": "edge strip allowance",
+      "thicknessMm": 10,
+      "density": 7850,
+      "keMassEfficiency": 1,
+      "heatMassEfficiency": 1
+    }
+  ],
+  "spallFactor": 0.0008,
+  "costMultiplier": 9,
+  "minFootprintScale": 0.5,
+  "maxFootprintScale": 8,
+  "era": {
+    "enabled": true,
+    "responseId": "kontakt5Active",
+    "materialId": "kontakt5Active",
+    "activeThicknessMm": 13,
+    "activeDensity": 3171.788731181019,
+    "activeRhaFactor": 0.15,
+    "activeSpallFactor": 0.25,
+    "housingWallMm": 2,
+    "coverDepthMm": 50,
+    "panelWidthM": 0.294,
+    "panelLengthM": 0.292,
+    "columns": 2,
+    "rows": 3
+  }
+}

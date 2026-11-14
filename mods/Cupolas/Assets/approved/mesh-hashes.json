@@ -1,0 +1,34 @@
+{
+  "base": {
+    "stl_sha256": "6b5811948761eaa5a31529c4cbfdca8b3696fa8380ae56fadb6de1c8dbe1eebb",
+    "obj_sha256": "87918ccddc7c582bfd690140afa068bebc983d8e8f7648f2cea64fb63570ceca",
+    "bounds_m": [
+      [
+        -0.335,
+        -0.025,
+        -0.33
+      ],
+      [
+        0.335,
+        0.245,
+        0.44
+      ]
+    ]
+  },
+  "door": {
+    "stl_sha256": "1f9b96666c3fa04f8fffca6a96e2df621832c5c884bd485a1a32545c991614dd",
+    "obj_sha256": "94850793ff707b8af9677f9d8bdf129a6ef8f99e0eb09c5c3c64f93fc71e1b77",
+    "bounds_m": [
+      [
+        -0.265,
+        0.0,
+        -0.016
+      ],
+      [
+        0.265,
+        0.08928550720214844,
+        0.535
+      ]
+    ]
+  }
+}

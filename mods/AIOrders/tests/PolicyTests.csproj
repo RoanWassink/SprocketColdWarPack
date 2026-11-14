@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+<PropertyGroup><TargetFramework>net8.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
+<ItemGroup><Compile Include="../src/OrderPolicy.cs" Link="OrderPolicy.cs" /><Compile Include="../src/NumberMenu.cs" Link="NumberMenu.cs" /><Compile Include="../src/QuickMenu.cs" Link="QuickMenu.cs" /><Compile Include="../src/MapPolicy.cs" Link="MapPolicy.cs" /></ItemGroup>
+</Project>

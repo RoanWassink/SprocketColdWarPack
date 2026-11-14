@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Part><name>Wood</name><description>General solid wood. Density depends on species and moisture; the scalar resistance and splinter contribution are adjustable starting values rather than measurements.</description></Part>

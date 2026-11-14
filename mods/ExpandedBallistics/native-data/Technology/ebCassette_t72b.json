@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "ebCassette_t72b",
+  "date": "1985.01.01",
+  "properties": {
+    "rhaFactor": 0.3962848502069739,
+    "costMultiplier": 13.173210683847316,
+    "spallFactor": 0.0005,
+    "density": 3468.9873839584093
+  }
+}

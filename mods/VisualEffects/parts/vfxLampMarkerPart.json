@@ -1,0 +1,58 @@
+{
+  "v": "0.0",
+  "guid": "7b696e26-98bd-4e6d-ad6a-9009814b0c03",
+  "name": "Lamp marker",
+  "tags": [
+    "light",
+    "tailLight",
+    "crewEquipment",
+    "vfxLamp"
+  ],
+  "components": [
+    {
+      "fileID": "vfxLamp",
+      "type": "model",
+      "info": {
+        "v": "0.2",
+        "meshGuid": "c750ae7aa719ea74680a9d8c8656848d",
+        "materialGuids": [
+          "d23bae2c291cd0c47823c5835f21b9da"
+        ],
+        "scaling": true,
+        "flipping": true,
+        "selectable": true,
+        "placementSurface": false,
+        "damageable": false
+      }
+    }
+  ],
+  "transform": {
+    "mirroring": true,
+    "duplication": true,
+    "pickup": true,
+    "snapToCentre": true,
+    "autoRotate": false,
+    "airPlacement": true,
+    "translation": true,
+    "rotation": true,
+    "scaling": true,
+    "dynamic": false,
+    "placementMode": "backwards",
+    "scale": [
+      0.6,
+      0.6,
+      0.6
+    ],
+    "maxScale": [
+      2.0,
+      2.0,
+      2.0
+    ],
+    "minScale": [
+      0.5,
+      0.5,
+      0.5
+    ],
+    "objects": []
+  }
+}

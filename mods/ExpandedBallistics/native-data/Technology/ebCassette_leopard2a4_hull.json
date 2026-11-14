@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "ebCassette_leopard2a4_hull",
+  "date": "1985.01.01",
+  "properties": {
+    "rhaFactor": 0.39445214153546526,
+    "costMultiplier": 13.379303664785937,
+    "spallFactor": 0.0005,
+    "density": 3317.9295753475317
+  }
+}

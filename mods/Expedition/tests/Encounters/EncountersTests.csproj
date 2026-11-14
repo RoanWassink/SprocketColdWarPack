@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AssemblyName>EncountersTests</AssemblyName>
+    <RootNamespace>EncountersTests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/SprocketExpedition.Game/CampaignBossCandidatePolicy.cs" Link="CampaignBossCandidatePolicy.cs" />
+    <ProjectReference Include="../../src/SprocketExpedition.Core/SprocketExpedition.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="../../content/example.catalogue.json"
+             Link="example.catalogue.json"
+             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="golden/v6-offers.txt"
+             Link="golden/v6-offers.txt"
+             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="golden/v7-offers.txt" Link="golden/v7-offers.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

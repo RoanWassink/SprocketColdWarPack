@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "ebCassette_nera",
+  "date": "1979.01.01",
+  "properties": {
+    "rhaFactor": 0.1839745962155613,
+    "costMultiplier": 27.052700460829495,
+    "spallFactor": 0.0005,
+    "density": 1698.8292501607154
+  }
+}

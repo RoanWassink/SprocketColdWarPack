@@ -1,0 +1,59 @@
+{
+  "v": "0.0",
+  "guid": "a95bc652-39c6-51ad-9f52-ecb022370001",
+  "name": "compositeSideModule",
+  "tags": [
+    "appliqueArmour",
+    "structure"
+  ],
+  "components": [
+    {
+      "fileID": "compositeSideModule",
+      "type": "model",
+      "info": {
+        "v": "0.5",
+        "associatedComponentFileID": "",
+        "meshGuid": "d314e34d6861bac4d9c40bac4b9e0f67",
+        "materialGuids": [
+          "b3d52e7c3f98b7f41b352500924cc4b6"
+        ],
+        "scaling": true,
+        "flipping": true,
+        "selectable": true,
+        "placementSurface": true,
+        "durableMaterialID": "compositeSideModuleMaterial",
+        "mass": 654.0422548315655
+      }
+    }
+  ],
+  "transform": {
+    "mirroring": true,
+    "duplication": true,
+    "pickup": true,
+    "snapToCentre": true,
+    "autoRotate": false,
+    "airPlacement": true,
+    "translation": true,
+    "rotation": true,
+    "scaling": true,
+    "dynamic": false,
+    "placementMode": "upFaceNormal",
+    "scale": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "maxScale": [
+      8,
+      1,
+      8
+    ],
+    "minScale": [
+      0.5,
+      1,
+      0.5
+    ],
+    "objects": []
+  },
+  "date": "1990.01.01"
+}

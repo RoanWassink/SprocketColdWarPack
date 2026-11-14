@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 2,
+  "modelVersion": "2.0.2",
+  "enabled": false,
+  "maximumAdditionalKineticLoss": 0.35,
+  "recipes": [
+    {
+      "responseId": "experimentalKontakt5Cassette",
+      "kind": "rodDisruption",
+      "baseLoss": 0.12,
+      "maximumLoss": 0.24,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "exposureWeight": 1
+    },
+    {
+      "responseId": "experimentalReliktCassette",
+      "kind": "rodDisruption",
+      "baseLoss": 0.18,
+      "maximumLoss": 0.35,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "exposureWeight": 1
+    },
+    {
+      "responseId": "experimentalNizhCassette",
+      "kind": "rodDisruption",
+      "baseLoss": 0.2,
+      "maximumLoss": 0.35,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "exposureWeight": 1
+    }
+  ]
+}

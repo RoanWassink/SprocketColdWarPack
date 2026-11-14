@@ -1,0 +1,59 @@
+{
+  "v": "0.0",
+  "guid": "e229025a-a35f-47df-a018-f0eabc220001",
+  "name": "compositeArmourPlate",
+  "tags": [
+    "plateStructurePrefab"
+  ],
+  "transform": null,
+  "components": [
+    {
+      "fileID": "plateStructurePrefab",
+      "type": "plateStructurePrefab",
+      "info": {
+        "v": "0.0",
+        "mesh": {
+          "name": "Composite armour plate",
+          "v": "0.0",
+          "smoothAngle": 0,
+          "gridSize": 1,
+          "format": "freeform",
+          "mesh": {
+            "majorVersion": 0,
+            "minorVersion": 0,
+            "vertices": [
+              -0.5,
+              0.02,
+              -0.5,
+              -0.5,
+              0.02,
+              0.5,
+              0.5,
+              0.02,
+              0.5,
+              0.5,
+              0.02,
+              -0.5
+            ],
+            "faces": [
+              {
+                "v": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "t": [
+                  20,
+                  20,
+                  20,
+                  20
+                ]
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

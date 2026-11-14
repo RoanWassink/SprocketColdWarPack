@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<Part><name>Duplet panel (turret)</name><description>Duplet - modular turret panel (game proxy)
+Resize X/Z to add whole cells (1x1 up to 8x8): 125 x 250 mm per cell, 60 mm deep.
+Each cell has a heavy 20 mm front plate, two 12 mm Nozh layers with a 12 mm steel plate between them, and bolts on every cell corner. Both layers of a cell spend independently, front layer first.
+Plates: 2 | Layers: 2
+Effective angles: 30-70° (best APFSDS)
+Kinetic (APFSDS) at 60°: 30% less pen.
+Chemical (HEAT) at 60°: 70% less pen.
+Tandem: no guaranteed protection
+Extra loss, reference L/D 30; all layers intact
+Mass and cost scale with paid cell area only, never depth</description></Part>

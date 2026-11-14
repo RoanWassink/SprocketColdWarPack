@@ -1,0 +1,71 @@
+{
+  "v": "0.3",
+  "guid": "5c1e9a37-2d4b-4f86-9e0a-8b7d3f61c2a4",
+  "name": "hingeMount",
+  "order": 70,
+  "date": "0000.01.01",
+  "iconOffset": [
+    0,
+    0
+  ],
+  "iconRotation": [
+    0,
+    0,
+    0
+  ],
+  "iconScale": 1,
+  "tags": [
+    "structure",
+    "equipment",
+    "external",
+    "sprocketHingeMount"
+  ],
+  "components": [
+    {
+      "type": "model",
+      "info": {
+        "damageable": false,
+        "meshGuid": "feca6292029500c4ea3c8fee7f52d708",
+        "v": "0.2",
+        "mass": 0,
+        "materialGuids": [
+          "88aa84acbbf1a364f9debc402c4e270c"
+        ],
+        "scaling": true,
+        "flipping": false,
+        "placementSurface": true,
+        "selectable": true
+      },
+      "fileID": "sprocketHingeMountModel"
+    }
+  ],
+  "transform": {
+    "pickup": true,
+    "objects": [],
+    "mirroring": true,
+    "dynamic": true,
+    "scale": [
+      1,
+      1,
+      1
+    ],
+    "duplication": true,
+    "translation": true,
+    "placementMode": "upFaceNormal",
+    "maxScale": [
+      5,
+      5,
+      5
+    ],
+    "autoRotate": false,
+    "scaling": true,
+    "airPlacement": true,
+    "snapToCentre": true,
+    "rotation": true,
+    "minScale": [
+      0.1,
+      0.1,
+      0.1
+    ]
+  }
+}

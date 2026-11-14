@@ -1,0 +1,58 @@
+{
+  "v": "0.0",
+  "guid": "7b696e26-98bd-4e6d-ad6a-9009814b0c01",
+  "name": "Lamp round",
+  "tags": [
+    "light",
+    "headLight",
+    "crewEquipment",
+    "vfxLamp"
+  ],
+  "components": [
+    {
+      "fileID": "vfxLamp",
+      "type": "model",
+      "info": {
+        "v": "0.2",
+        "meshGuid": "854f30c062992b1489eaac2515d1e358",
+        "materialGuids": [
+          "1629fd352d16143418e10814c3a0742c"
+        ],
+        "scaling": true,
+        "flipping": true,
+        "selectable": true,
+        "placementSurface": false,
+        "damageable": false
+      }
+    }
+  ],
+  "transform": {
+    "mirroring": true,
+    "duplication": true,
+    "pickup": true,
+    "snapToCentre": true,
+    "autoRotate": false,
+    "airPlacement": true,
+    "translation": true,
+    "rotation": true,
+    "scaling": true,
+    "dynamic": false,
+    "placementMode": "forwards",
+    "scale": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "maxScale": [
+      2.0,
+      2.0,
+      2.0
+    ],
+    "minScale": [
+      0.5,
+      0.5,
+      0.5
+    ],
+    "objects": []
+  }
+}

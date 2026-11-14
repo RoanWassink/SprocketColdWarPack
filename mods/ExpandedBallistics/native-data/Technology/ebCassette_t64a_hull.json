@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "ebCassette_t64a_hull",
+  "date": "1967.01.01",
+  "properties": {
+    "rhaFactor": 0.8207317073170731,
+    "costMultiplier": 4.512218064845545,
+    "spallFactor": 0.0005,
+    "density": 4776.829268292683
+  }
+}

@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<Part><name>Nizh panel</name><description>Nizh panel - modular Nozh panel (game proxy)
+Resize X/Z to add whole cells (1x1 up to 8x8): 125 x 250 mm per cell, 46.5 mm deep.
+Each cell has its own 8 mm steel front plate over one 36 mm Nozh layer (linear shaped charges) and spends independently.
+Plates: 1 | Layers: 1
+Effective angles: 30-70° (best APFSDS)
+Kinetic (APFSDS) at 60°: 20% less pen.
+Chemical (HEAT) at 60°: 55% less pen.
+Tandem: no guaranteed protection
+Extra loss, reference L/D 30
+Mass and cost scale with paid cell area only, never depth</description></Part>

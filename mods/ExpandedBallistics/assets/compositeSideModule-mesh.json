@@ -1,0 +1,58 @@
+{
+  "source": "assets/source/module.obj",
+  "sourceSha256": "46E43BB0835222A62B8A1C12A0455C2D0FF1F49CBBE541E2BEC3C61C303C0E5A",
+  "convertedSha256": "6DD864FFF262529451CCB1FE552D3AF7E0B129A1732B0559C87A4586484D0253",
+  "vertices": 1712,
+  "triangles": 3088,
+  "nonManifoldEdges": 0,
+  "min": [
+    -0.349235,
+    0.0,
+    -0.49
+  ],
+  "max": [
+    0.35,
+    0.327,
+    0.49
+  ],
+  "size": [
+    0.699235,
+    0.327,
+    0.98
+  ],
+  "groups": {
+    "housing": 1328,
+    "cover": 1392,
+    "dark": 368
+  },
+  "paintGroups": [
+    "housing",
+    "cover"
+  ],
+  "darkGroups": [
+    "dark"
+  ],
+  "rotation": [
+    [
+      0,
+      -1,
+      0
+    ],
+    [
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      1
+    ]
+  ],
+  "determinant": 1,
+  "translation": [
+    0,
+    0.027,
+    0
+  ]
+}

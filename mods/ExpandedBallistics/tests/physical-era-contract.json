@@ -1,0 +1,1220 @@
+{
+  "documentVersion": "2.0.5-proposal",
+  "notRuntimeSchema": true,
+  "status": "executable authoring inputs for owner review; not installed or a certified historical replica",
+  "existingComponents": [
+    {
+      "existingActiveId": "reliktCassette",
+      "existingPassiveId": "reliktMount",
+      "existingPartGuid": "ef15b8e5-d4c3-4d38-8b03-f07bb395ab63",
+      "existingVisual": "relikt-intact.obj",
+      "targetPackage": "relikt",
+      "targetProfile": "relikt",
+      "proposedFullPackageLWDmm": [
+        500,
+        300,
+        130
+      ],
+      "proposedWholePackageMassKg": 24,
+      "dimensionMassEvidence": "authoring estimate",
+      "unitMassWarning": "For shared three-zone/integrated GUID this is whole-package mass, not per component. Derive paid per-unit ledger; never assign this whole mass to each zone/stage.",
+      "legacySavePolicy": "keep exact old geometry/mass/material fingerprint and saved IDs; new physical package gets new GUID; explicit optional retrofit only"
+    },
+    {
+      "existingActiveId": "kontakt1Cassette",
+      "existingPassiveId": "kontakt1Mount",
+      "existingPartGuid": "94c04114-0c58-5f4c-a3c3-cf1ca8c80e90",
+      "existingVisual": "kontakt1-flat.obj",
+      "targetPackage": "kontakt1",
+      "targetProfile": "kontakt1",
+      "proposedFullPackageLWDmm": [
+        314,
+        148,
+        60
+      ],
+      "proposedWholePackageMassKg": 5.7,
+      "dimensionMassEvidence": "reference incomplete; 5.3/5.7kg discrepancy",
+      "unitMassWarning": "For shared three-zone/integrated GUID this is whole-package mass, not per component. Derive paid per-unit ledger; never assign this whole mass to each zone/stage.",
+      "legacySavePolicy": "keep exact old geometry/mass/material fingerprint and saved IDs; new physical package gets new GUID; explicit optional retrofit only"
+    },
+    {
+      "existingActiveId": "kontakt5Cassette",
+      "existingPassiveId": "kontakt5Mount",
+      "existingPartGuid": "c79f599c-ae32-5aad-bc0b-66969fe9cbbf",
+      "existingVisual": "kontakt5-flat.obj",
+      "targetPackage": "kontakt5",
+      "targetProfile": "kontakt5",
+      "proposedFullPackageLWDmm": [
+        500,
+        300,
+        100
+      ],
+      "proposedWholePackageMassKg": 20,
+      "dimensionMassEvidence": "authoring estimate",
+      "unitMassWarning": "For shared three-zone/integrated GUID this is whole-package mass, not per component. Derive paid per-unit ledger; never assign this whole mass to each zone/stage.",
+      "legacySavePolicy": "keep exact old geometry/mass/material fingerprint and saved IDs; new physical package gets new GUID; explicit optional retrofit only"
+    },
+    {
+      "existingActiveId": "reliktTurretCassette",
+      "existingPassiveId": "reliktTurretMount",
+      "existingPartGuid": "604635ff-4b0c-5f67-9f53-819c54a3547e",
+      "existingVisual": "relikt-turret-30.obj",
+      "targetPackage": "reliktTurret",
+      "targetProfile": "relikt",
+      "proposedFullPackageLWDmm": [
+        450,
+        270,
+        130
+      ],
+      "proposedWholePackageMassKg": 22,
+      "dimensionMassEvidence": "authoring estimate",
+      "unitMassWarning": "For shared three-zone/integrated GUID this is whole-package mass, not per component. Derive paid per-unit ledger; never assign this whole mass to each zone/stage.",
+      "legacySavePolicy": "keep exact old geometry/mass/material fingerprint and saved IDs; new physical package gets new GUID; explicit optional retrofit only"
+    },
+    {
+      "existingActiveId": "nizhCassette",
+      "existingPassiveId": "nizhMount",
+      "existingPartGuid": "87e198bc-e2c3-564c-ad56-c066703e05c4",
+      "existingVisual": "nizh-intact.obj",
+      "targetPackage": "nizhLegacy",
+      "targetProfile": "nizhLegacy",
+      "proposedFullPackageLWDmm": [
+        424,
+        260,
+        60
+      ],
+      "proposedWholePackageMassKg": 8,
+      "dimensionMassEvidence": "authoring estimate; older unspecified Nizh package",
+      "unitMassWarning": "For shared three-zone/integrated GUID this is whole-package mass, not per component. Derive paid per-unit ledger; never assign this whole mass to each zone/stage.",
+      "legacySavePolicy": "keep exact old geometry/mass/material fingerprint and saved IDs; new physical package gets new GUID; explicit optional retrofit only"
+    },
+    {
+      "existingActiveId": "dupletCassette",
+      "existingPassiveId": "dupletMount",
+      "existingPartGuid": "a6e1b01f-7290-5ca3-9081-eb6d61be4ba7",
+      "existingVisual": "duplet-intact.obj",
+      "targetPackage": "dupletLegacySingle",
+      "targetProfile": "dupletLegacySingle",
+      "proposedFullPackageLWDmm": [
+        424,
+        260,
+        100
+      ],
+      "proposedWholePackageMassKg": 10,
+      "dimensionMassEvidence": "authoring estimate; older unspecified Duplet single-stage proxy",
+      "unitMassWarning": "For shared three-zone/integrated GUID this is whole-package mass, not per component. Derive paid per-unit ledger; never assign this whole mass to each zone/stage.",
+      "legacySavePolicy": "keep exact old geometry/mass/material fingerprint and saved IDs; new physical package gets new GUID; explicit optional retrofit only"
+    },
+    {
+      "existingActiveId": "dupletHullCassette",
+      "existingPassiveId": "dupletHullMount",
+      "existingPartGuid": "7f8c3ed8-aaa1-4177-8d13-64edf68d3e1b",
+      "existingVisual": "duplet-hull-intact.obj",
+      "targetPackage": "dupletHull",
+      "targetProfile": "dupletLegacyIntegrated",
+      "proposedFullPackageLWDmm": [
+        980,
+        300,
+        150
+      ],
+      "proposedWholePackageMassKg": 36,
+      "dimensionMassEvidence": "authoring estimate; coverage array of integrated stages",
+      "unitMassWarning": "For shared three-zone/integrated GUID this is whole-package mass, not per component. Derive paid per-unit ledger; never assign this whole mass to each zone/stage.",
+      "legacySavePolicy": "keep exact old geometry/mass/material fingerprint and saved IDs; new physical package gets new GUID; explicit optional retrofit only"
+    },
+    {
+      "existingActiveId": "dupletHullFrontCassette",
+      "existingPassiveId": "dupletHullFrontMount",
+      "existingPartGuid": "f8eec062-1fb9-4dea-b808-3a0427304579",
+      "existingVisual": "duplet-hull-front-intact.obj",
+      "targetPackage": "dupletHullZones",
+      "targetProfile": "dupletLegacyIntegrated",
+      "proposedFullPackageLWDmm": [
+        1324,
+        300,
+        150
+      ],
+      "proposedWholePackageMassKg": 48,
+      "dimensionMassEvidence": "authoring estimate; complete three-zone assembly, not mass per zone",
+      "unitMassWarning": "For shared three-zone/integrated GUID this is whole-package mass, not per component. Derive paid per-unit ledger; never assign this whole mass to each zone/stage.",
+      "legacySavePolicy": "keep exact old geometry/mass/material fingerprint and saved IDs; new physical package gets new GUID; explicit optional retrofit only"
+    },
+    {
+      "existingActiveId": "dupletHullMiddleCassette",
+      "existingPassiveId": "dupletHullMiddleMount",
+      "existingPartGuid": "f8eec062-1fb9-4dea-b808-3a0427304579",
+      "existingVisual": "duplet-hull-middle-intact.obj",
+      "targetPackage": "dupletHullZones",
+      "targetProfile": "dupletLegacyIntegrated",
+      "proposedFullPackageLWDmm": [
+        1324,
+        300,
+        150
+      ],
+      "proposedWholePackageMassKg": 48,
+      "dimensionMassEvidence": "authoring estimate; complete three-zone assembly, not mass per zone",
+      "unitMassWarning": "For shared three-zone/integrated GUID this is whole-package mass, not per component. Derive paid per-unit ledger; never assign this whole mass to each zone/stage.",
+      "legacySavePolicy": "keep exact old geometry/mass/material fingerprint and saved IDs; new physical package gets new GUID; explicit optional retrofit only"
+    },
+    {
+      "existingActiveId": "dupletHullRearCassette",
+      "existingPassiveId": "dupletHullRearMount",
+      "existingPartGuid": "f8eec062-1fb9-4dea-b808-3a0427304579",
+      "existingVisual": "duplet-hull-rear-intact.obj",
+      "targetPackage": "dupletHullZones",
+      "targetProfile": "dupletLegacyIntegrated",
+      "proposedFullPackageLWDmm": [
+        1324,
+        300,
+        150
+      ],
+      "proposedWholePackageMassKg": 48,
+      "dimensionMassEvidence": "authoring estimate; complete three-zone assembly, not mass per zone",
+      "unitMassWarning": "For shared three-zone/integrated GUID this is whole-package mass, not per component. Derive paid per-unit ledger; never assign this whole mass to each zone/stage.",
+      "legacySavePolicy": "keep exact old geometry/mass/material fingerprint and saved IDs; new physical package gets new GUID; explicit optional retrofit only"
+    },
+    {
+      "existingActiveId": "experimentalKontakt5Cassette",
+      "existingPassiveId": "experimentalKontakt5Mount",
+      "existingPartGuid": "fd8182cc-a174-5e99-baa5-5387f1c2e39e",
+      "existingVisual": "kontakt5-flat.obj",
+      "targetPackage": "kontakt5",
+      "targetProfile": "kontakt5",
+      "proposedFullPackageLWDmm": [
+        500,
+        300,
+        100
+      ],
+      "proposedWholePackageMassKg": 20,
+      "dimensionMassEvidence": "authoring estimate",
+      "unitMassWarning": "For shared three-zone/integrated GUID this is whole-package mass, not per component. Derive paid per-unit ledger; never assign this whole mass to each zone/stage.",
+      "legacySavePolicy": "keep exact old geometry/mass/material fingerprint and saved IDs; new physical package gets new GUID; explicit optional retrofit only"
+    },
+    {
+      "existingActiveId": "experimentalReliktCassette",
+      "existingPassiveId": "experimentalReliktMount",
+      "existingPartGuid": "1955923e-0612-5488-89e2-67cfaee576af",
+      "existingVisual": "relikt-intact.obj",
+      "targetPackage": "relikt",
+      "targetProfile": "relikt",
+      "proposedFullPackageLWDmm": [
+        500,
+        300,
+        130
+      ],
+      "proposedWholePackageMassKg": 24,
+      "dimensionMassEvidence": "authoring estimate",
+      "unitMassWarning": "For shared three-zone/integrated GUID this is whole-package mass, not per component. Derive paid per-unit ledger; never assign this whole mass to each zone/stage.",
+      "legacySavePolicy": "keep exact old geometry/mass/material fingerprint and saved IDs; new physical package gets new GUID; explicit optional retrofit only"
+    },
+    {
+      "existingActiveId": "experimentalNizhCassette",
+      "existingPassiveId": "experimentalNizhMount",
+      "existingPartGuid": "a1190b75-3f8f-5e89-a0d3-dc97c27dbedd",
+      "existingVisual": "nizh-intact.obj",
+      "targetPackage": "nizhLegacy",
+      "targetProfile": "nizhLegacy",
+      "proposedFullPackageLWDmm": [
+        424,
+        260,
+        60
+      ],
+      "proposedWholePackageMassKg": 8,
+      "dimensionMassEvidence": "authoring estimate; older unspecified Nizh package",
+      "unitMassWarning": "For shared three-zone/integrated GUID this is whole-package mass, not per component. Derive paid per-unit ledger; never assign this whole mass to each zone/stage.",
+      "legacySavePolicy": "keep exact old geometry/mass/material fingerprint and saved IDs; new physical package gets new GUID; explicit optional retrofit only"
+    },
+    {
+      "existingActiveId": "experimentalDupletFrontCassette",
+      "existingPassiveId": "experimentalDupletFrontMount",
+      "existingPartGuid": "52cf052d-5d9a-5368-8987-43db99fc249c",
+      "existingVisual": "duplet-intact.obj",
+      "targetPackage": "dupletLegacyIntegrated",
+      "targetProfile": "dupletLegacyIntegrated",
+      "proposedFullPackageLWDmm": [
+        424,
+        260,
+        150
+      ],
+      "proposedWholePackageMassKg": 18,
+      "dimensionMassEvidence": "authoring estimate; two paid game stages, not certified Duplet2M",
+      "unitMassWarning": "For shared three-zone/integrated GUID this is whole-package mass, not per component. Derive paid per-unit ledger; never assign this whole mass to each zone/stage.",
+      "legacySavePolicy": "keep exact old geometry/mass/material fingerprint and saved IDs; new physical package gets new GUID; explicit optional retrofit only"
+    },
+    {
+      "existingActiveId": "experimentalDupletRearCassette",
+      "existingPassiveId": "experimentalDupletRearMount",
+      "existingPartGuid": "52cf052d-5d9a-5368-8987-43db99fc249c",
+      "existingVisual": "experimental-duplet-rear-intact.obj",
+      "targetPackage": "dupletLegacyIntegrated",
+      "targetProfile": "dupletLegacyIntegrated",
+      "proposedFullPackageLWDmm": [
+        424,
+        260,
+        150
+      ],
+      "proposedWholePackageMassKg": 18,
+      "dimensionMassEvidence": "authoring estimate; two paid game stages, not certified Duplet2M",
+      "unitMassWarning": "For shared three-zone/integrated GUID this is whole-package mass, not per component. Derive paid per-unit ledger; never assign this whole mass to each zone/stage.",
+      "legacySavePolicy": "keep exact old geometry/mass/material fingerprint and saved IDs; new physical package gets new GUID; explicit optional retrofit only"
+    },
+    {
+      "existingActiveId": "experimentalNizh34Insert",
+      "existingPassiveId": "experimentalNizh34Housing",
+      "existingPartGuid": "585dc698-5338-513b-9f5d-87cacba81273",
+      "existingVisual": "nizh-34-box-intact.obj",
+      "targetPackage": "nizh34",
+      "targetProfile": "nizh34",
+      "proposedFullPackageLWDmm": [
+        314,
+        148,
+        60
+      ],
+      "proposedWholePackageMassKg": 5.4,
+      "dimensionMassEvidence": "hybrid authored full footprint; sourced insert, estimated housing",
+      "unitMassWarning": "For shared three-zone/integrated GUID this is whole-package mass, not per component. Derive paid per-unit ledger; never assign this whole mass to each zone/stage.",
+      "legacySavePolicy": "keep exact old geometry/mass/material fingerprint and saved IDs; new physical package gets new GUID; explicit optional retrofit only"
+    },
+    {
+      "existingActiveId": "experimentalNizh19Insert",
+      "existingPassiveId": "experimentalNizh19Housing",
+      "existingPartGuid": "5f43dd04-ce3f-5373-9fee-351cfc9bac67",
+      "existingVisual": "nizh-19-box-intact.obj",
+      "targetPackage": "nizh19",
+      "targetProfile": "nizh19",
+      "proposedFullPackageLWDmm": [
+        314,
+        148,
+        60
+      ],
+      "proposedWholePackageMassKg": 4.7,
+      "dimensionMassEvidence": "hybrid authored full footprint; sourced insert, estimated housing",
+      "unitMassWarning": "For shared three-zone/integrated GUID this is whole-package mass, not per component. Derive paid per-unit ledger; never assign this whole mass to each zone/stage.",
+      "legacySavePolicy": "keep exact old geometry/mass/material fingerprint and saved IDs; new physical package gets new GUID; explicit optional retrofit only"
+    }
+  ],
+  "additionalPackages": [
+    {
+      "targetPackage": "nizh1M",
+      "targetProfile": "nizh1M",
+      "proposedFullPackageLWDmm": [
+        300,
+        150,
+        60
+      ],
+      "proposedWholePackageMassKg": 5,
+      "dimensionMassEvidence": "authoring estimate; modern HKChPWSH"
+    },
+    {
+      "targetPackage": "duplet2M",
+      "targetProfile": "duplet2M",
+      "proposedFullPackageLWDmm": [
+        300,
+        150,
+        120
+      ],
+      "proposedWholePackageMassKg": 9,
+      "dimensionMassEvidence": "authoring estimate; modern integrated HKChPWSH"
+    },
+    {
+      "targetPackage": "duplet2MHull",
+      "targetProfile": "duplet2M",
+      "proposedFullPackageLWDmm": [
+        450,
+        300,
+        120
+      ],
+      "proposedWholePackageMassKg": 18,
+      "dimensionMassEvidence": "authoring estimate; larger modern integrated panel"
+    },
+    {
+      "targetPackage": "nizhLm",
+      "targetProfile": "nizhLm",
+      "proposedFullPackageLWDmm": [
+        300,
+        180,
+        90
+      ],
+      "proposedWholePackageMassKg": null,
+      "dimensionMassEvidence": "authoring estimate; exact mass from geometry, ~4.15kg"
+    }
+  ],
+  "physicalUnitSpecifications": {
+    "kontakt1": {
+      "elementsAcross": 1,
+      "stages": 1,
+      "innerElementsPerReactiveUnit": 2,
+      "innerReferenceLWDmm": [
+        252,
+        130,
+        10
+      ],
+      "activeElementLWDmm": [
+        252,
+        130,
+        26
+      ],
+      "combinedActiveMassKg": 2.7,
+      "activeGeometryEvidence": "two-panel reference; authored26mm compound reactive collision proxy (not sourced depth), ONE reactive unit not two independent units",
+      "housingPlanningMassKg": 3.0,
+      "placementAngleDegrees": 0,
+      "coordinateConvention": "new portrait model: Z=L, X=W, Y=D; old saved transforms unchanged",
+      "stageCenterYFractionOfBodyDepth": [
+        0.5
+      ],
+      "lateralCellLayoutAxis": "X",
+      "cellCenterAxisFractions": [
+        0.0
+      ],
+      "normalThicknessWindowMm": [
+        25.5,
+        26.5
+      ],
+      "newPhysicalPackageId": "kontakt1PhysicalV1",
+      "newPhysicalPartGuid": "62a4ab89-1e44-5885-857d-b482485df8f6",
+      "newMaterialId": "kontakt1Active",
+      "newResponseId": "kontakt1Active",
+      "newHousingComponentId": "kontakt1Housing",
+      "newActiveComponentIds": [
+        "kontakt1Stage1Cell1"
+      ],
+      "authoredActiveDensityKgM3": 3169.907016060862,
+      "passiveFingerprint": {
+        "density": 3169.907016060862,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 8.25
+      },
+      "sharedHousingSpentPolicy": "openWhenOwnActiveUnitSpent"
+    },
+    "kontakt5": {
+      "elementsAcross": 2,
+      "stages": 1,
+      "activeElementLWDmm": [
+        251.9,
+        131.9,
+        13
+      ],
+      "activeElementMassKg": 1.37,
+      "activeGeometryEvidence": "sourced insert dimensions/mass; two lateral elements and full case are game layout estimates",
+      "combinedActiveMassKg": 2.74,
+      "housingPlanningMassKg": 17.259999999999998,
+      "placementAngleDegrees": 0,
+      "coordinateConvention": "new portrait model: Z=L, X=W, Y=D; old saved transforms unchanged",
+      "stageCenterYFractionOfBodyDepth": [
+        0.5
+      ],
+      "lateralCellLayoutAxis": "X",
+      "cellCenterAxisFractions": [
+        -0.25,
+        0.25
+      ],
+      "normalThicknessWindowMm": [
+        12.5,
+        13.5
+      ],
+      "newPhysicalPackageId": "kontakt5PhysicalV1",
+      "newPhysicalPartGuid": "06a8b44f-1ecd-5a28-b2d7-c5ce90d58b3c",
+      "newMaterialId": "kontakt5Active",
+      "newResponseId": "kontakt5Active",
+      "newHousingComponentId": "kontakt5Housing",
+      "newActiveComponentIds": [
+        "kontakt5Stage1Cell1",
+        "kontakt5Stage1Cell2"
+      ],
+      "authoredActiveDensityKgM3": 3171.788731181019,
+      "passiveFingerprint": {
+        "density": 3171.788731181019,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 10
+      },
+      "sharedHousingSpentPolicy": "openWhenAllActiveUnitsSpent; partial spent keeps housing closed"
+    },
+    "relikt": {
+      "elementsAcross": 2,
+      "stages": 1,
+      "activeElementLWDmm": [
+        250,
+        130,
+        13
+      ],
+      "activeElementMassKg": 1.4,
+      "activeGeometryEvidence": "estimated 4S23-style proxy; not sourced insert specification",
+      "combinedActiveMassKg": 2.8,
+      "housingPlanningMassKg": 21.2,
+      "placementAngleDegrees": 0,
+      "coordinateConvention": "new portrait model: Z=L, X=W, Y=D; old saved transforms unchanged",
+      "stageCenterYFractionOfBodyDepth": [
+        0.5
+      ],
+      "lateralCellLayoutAxis": "X",
+      "cellCenterAxisFractions": [
+        -0.25,
+        0.25
+      ],
+      "normalThicknessWindowMm": [
+        12.5,
+        13.5
+      ],
+      "newPhysicalPackageId": "reliktPhysicalV1",
+      "newPhysicalPartGuid": "49723d50-d454-5267-8a5f-6f3926563036",
+      "newMaterialId": "reliktActive",
+      "newResponseId": "reliktActive",
+      "newHousingComponentId": "reliktHousing",
+      "newActiveComponentIds": [
+        "reliktStage1Cell1",
+        "reliktStage1Cell2"
+      ],
+      "authoredActiveDensityKgM3": 3313.6094674556207,
+      "passiveFingerprint": {
+        "density": 3313.6094674556207,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 10
+      },
+      "sharedHousingSpentPolicy": "openWhenAllActiveUnitsSpent; partial spent keeps housing closed"
+    },
+    "reliktTurret": {
+      "elementsAcross": 2,
+      "stages": 1,
+      "activeElementLWDmm": [
+        250,
+        130,
+        13
+      ],
+      "activeElementMassKg": 1.4,
+      "activeGeometryEvidence": "same estimated proxy; narrow hinge mount, no pedestal",
+      "combinedActiveMassKg": 2.8,
+      "housingPlanningMassKg": 19.2,
+      "placementAngleDegrees": 0,
+      "coordinateConvention": "new portrait model: Z=L, X=W, Y=D; old saved transforms unchanged",
+      "stageCenterYFractionOfBodyDepth": [
+        0.5
+      ],
+      "lateralCellLayoutAxis": "X",
+      "cellCenterAxisFractions": [
+        -0.25,
+        0.25
+      ],
+      "normalThicknessWindowMm": [
+        12.5,
+        13.5
+      ],
+      "newPhysicalPackageId": "reliktTurretPhysicalV1",
+      "newPhysicalPartGuid": "5f97256a-8d9f-5a40-bdf8-2534ab3f17df",
+      "newMaterialId": "reliktTurretActive",
+      "newResponseId": "reliktTurretActive",
+      "newHousingComponentId": "reliktTurretHousing",
+      "newActiveComponentIds": [
+        "reliktTurretStage1Cell1",
+        "reliktTurretStage1Cell2"
+      ],
+      "authoredActiveDensityKgM3": 3313.6094674556207,
+      "passiveFingerprint": {
+        "density": 3313.6094674556207,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 10
+      },
+      "sharedHousingSpentPolicy": "openWhenAllActiveUnitsSpent; partial spent keeps housing closed"
+    },
+    "nizhLegacy": {
+      "elementsAcross": 1,
+      "stages": 1,
+      "activeElementLWDmm": [
+        400,
+        240,
+        12
+      ],
+      "activeElementMassKg": 4.9536,
+      "activeGeometryEvidence": "authored older-Nizh cassette proxy at4300; not KhSChKV34 or HKChPWSH measurement",
+      "combinedActiveMassKg": 4.9536,
+      "housingPlanningMassKg": 3.0464,
+      "placementAngleDegrees": 0,
+      "coordinateConvention": "new portrait model: Z=L, X=W, Y=D; old saved transforms unchanged",
+      "stageCenterYFractionOfBodyDepth": [
+        0.5
+      ],
+      "lateralCellLayoutAxis": "X",
+      "cellCenterAxisFractions": [
+        0.0
+      ],
+      "normalThicknessWindowMm": [
+        11.5,
+        12.5
+      ],
+      "newPhysicalPackageId": "nizhLegacyPhysicalV1",
+      "newPhysicalPartGuid": "1ad42e4d-a85e-5a22-8fea-82c2e83d3b51",
+      "newMaterialId": "nizhLegacyActive",
+      "newResponseId": "nizhLegacyActive",
+      "newHousingComponentId": "nizhLegacyHousing",
+      "newActiveComponentIds": [
+        "nizhLegacyStage1Cell1"
+      ],
+      "authoredActiveDensityKgM3": 4300.0,
+      "passiveFingerprint": {
+        "density": 4300.0,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "sharedHousingSpentPolicy": "openWhenOwnActiveUnitSpent"
+    },
+    "dupletLegacySingle": {
+      "elementsAcross": 1,
+      "stages": 1,
+      "activeElementLWDmm": [
+        400,
+        240,
+        12
+      ],
+      "activeElementMassKg": 4.9536,
+      "activeGeometryEvidence": "one-stage authored legacy representation",
+      "combinedActiveMassKg": 4.9536,
+      "housingPlanningMassKg": 5.0464,
+      "placementAngleDegrees": 0,
+      "coordinateConvention": "new portrait model: Z=L, X=W, Y=D; old saved transforms unchanged",
+      "stageCenterYFractionOfBodyDepth": [
+        0.5
+      ],
+      "lateralCellLayoutAxis": "X",
+      "cellCenterAxisFractions": [
+        0.0
+      ],
+      "normalThicknessWindowMm": [
+        11.5,
+        12.5
+      ],
+      "newPhysicalPackageId": "dupletLegacySinglePhysicalV1",
+      "newPhysicalPartGuid": "0ec4fcf7-13ca-572b-aee5-9c6850a65714",
+      "newMaterialId": "dupletLegacySingleActive",
+      "newResponseId": "dupletLegacySingleActive",
+      "newHousingComponentId": "dupletLegacySingleHousing",
+      "newActiveComponentIds": [
+        "dupletLegacySingleStage1Cell1"
+      ],
+      "authoredActiveDensityKgM3": 4300.0,
+      "passiveFingerprint": {
+        "density": 4300.0,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "sharedHousingSpentPolicy": "openWhenOwnActiveUnitSpent"
+    },
+    "dupletLegacyIntegrated": {
+      "elementsAcross": 1,
+      "stages": 2,
+      "activeElementLWDmm": [
+        400,
+        240,
+        12
+      ],
+      "activeElementMassKg": 4.9536,
+      "activeGeometryEvidence": "two separately paid game stages, no certified production layout",
+      "combinedActiveMassKg": 9.9072,
+      "housingPlanningMassKg": 8.0928,
+      "placementAngleDegrees": 0,
+      "coordinateConvention": "new portrait model: Z=L, X=W, Y=D; old saved transforms unchanged",
+      "stageCenterYFractionOfBodyDepth": [
+        0.3,
+        0.7
+      ],
+      "lateralCellLayoutAxis": "X",
+      "cellCenterAxisFractions": [
+        0.0
+      ],
+      "normalThicknessWindowMm": [
+        11.5,
+        12.5
+      ],
+      "newPhysicalPackageId": "dupletLegacyIntegratedPhysicalV1",
+      "newPhysicalPartGuid": "bf3d681b-977f-57ec-8ee4-a7e09aabc28f",
+      "newMaterialId": "dupletLegacyIntegratedActive",
+      "newResponseId": "dupletLegacyIntegratedActive",
+      "newHousingComponentId": "dupletLegacyIntegratedHousing",
+      "newActiveComponentIds": [
+        "dupletLegacyIntegratedStage1Cell1",
+        "dupletLegacyIntegratedStage2Cell1"
+      ],
+      "authoredActiveDensityKgM3": 4300.0,
+      "passiveFingerprint": {
+        "density": 4300.0,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "sharedHousingSpentPolicy": "openWhenAllActiveUnitsSpent; partial spent keeps housing closed"
+    },
+    "dupletHull": {
+      "elementsAcross": 1,
+      "stages": 2,
+      "activeElementLWDmm": [
+        960,
+        280,
+        12
+      ],
+      "activeElementMassKg": 13.87008,
+      "activeGeometryEvidence": "large authored coverage stage, not one factory insert",
+      "combinedActiveMassKg": 27.74016,
+      "housingPlanningMassKg": 8.25984,
+      "placementAngleDegrees": 0,
+      "coordinateConvention": "new portrait model: Z=L, X=W, Y=D; old saved transforms unchanged",
+      "stageCenterYFractionOfBodyDepth": [
+        0.3,
+        0.7
+      ],
+      "lateralCellLayoutAxis": "X",
+      "cellCenterAxisFractions": [
+        0.0
+      ],
+      "normalThicknessWindowMm": [
+        11.5,
+        12.5
+      ],
+      "newPhysicalPackageId": "dupletHullPhysicalV1",
+      "newPhysicalPartGuid": "169ec329-b26c-5996-81b9-add749f1703f",
+      "newMaterialId": "dupletHullActive",
+      "newResponseId": "dupletHullActive",
+      "newHousingComponentId": "dupletHullHousing",
+      "newActiveComponentIds": [
+        "dupletHullStage1Cell1",
+        "dupletHullStage2Cell1"
+      ],
+      "authoredActiveDensityKgM3": 4299.999999999999,
+      "passiveFingerprint": {
+        "density": 4299.999999999999,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "sharedHousingSpentPolicy": "openWhenAllActiveUnitsSpent; partial spent keeps housing closed"
+    },
+    "dupletHullZones": {
+      "elementsAcross": 3,
+      "stages": 2,
+      "activeElementLWDmm": [
+        420,
+        280,
+        12
+      ],
+      "activeElementMassKg": 6.06816,
+      "activeGeometryEvidence": "three along-length coverage zones, each two paid stages; six units total",
+      "combinedActiveMassKg": 36.40896,
+      "housingPlanningMassKg": 11.59104,
+      "placementAngleDegrees": 0,
+      "coordinateConvention": "new portrait model: Z=L, X=W, Y=D; old saved transforms unchanged",
+      "stageCenterYFractionOfBodyDepth": [
+        0.3,
+        0.7
+      ],
+      "lateralCellLayoutAxis": "Z",
+      "cellCenterAxisFractions": [
+        -0.33333333333333337,
+        0.0,
+        0.33333333333333337
+      ],
+      "normalThicknessWindowMm": [
+        11.5,
+        12.5
+      ],
+      "newPhysicalPackageId": "dupletHullZonesPhysicalV1",
+      "newPhysicalPartGuid": "8ab93175-8804-53d3-8256-4ff0e8239d97",
+      "newMaterialId": "dupletHullZonesActive",
+      "newResponseId": "dupletHullZonesActive",
+      "newHousingComponentId": "dupletHullZonesHousing",
+      "newActiveComponentIds": [
+        "dupletHullZonesStage1Cell1",
+        "dupletHullZonesStage1Cell2",
+        "dupletHullZonesStage1Cell3",
+        "dupletHullZonesStage2Cell1",
+        "dupletHullZonesStage2Cell2",
+        "dupletHullZonesStage2Cell3"
+      ],
+      "authoredActiveDensityKgM3": 4300.0,
+      "passiveFingerprint": {
+        "density": 4300.0,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "sharedHousingSpentPolicy": "openWhenAllActiveUnitsSpent; partial spent keeps housing closed"
+    },
+    "nizh34": {
+      "elementsAcross": 1,
+      "stages": 1,
+      "activeElementLWDmm": [
+        250,
+        125,
+        36
+      ],
+      "activeElementMassKg": 2.8,
+      "activeGeometryEvidence": "user-supplied old insert dimensions/mass",
+      "combinedActiveMassKg": 2.8,
+      "housingPlanningMassKg": 2.6000000000000005,
+      "placementAngleDegrees": 0,
+      "coordinateConvention": "new portrait model: Z=L, X=W, Y=D; old saved transforms unchanged",
+      "stageCenterYFractionOfBodyDepth": [
+        0.5
+      ],
+      "lateralCellLayoutAxis": "X",
+      "cellCenterAxisFractions": [
+        0.0
+      ],
+      "normalThicknessWindowMm": [
+        35.5,
+        36.5
+      ],
+      "newPhysicalPackageId": "nizh34PhysicalV1",
+      "newPhysicalPartGuid": "0497c36a-1772-54ff-8342-82ded394e6af",
+      "newMaterialId": "nizh34Active",
+      "newResponseId": "nizh34Active",
+      "newHousingComponentId": "nizh34Housing",
+      "newActiveComponentIds": [
+        "nizh34Stage1Cell1"
+      ],
+      "authoredActiveDensityKgM3": 2488.8888888888882,
+      "passiveFingerprint": {
+        "density": 2488.8888888888882,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "sharedHousingSpentPolicy": "openWhenOwnActiveUnitSpent"
+    },
+    "nizh19": {
+      "elementsAcross": 1,
+      "stages": 1,
+      "activeElementLWDmm": [
+        250,
+        125,
+        26
+      ],
+      "activeElementMassKg": 2.1,
+      "activeGeometryEvidence": "user-supplied old insert dimensions/mass",
+      "combinedActiveMassKg": 2.1,
+      "housingPlanningMassKg": 2.6,
+      "placementAngleDegrees": 0,
+      "coordinateConvention": "new portrait model: Z=L, X=W, Y=D; old saved transforms unchanged",
+      "stageCenterYFractionOfBodyDepth": [
+        0.5
+      ],
+      "lateralCellLayoutAxis": "X",
+      "cellCenterAxisFractions": [
+        0.0
+      ],
+      "normalThicknessWindowMm": [
+        25.5,
+        26.5
+      ],
+      "newPhysicalPackageId": "nizh19PhysicalV1",
+      "newPhysicalPartGuid": "378938f3-cbe0-5c87-a87b-2aaf59accb76",
+      "newMaterialId": "nizh19Active",
+      "newResponseId": "nizh19Active",
+      "newHousingComponentId": "nizh19Housing",
+      "newActiveComponentIds": [
+        "nizh19Stage1Cell1"
+      ],
+      "authoredActiveDensityKgM3": 2584.6153846153843,
+      "passiveFingerprint": {
+        "density": 2584.6153846153843,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "sharedHousingSpentPolicy": "openWhenOwnActiveUnitSpent"
+    },
+    "nizh1M": {
+      "elementsAcross": 1,
+      "stages": 1,
+      "activeElementLWDmm": [
+        260,
+        130,
+        12
+      ],
+      "activeElementMassKg": 1.74408,
+      "activeGeometryEvidence": "authored modern HKChPWSH proxy at4300, not measured",
+      "combinedActiveMassKg": 1.74408,
+      "housingPlanningMassKg": 3.2559199999999997,
+      "placementAngleDegrees": 0,
+      "coordinateConvention": "new portrait model: Z=L, X=W, Y=D; old saved transforms unchanged",
+      "stageCenterYFractionOfBodyDepth": [
+        0.5
+      ],
+      "lateralCellLayoutAxis": "X",
+      "cellCenterAxisFractions": [
+        0.0
+      ],
+      "normalThicknessWindowMm": [
+        11.5,
+        12.5
+      ],
+      "newPhysicalPackageId": "nizh1MPhysicalV1",
+      "newPhysicalPartGuid": "c8a885b3-68bd-5557-8884-3000201281dd",
+      "newMaterialId": "nizh1MActive",
+      "newResponseId": "nizh1MActive",
+      "newHousingComponentId": "nizh1MHousing",
+      "newActiveComponentIds": [
+        "nizh1MStage1Cell1"
+      ],
+      "authoredActiveDensityKgM3": 4300.0,
+      "passiveFingerprint": {
+        "density": 4300.0,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "sharedHousingSpentPolicy": "openWhenOwnActiveUnitSpent"
+    },
+    "duplet2M": {
+      "elementsAcross": 1,
+      "stages": 2,
+      "activeElementLWDmm": [
+        260,
+        130,
+        12
+      ],
+      "activeElementMassKg": 1.74408,
+      "activeGeometryEvidence": "two authored modern stages; special tandem-layout capability supported, dimensions estimated",
+      "combinedActiveMassKg": 3.48816,
+      "housingPlanningMassKg": 5.511839999999999,
+      "placementAngleDegrees": 0,
+      "coordinateConvention": "new portrait model: Z=L, X=W, Y=D; old saved transforms unchanged",
+      "stageCenterYFractionOfBodyDepth": [
+        0.3,
+        0.7
+      ],
+      "lateralCellLayoutAxis": "X",
+      "cellCenterAxisFractions": [
+        0.0
+      ],
+      "normalThicknessWindowMm": [
+        11.5,
+        12.5
+      ],
+      "newPhysicalPackageId": "duplet2MPhysicalV1",
+      "newPhysicalPartGuid": "c2babd87-5e84-52ef-b0cb-8ff123b4da96",
+      "newMaterialId": "duplet2MActive",
+      "newResponseId": "duplet2MActive",
+      "newHousingComponentId": "duplet2MHousing",
+      "newActiveComponentIds": [
+        "duplet2MStage1Cell1",
+        "duplet2MStage2Cell1"
+      ],
+      "authoredActiveDensityKgM3": 4300.0,
+      "passiveFingerprint": {
+        "density": 4300.0,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "sharedHousingSpentPolicy": "openWhenAllActiveUnitsSpent; partial spent keeps housing closed"
+    },
+    "duplet2MHull": {
+      "elementsAcross": 1,
+      "stages": 2,
+      "activeElementLWDmm": [
+        430,
+        280,
+        12
+      ],
+      "activeElementMassKg": 6.21264,
+      "activeGeometryEvidence": "larger authored modern panel stages",
+      "combinedActiveMassKg": 12.42528,
+      "housingPlanningMassKg": 5.574719999999999,
+      "placementAngleDegrees": 0,
+      "coordinateConvention": "new portrait model: Z=L, X=W, Y=D; old saved transforms unchanged",
+      "stageCenterYFractionOfBodyDepth": [
+        0.3,
+        0.7
+      ],
+      "lateralCellLayoutAxis": "X",
+      "cellCenterAxisFractions": [
+        0.0
+      ],
+      "normalThicknessWindowMm": [
+        11.5,
+        12.5
+      ],
+      "newPhysicalPackageId": "duplet2MHullPhysicalV1",
+      "newPhysicalPartGuid": "8a0554d3-70cd-5a76-9dcf-570cb6cfe8fb",
+      "newMaterialId": "duplet2MHullActive",
+      "newResponseId": "duplet2MHullActive",
+      "newHousingComponentId": "duplet2MHullHousing",
+      "newActiveComponentIds": [
+        "duplet2MHullStage1Cell1",
+        "duplet2MHullStage2Cell1"
+      ],
+      "authoredActiveDensityKgM3": 4300.0,
+      "passiveFingerprint": {
+        "density": 4300.0,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "sharedHousingSpentPolicy": "openWhenAllActiveUnitsSpent; partial spent keeps housing closed"
+    },
+    "nizhLm": {
+      "elementsAcross": 1,
+      "stages": 1,
+      "activeElementLWDmm": [
+        260,
+        160,
+        12
+      ],
+      "activeElementMassKg": 2.14656,
+      "activeGeometryEvidence": "Material authored lightweight proxy at4300; package shape sourced only",
+      "combinedActiveMassKg": 2.14656,
+      "housingPlanningMassKg": null,
+      "placementAngleDegrees": 0,
+      "coordinateConvention": "new portrait model: Z=L, X=W, Y=D; old saved transforms unchanged",
+      "stageCenterYFractionOfBodyDepth": [
+        0.5
+      ],
+      "lateralCellLayoutAxis": "X",
+      "cellCenterAxisFractions": [
+        0.0
+      ],
+      "stageCenterYmm": [
+        30
+      ],
+      "normalThicknessWindowMm": [
+        11.5,
+        12.5
+      ],
+      "newPhysicalPackageId": "nizhLmPhysicalV1",
+      "newPhysicalPartGuid": "0f0f3f44-3931-5d72-bd5c-5d2159b13dc6",
+      "newMaterialId": "nizhLmInsert",
+      "newResponseId": "nizhLmInsert",
+      "newHousingComponentId": "nizhLmHousing",
+      "newActiveComponentIds": [
+        "nizhLmInsert"
+      ],
+      "authoredActiveDensityKgM3": 4300.0,
+      "passiveFingerprint": {
+        "density": 4300.0,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "sharedHousingSpentPolicy": "openWhenOwnActiveUnitSpent"
+    }
+  },
+  "profiles": {
+    "kontakt1": {
+      "kind": "lightEra",
+      "geometryMode": "declaredCassette",
+      "baseIntactRodRetention": 1,
+      "baseDisturbedRodRetention": 1,
+      "baseDisturbanceContribution": 0,
+      "chemicalTargetLoss": 0.5,
+      "chemicalRetention": 0.5,
+      "kineticBaseLossAtLD30": 0,
+      "kineticMaximumLocalLoss": 0,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "physicalStages": 1,
+      "chemicalThreatClass": "legacyChemical",
+      "tandemGameplayEnabled": false,
+      "coefficientEvidence": "conservative authored calibration, not measured/guaranteed manufacturer performance"
+    },
+    "kontakt5": {
+      "kind": "heavyEra",
+      "geometryMode": "declaredCassette",
+      "baseIntactRodRetention": 1,
+      "baseDisturbedRodRetention": 1,
+      "baseDisturbanceContribution": 0,
+      "chemicalTargetLoss": 0.5,
+      "chemicalRetention": 0.5,
+      "kineticBaseLossAtLD30": 0.12,
+      "kineticMaximumLocalLoss": 0.24,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "physicalStages": 1,
+      "chemicalThreatClass": "legacyChemical",
+      "tandemGameplayEnabled": false,
+      "coefficientEvidence": "conservative authored calibration, not measured/guaranteed manufacturer performance"
+    },
+    "relikt": {
+      "kind": "heavyEra",
+      "geometryMode": "declaredCassette",
+      "baseIntactRodRetention": 1,
+      "baseDisturbedRodRetention": 1,
+      "baseDisturbanceContribution": 0,
+      "chemicalTargetLoss": 0.6,
+      "chemicalRetention": 0.4,
+      "kineticBaseLossAtLD30": 0.18,
+      "kineticMaximumLocalLoss": 0.35,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "physicalStages": 1,
+      "chemicalThreatClass": "legacyChemical",
+      "tandemGameplayEnabled": false,
+      "coefficientEvidence": "conservative authored calibration, not measured/guaranteed manufacturer performance"
+    },
+    "nizhLegacy": {
+      "kind": "heavyEra",
+      "geometryMode": "declaredCassette",
+      "baseIntactRodRetention": 1,
+      "baseDisturbedRodRetention": 1,
+      "baseDisturbanceContribution": 0,
+      "chemicalTargetLoss": 0.55,
+      "chemicalRetention": 0.44999999999999996,
+      "kineticBaseLossAtLD30": 0.2,
+      "kineticMaximumLocalLoss": 0.35,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "physicalStages": 1,
+      "chemicalThreatClass": "legacyChemical",
+      "tandemGameplayEnabled": false,
+      "coefficientEvidence": "conservative authored calibration, not measured/guaranteed manufacturer performance"
+    },
+    "nizh34": {
+      "kind": "heavyEra",
+      "geometryMode": "declaredCassette",
+      "baseIntactRodRetention": 1,
+      "baseDisturbedRodRetention": 1,
+      "baseDisturbanceContribution": 0,
+      "chemicalTargetLoss": 0.55,
+      "chemicalRetention": 0.44999999999999996,
+      "kineticBaseLossAtLD30": 0.2,
+      "kineticMaximumLocalLoss": 0.35,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "physicalStages": 1,
+      "chemicalThreatClass": "legacyChemical",
+      "tandemGameplayEnabled": false,
+      "coefficientEvidence": "conservative authored calibration, not measured/guaranteed manufacturer performance"
+    },
+    "nizh19": {
+      "kind": "heavyEra",
+      "geometryMode": "declaredCassette",
+      "baseIntactRodRetention": 1,
+      "baseDisturbedRodRetention": 1,
+      "baseDisturbanceContribution": 0,
+      "chemicalTargetLoss": 0.45,
+      "chemicalRetention": 0.55,
+      "kineticBaseLossAtLD30": 0.15,
+      "kineticMaximumLocalLoss": 0.24,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "physicalStages": 1,
+      "chemicalThreatClass": "legacyChemical",
+      "tandemGameplayEnabled": false,
+      "coefficientEvidence": "conservative authored calibration, not measured/guaranteed manufacturer performance"
+    },
+    "dupletLegacySingle": {
+      "kind": "heavyEra",
+      "geometryMode": "declaredCassette",
+      "baseIntactRodRetention": 1,
+      "baseDisturbedRodRetention": 1,
+      "baseDisturbanceContribution": 0,
+      "chemicalTargetLoss": 0.6,
+      "chemicalRetention": 0.4,
+      "kineticBaseLossAtLD30": 0.22,
+      "kineticMaximumLocalLoss": 0.35,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "physicalStages": 1,
+      "chemicalThreatClass": "legacyChemical",
+      "tandemGameplayEnabled": false,
+      "coefficientEvidence": "conservative authored calibration, not measured/guaranteed manufacturer performance"
+    },
+    "dupletLegacyIntegrated": {
+      "kind": "heavyEra",
+      "geometryMode": "declaredCassette",
+      "baseIntactRodRetention": 1,
+      "baseDisturbedRodRetention": 1,
+      "baseDisturbanceContribution": 0,
+      "chemicalTargetLoss": 0.4522774424948339,
+      "chemicalRetention": 0.5477225575051661,
+      "kineticBaseLossAtLD30": 0.16333997346592444,
+      "kineticMaximumLocalLoss": 0.24,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "physicalStages": 2,
+      "chemicalThreatClass": "legacyChemical",
+      "tandemGameplayEnabled": false,
+      "coefficientEvidence": "conservative authored calibration, not measured/guaranteed manufacturer performance"
+    },
+    "nizh1M": {
+      "kind": "heavyEra",
+      "geometryMode": "declaredCassette",
+      "baseIntactRodRetention": 1,
+      "baseDisturbedRodRetention": 1,
+      "baseDisturbanceContribution": 0,
+      "chemicalTargetLoss": 0.65,
+      "chemicalRetention": 0.35,
+      "kineticBaseLossAtLD30": 0.25,
+      "kineticMaximumLocalLoss": 0.35,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "physicalStages": 1,
+      "chemicalThreatClass": "legacyChemical",
+      "tandemGameplayEnabled": false,
+      "coefficientEvidence": "conservative authored calibration, not measured/guaranteed manufacturer performance"
+    },
+    "duplet2M": {
+      "kind": "heavyEra",
+      "geometryMode": "declaredCassette",
+      "baseIntactRodRetention": 1,
+      "baseDisturbedRodRetention": 1,
+      "baseDisturbanceContribution": 0,
+      "chemicalTargetLoss": 0.5527864045000421,
+      "chemicalRetention": 0.44721359549995787,
+      "kineticBaseLossAtLD30": 0.19377422517014498,
+      "kineticMaximumLocalLoss": 0.24,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "physicalStages": 2,
+      "chemicalThreatClass": "legacyChemical",
+      "tandemGameplayEnabled": false,
+      "coefficientEvidence": "conservative authored calibration, not measured/guaranteed manufacturer performance"
+    },
+    "nizhLm": {
+      "kind": "lightEra",
+      "geometryMode": "declaredCassette",
+      "baseIntactRodRetention": 1,
+      "baseDisturbedRodRetention": 1,
+      "baseDisturbanceContribution": 0,
+      "chemicalTargetLoss": 0.8,
+      "chemicalRetention": 0.19999999999999996,
+      "kineticBaseLossAtLD30": 0,
+      "kineticMaximumLocalLoss": 0,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "physicalStages": 1,
+      "chemicalThreatClass": "unitaryAntitankGrenade",
+      "tandemGameplayEnabled": false,
+      "coefficientEvidence": "conservative authored calibration, not measured/guaranteed manufacturer performance"
+    }
+  },
+  "nativeRuntimeCaps": {
+    "preserveConfiguredChemicalCap": true,
+    "preserveConfiguredKineticCap": true,
+    "installedChemicalCap": 0.6,
+    "installedKineticCap": 0.35,
+    "noSilentDefaultIncrease": true
+  },
+  "stageMath": "per-stage calibration multiplies retention before native passive traversal; distinct paid reached stages share arriving-track cap; no summed budgets or tandem credit",
+  "implementationRequirements": [
+    "strict paired threat filter for LM",
+    "separate coefficient parser bounds from lower user caps",
+    "one exclusive legacy OR dynamic KE response per actual cell",
+    "new physical package identities; old saves unchanged",
+    "descriptor generator computes actual housing volumes/masses and reconciles planning budgets",
+    "no tandem gameplay until real precursor/main runner verified"
+  ]
+}

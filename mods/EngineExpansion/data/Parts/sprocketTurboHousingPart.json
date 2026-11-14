@@ -1,0 +1,66 @@
+{
+  "guid": "2b550a43-8a7c-45c4-bf7a-220d25ba8421",
+  "components": [
+    {
+      "info": {
+        "selectable": true,
+        "mass": 0,
+        "damageable": false,
+        "placementSurface": false,
+        "materialGuids": [
+          "88aa84acbbf1a364f9debc402c4e270c"
+        ],
+        "scaling": false,
+        "meshGuid": "feca6292029500c4ea3c8fee7f52d708",
+        "flipping": false,
+        "v": "0.2"
+      },
+      "type": "model",
+      "fileID": "sprocketTurboHousing"
+    }
+  ],
+  "iconRotation": [
+    0,
+    0,
+    0
+  ],
+  "transform": {
+    "maxScale": [
+      1,
+      1,
+      1
+    ],
+    "placementMode": "upright",
+    "rotation": true,
+    "objects": [],
+    "dynamic": true,
+    "mirroring": false,
+    "snapToCentre": false,
+    "translation": true,
+    "pickup": true,
+    "duplication": false,
+    "scaling": false,
+    "autoRotate": false,
+    "airPlacement": true,
+    "scale": [
+      1,
+      1,
+      1
+    ],
+    "minScale": [
+      1,
+      1,
+      1
+    ]
+  },
+  "date": "1890.01.01",
+  "order": 90,
+  "tags": [],
+  "v": "0.3",
+  "iconScale": 1,
+  "iconOffset": [
+    0,
+    0
+  ],
+  "name": "sprocketTurboHousing"
+}

@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<Part><name>Relikt panel (hull)</name><description>Relikt - modular hull panel (game proxy)
+Resize X/Z to add whole cells (1x1 up to 8x8): 270 x 150 mm per cell, 136 mm deep.
+Each cell has its own formed front plate, bolts on every second cell corner and a finite reactive charge.
+Plates: 1 | one 13 mm active plate per cell, inclined 25 degrees
+APFSDS at 60°: 19.2% less pen. (L/D 30)
+HEAT at 60°: 54.6% less pen.
+Tandem: no guaranteed protection
+Used on: T-90M, T-80BVM hull glacis (family)
+Mount: incoming fire toward local +X (lengthwise)
+Mass and cost scale with paid cell area only, never depth</description></Part>

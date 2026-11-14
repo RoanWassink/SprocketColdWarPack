@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<Part><name>Relikt side box</name><description>Relikt - modular side box (game proxy)
+Resize X to add whole cells along the length (1 to 8); the height is fixed at two rows.
+270 x 150 mm per cell, 136 mm deep, slotted mounting lip on the top edge and a hinge strip.
+Each cell has its own formed plate and a finite reactive charge.
+Plates: 1 | one 13 mm active plate per cell, inclined 25 degrees
+APFSDS at 60°: 19.2% less pen. (L/D 30)
+HEAT at 60°: 54.6% less pen.
+Tandem: no guaranteed protection
+Used on: T-90M, T-80BVM side skirts (family)
+Mount: incoming fire toward local +X (lengthwise)
+Mass and cost scale with paid cell area only, never depth</description></Part>

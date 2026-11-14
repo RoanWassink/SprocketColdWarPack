@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+ <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><MeshSource Condition="'$(MeshSource)' == ''">../..</MeshSource></PropertyGroup>
+ <ItemGroup>
+  <Compile Include="../GeometryStubs.cs" Link="GeometryStubs.cs" />
+  <Compile Include="../../NativeUv.cs" Link="NativeUv.cs" />
+  <Compile Include="$(MeshSource)/CylinderMesh.cs" Link="CylinderMesh.cs" />
+  <Compile Include="$(MeshSource)/HingeMesh.cs" Link="HingeMesh.cs" />
+  <Compile Include="$(MeshSource)/HingeMath.cs" Link="HingeMath.cs" />
+  <Compile Include="$(MeshSource)/RotatorMesh.cs" Link="RotatorMesh.cs" />
+  <Compile Include="$(MeshSource)/RotatorMeshData.cs" Link="RotatorMeshData.cs" />
+  <Compile Include="$(MeshSource)/Travel.cs" Link="Travel.cs" />
+  <Compile Include="$(MeshSource)/PaintUv.cs" Link="PaintUv.cs" />
+ </ItemGroup>
+</Project>

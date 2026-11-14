@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "siliconCarbide",
+  "date": "1985.01.01",
+  "properties": {
+    "rhaFactor": 1.0,
+    "costMultiplier": 25.8329,
+    "spallFactor": 0.0015,
+    "density": 3200
+  }
+}

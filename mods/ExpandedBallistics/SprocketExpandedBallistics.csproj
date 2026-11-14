@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="SprocketMod.props" />
+  <PropertyGroup><AssemblyName>SprocketExpandedBallistics</AssemblyName><RootNamespace>SprocketExpandedBallistics</RootNamespace><PlatformTarget>x64</PlatformTarget><Version>0.22.74</Version></PropertyGroup>
+  <ItemGroup><Compile Remove="tests\**\*.cs;work\**\*.cs;outputs\**\*.cs;tools\**\*.cs" /></ItemGroup>
+  <ItemGroup><EmbeddedResource Include="default-shells.json" LogicalName="ExpandedBallistics.Defaults" /></ItemGroup>
+  <ItemGroup><EmbeddedResource Include="audio\atgm.wav" LogicalName="ExpandedBallistics.Audio.atgm.wav" /><EmbeddedResource Include="audio\atgm_gun.wav" LogicalName="ExpandedBallistics.Audio.atgm_gun.wav" /></ItemGroup>
+<ItemGroup><Reference Include="SprocketJsonEditor"><HintPath>$(GameDir)/BepInEx/plugins/SprocketJsonEditor/SprocketJsonEditor.dll</HintPath><Private>false</Private></Reference></ItemGroup><ItemGroup><EmbeddedResource Include="Material/examples/sprocket.expandedballistics.responses.json" LogicalName="ExpandedBallistics.Materials.ResponseTemplates" /><EmbeddedResource Include="Material/defaults/sprocket.expandedballistics.experimental.json" LogicalName="ExpandedBallistics.Materials.ExperimentalTemplates" /></ItemGroup><ItemGroup><EmbeddedResource Include="Material/defaults/sprocket.expandedballistics.material.reactions.json" LogicalName="ExpandedBallistics.Materials.ReactionTemplates" /></ItemGroup><ItemGroup><Reference Include="SprocketKeybinds"><HintPath>$(GameDir)/BepInEx/plugins/SprocketKeybinds/SprocketKeybinds.dll</HintPath><Private>false</Private></Reference></ItemGroup><ItemGroup><Reference Include="SprocketUiKit"><HintPath>$(GameDir)/BepInEx/plugins/SprocketUiKit/SprocketUiKit.dll</HintPath><Private>false</Private></Reference></ItemGroup><ItemGroup><EmbeddedResource Include="vfx/smoke_07.png" LogicalName="ExpandedBallistics.Vfx.smoke_07.png" /><EmbeddedResource Include="vfx/dirt_01.png" LogicalName="ExpandedBallistics.Vfx.dirt_01.png" /><EmbeddedResource Include="vfx/fire_01.png" LogicalName="ExpandedBallistics.Vfx.fire_01.png" /><EmbeddedResource Include="vfx/muzzle_03.png" LogicalName="ExpandedBallistics.Vfx.muzzle_03.png" /></ItemGroup><ItemGroup><EmbeddedResource Include="assets/atgm-guidance-sight.png" LogicalName="ExpandedBallistics.Icons.atgm-guidance-sight.png" /></ItemGroup><ItemGroup><EmbeddedResource Include="Material/defaults/sprocket.expandedballistics.cassettes.json" LogicalName="ExpandedBallistics.Materials.CassetteTemplates" /></ItemGroup><ItemGroup><EmbeddedResource Include="assets/compositeSideModule.default.json" LogicalName="CompositeModule.Defaults" /></ItemGroup></Project>
+
+
+
+
+
+
+
+
+
+
+
+
+
+

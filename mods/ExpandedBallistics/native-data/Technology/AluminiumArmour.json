@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "aluminiumArmour",
+  "date": "1960.01.01",
+  "properties": {
+    "rhaFactor": 0.42,
+    "costMultiplier": 6,
+    "spallFactor": 0.0008,
+    "density": 2700
+  }
+}

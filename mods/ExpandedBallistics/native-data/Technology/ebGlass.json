@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "ebGlass",
+  "date": "1900.01.01",
+  "properties": {
+    "rhaFactor": 0.2,
+    "costMultiplier": 1.0,
+    "spallFactor": 0.001,
+    "density": 2500
+  }
+}

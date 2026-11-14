@@ -1,0 +1,52 @@
+{
+  "v": "0.0",
+  "guid": "5fd35c60-7493-42aa-a065-5910f3280868",
+  "name": "heavyTrunnionDrive",
+  "date": "1952.01.01",
+  "tags": [
+    "heavyTrunnionDrive"
+  ],
+  "components": [
+    {
+      "fileID": "layingDrive",
+      "type": "layingDrive",
+      "info": {
+        "v": "0.0",
+        "modelFileID": "model"
+      }
+    },
+    {
+      "fileID": "model",
+      "type": "model",
+      "info": {
+        "v": "0.2",
+        "meshGuid": "05c00c62ea7392a40b08def36109632b",
+        "materialGuids": [
+          "f49261666f290a34098c2739f91eb81b"
+        ],
+        "scaling": true,
+        "flipping": true,
+        "selectable": true,
+        "placementSurface": false,
+        "damageable": false
+      }
+    }
+  ],
+  "transform": {
+    "mirroring": false,
+    "duplication": false,
+    "pickup": false,
+    "snapToCentre": false,
+    "autoRotate": false,
+    "airPlacement": false,
+    "translation": true,
+    "rotation": true,
+    "scaling": false,
+    "dynamic": false,
+    "placementMode": "upright",
+    "scale": [],
+    "maxScale": [],
+    "minScale": [],
+    "objects": []
+  }
+}

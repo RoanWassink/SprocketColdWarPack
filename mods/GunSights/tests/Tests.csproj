@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>SprocketGunSights</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\src\SightCatalogue.cs" Link="SightCatalogue.cs" />
+    <Compile Include="..\src\Reticles.cs" Link="Reticles.cs" />
+  </ItemGroup>
+</Project>

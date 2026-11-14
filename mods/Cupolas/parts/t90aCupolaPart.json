@@ -1,0 +1,140 @@
+{
+  "v": "0.3",
+  "guid": "b56e5c50-f099-4bf0-b031-93f19212b862",
+  "name": "t90aCupola",
+  "tags": [
+    "cupola",
+    "commander",
+    "ussr"
+  ],
+  "components": [
+    {
+      "fileID": "cupola",
+      "type": "cupola",
+      "info": {
+        "v": "0.0",
+        "cameraTrackPosition": [
+          0,
+          0.4,
+          0
+        ],
+        "objectiveLensPosition": [
+          0,
+          0.149716,
+          0
+        ],
+        "eyepiecePosition": [
+          0,
+          0.149716,
+          0
+        ]
+      }
+    },
+    {
+      "fileID": "hatch",
+      "type": "hatch",
+      "info": {
+        "v": "0.0",
+        "baseModelFileID": "baseModel",
+        "doorModelFileID": "hatchModel",
+        "entrancePosition": [
+          0,
+          0.24,
+          0
+        ],
+        "entranceDirection": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "entranceSize": 0.65,
+        "maxPressure": 20000
+      }
+    },
+    {
+      "fileID": "baseModel",
+      "type": "model",
+      "info": {
+        "v": "0.4",
+        "associatedComponentFileID": "cupola",
+        "meshGuid": "9d08d22e65fa427469a89672a7a0aa32",
+        "materialGuids": [
+          "a315dd306c5e36545ac19d9975a094f7"
+        ],
+        "scaling": true,
+        "flipping": true,
+        "selectable": true,
+        "placementSurface": false,
+        "durableMaterialID": null
+      }
+    }
+  ],
+  "transform": {
+    "mirroring": true,
+    "duplication": true,
+    "pickup": true,
+    "snapToCentre": true,
+    "autoRotate": false,
+    "airPlacement": true,
+    "translation": true,
+    "rotation": true,
+    "scaling": true,
+    "dynamic": true,
+    "placementMode": "upright",
+    "scale": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "maxScale": [
+      2.0,
+      2.0,
+      2.0
+    ],
+    "minScale": [
+      0.5,
+      0.5,
+      0.5
+    ],
+    "objects": [
+      {
+        "fileID": "hatchObject",
+        "parentFileID": null,
+        "localPosition": [
+          0,
+          0.24,
+          -0.27
+        ],
+        "localRotation": [],
+        "localScale": [],
+        "components": [
+          {
+            "fileID": "hatchModel",
+            "type": "model",
+            "info": {
+              "v": "0.4",
+              "associatedComponentFileID": "cupola",
+              "meshGuid": "ec5f618597cb8c3459c615a208a2d838",
+              "materialGuids": [
+                "a315dd306c5e36545ac19d9975a094f7"
+              ],
+              "scaling": true,
+              "flipping": true,
+              "selectable": true,
+              "placementSurface": false,
+              "durableMaterialID": null
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "order": 69,
+  "date": "1992.01.01",
+  "iconOffset": [
+    0,
+    0
+  ],
+  "iconRotation": [],
+  "iconScale": 1
+}

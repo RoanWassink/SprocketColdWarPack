@@ -1,0 +1,21 @@
+﻿# Build output
+bin/
+obj/
+out/
+*.pdb
+
+# Compiled mods are distributed through GitHub Releases, not git
+*.dll
+*.exe
+
+# Local files
+logs/
+backups/
+*.log
+*.local.json
+*.bak
+*.tmp
+__pycache__/
+.vs/
+.idea/
+Thumbs.db

@@ -1,0 +1,9 @@
+﻿{
+    "v":  "0.0",
+    "id":  "",
+    "type":  "expandedBallistics_atgm_swingfire",
+    "date":  "1969.01.01",
+    "properties":  {
+                       "enabled":  true
+                   }
+}

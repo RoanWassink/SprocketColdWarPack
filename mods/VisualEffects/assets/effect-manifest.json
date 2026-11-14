@@ -1,0 +1,115 @@
+{
+  "columns": 8,
+  "rows": 8,
+  "frames": 64,
+  "frameWidth": 512,
+  "frameHeight": 256,
+  "duration": 2.64,
+  "frameTimes": [
+    0.0,
+    0.01,
+    0.02,
+    0.03,
+    0.04,
+    0.05,
+    0.06,
+    0.07,
+    0.08,
+    0.09,
+    0.1,
+    0.11,
+    0.12,
+    0.13,
+    0.14,
+    0.15,
+    0.16,
+    0.17,
+    0.18,
+    0.19,
+    0.2,
+    0.21,
+    0.22,
+    0.23,
+    0.24,
+    0.3,
+    0.36,
+    0.42,
+    0.48,
+    0.54,
+    0.6,
+    0.66,
+    0.72,
+    0.78,
+    0.84,
+    0.9,
+    0.96,
+    1.02,
+    1.08,
+    1.14,
+    1.2,
+    1.26,
+    1.32,
+    1.38,
+    1.44,
+    1.5,
+    1.56,
+    1.62,
+    1.68,
+    1.74,
+    1.8,
+    1.86,
+    1.92,
+    1.98,
+    2.04,
+    2.1,
+    2.16,
+    2.22,
+    2.28,
+    2.34,
+    2.4,
+    2.46,
+    2.52,
+    2.58
+  ],
+  "order": "row-major-top-left",
+  "views": {
+    "side": {
+      "image": "muzzle-side.png",
+      "muzzleUV": [
+        0.1,
+        0.5
+      ],
+      "worldBounds": {
+        "x": [
+          -0.7,
+          6.3
+        ],
+        "z": [
+          -1.75,
+          1.75
+        ]
+      }
+    },
+    "front": {
+      "image": "muzzle-front.png",
+      "muzzleUV": [
+        0.5,
+        0.5
+      ],
+      "worldBounds": {
+        "y": [
+          -3.5,
+          3.5
+        ],
+        "z": [
+          -1.75,
+          1.75
+        ]
+      }
+    }
+  },
+  "method": "HYBRID: artist-shaped animated 3D volume fireball with noise detail transitions into Blender Mantaflow baked gas/fire smoke; artistic playback retiming, alpha softened and last 10 frames faded for replay",
+  "baked": true,
+  "bakedScope": "Mantaflow smoke and residual flame only; initial fireball is artist-shaped",
+  "author": "Nero"
+}

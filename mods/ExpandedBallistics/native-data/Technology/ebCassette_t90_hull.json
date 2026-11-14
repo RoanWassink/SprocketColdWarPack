@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "ebCassette_t90_hull",
+  "date": "1992.01.01",
+  "properties": {
+    "rhaFactor": 0.8630612244897958,
+    "costMultiplier": 4.43641178426445,
+    "spallFactor": 0.0005,
+    "density": 5278.571428571428
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "v": "0.0",
+  "guid": "58b7e71b-b383-4782-ac62-d5b0873688c1",
+  "name": "heavyTrunnionMantlet",
+  "date": "1952.01.01",
+  "tags": [
+    "mantlet"
+  ],
+  "components": [
+    {
+      "fileID": "mantlet",
+      "type": "mantlet",
+      "info": {
+        "v": "0.0",
+        "baseModelFileID": "",
+        "trunnionPartGuid": "e11ce433-c0b3-4e52-899f-898bfe6d3fd3",
+        "shieldPartGuid": "",
+        "layingDrivePartGuid": "5fd35c60-7493-42aa-a065-5910f3280868",
+        "trunnionLocalPosition": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "trunnionsScale": 1.5,
+        "shieldLocalPosition": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "mountLocalPosition": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "mountOffset": -0.25,
+        "mountSnapRadius": 0.05,
+        "maxElevation": 25.0,
+        "minElevation": -10.0,
+        "maxAzimuth": 0.0,
+        "minAzimuth": 0.0
+      }
+    }
+  ],
+  "transform": {
+    "mirroring": true,
+    "duplication": true,
+    "pickup": true,
+    "snapToCentre": true,
+    "autoRotate": false,
+    "airPlacement": true,
+    "translation": true,
+    "rotation": false,
+    "scaling": true,
+    "dynamic": false,
+    "placementMode": "upright",
+    "scale": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "maxScale": [
+      4.0,
+      4.0,
+      4.0
+    ],
+    "minScale": [
+      0.25,
+      0.25,
+      0.25
+    ],
+    "objects": []
+  }
+}

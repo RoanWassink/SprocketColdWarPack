@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><Authors>Nero</Authors><Company>Nero</Company><Copyright>Nero</Copyright><Product>Sprocket Carousel Autoloader</Product></PropertyGroup>
+  <ItemGroup><Compile Include="..\CarouselDamagePolicy.cs" Link="CarouselDamagePolicy.cs" /><Compile Include="..\LoaderFitReadout.cs" Link="LoaderFitReadout.cs" /><Compile Include="..\LoaderFitFailureGate.cs" Link="LoaderFitFailureGate.cs" /><Compile Include="..\LoaderPhysicalFit.cs" Link="LoaderPhysicalFit.cs" /><Compile Include="..\CarouselGeometry.cs" Link="CarouselGeometry.cs" /><Compile Include="..\BustleTiming.cs" Link="BustleTiming.cs" /><Compile Include="..\BustleFeedGeometry.cs" Link="BustleFeedGeometry.cs" /><Compile Include="..\PcmWave.cs" Link="PcmWave.cs" /><Compile Include="..\LoadWorkPolicy.cs" Link="LoadWorkPolicy.cs" /><Compile Include="..\CarouselVisualGeometry.cs" Link="CarouselVisualGeometry.cs" /><Compile Include="..\SemiAssistPolicy.cs" Link="SemiAssistPolicy.cs" /><Compile Include="..\PlayBoundaryGate.cs" Link="PlayBoundaryGate.cs" /><Compile Include="..\SemiCountdownMath.cs" Link="SemiCountdownMath.cs" /><Compile Include="..\CarouselDatePolicy.cs" Link="CarouselDatePolicy.cs" /><Compile Include="..\RevolverPolicy.cs" Link="RevolverPolicy.cs" /></ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\AutoloaderModelGeometry.cs" Link="AutoloaderModelGeometry.cs" />
+    <Compile Include="..\AutoloaderVisualPolicy.cs" Link="AutoloaderVisualPolicy.cs" />
+    <Compile Include="..\RevolverIcon.cs" Link="RevolverIcon.cs" />
+    <Compile Include="..\RevolverDrum.cs" Link="RevolverDrum.cs" />
+    <Compile Include="..\AutoloaderMeshData.cs" Link="AutoloaderMeshData.cs" />
+    <Compile Include="..\TwoPiecePolicy.cs" Link="TwoPiecePolicy.cs" />
+    <Compile Include="..\RefillPolicy.cs" Link="RefillPolicy.cs" />
+    <Compile Include="..\AutoloaderHudLayout.cs" Link="AutoloaderHudLayout.cs" />
+    <Compile Include="..\HudCard.cs" Link="HudCard.cs" />
+    <Compile Include="..\FeedArmGeometry.cs" Link="FeedArmGeometry.cs" />
+    <Compile Include="..\SafetyPolicy.cs" Link="SafetyPolicy.cs" />
+    <Compile Include="..\CarouselModelGeometry.cs" Link="CarouselModelGeometry.cs" />
+    <Compile Include="..\CarouselModelData.cs" Link="CarouselModelData.cs" />
+    <None Update="Fixtures\revolver-approved.png" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
+
+
+
+

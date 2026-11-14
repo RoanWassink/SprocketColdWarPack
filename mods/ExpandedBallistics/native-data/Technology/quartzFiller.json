@@ -1,0 +1,12 @@
+{
+    "v":  "0.0",
+    "id":  "",
+    "type":  "quartzFiller",
+    "date":  "1979.01.01",
+    "properties":  {
+                       "rhaFactor":  0.78,
+                       "costMultiplier":  7.9727,
+                       "spallFactor":  0,
+                       "density":  2200
+                   }
+}

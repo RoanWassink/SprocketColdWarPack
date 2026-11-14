@@ -1,0 +1,95 @@
+{
+  "v": "0.0",
+  "guid": "ac5d72a9-cbfc-5fa5-80da-061b75ea8c4c",
+  "name": "dupletSideModuleV1",
+  "tags": [
+    "appliqueArmour",
+    "structure"
+  ],
+  "components": [
+    {
+      "fileID": "dupletSideModuleHousing",
+      "type": "model",
+      "info": {
+        "v": "0.5",
+        "associatedComponentFileID": "",
+        "meshGuid": "d314e34d6861bac4d9c40bac4b9e0f67",
+        "materialGuids": [
+          "b3d52e7c3f98b7f41b352500924cc4b6"
+        ],
+        "scaling": true,
+        "flipping": true,
+        "selectable": true,
+        "placementSurface": true,
+        "durableMaterialID": "rha",
+        "mass": 6.23604
+      }
+    },
+    {
+      "fileID": "dupletSideModuleStage1Cell",
+      "type": "model",
+      "info": {
+        "v": "0.5",
+        "associatedComponentFileID": "",
+        "meshGuid": "d314e34d6861bac4d9c40bac4b9e0f67",
+        "materialGuids": [
+          "b3d52e7c3f98b7f41b352500924cc4b6"
+        ],
+        "scaling": true,
+        "flipping": true,
+        "selectable": true,
+        "placementSurface": true,
+        "durableMaterialID": "dupletHullActive",
+        "mass": 1.6125
+      }
+    },
+    {
+      "fileID": "dupletSideModuleStage2Cell",
+      "type": "model",
+      "info": {
+        "v": "0.5",
+        "associatedComponentFileID": "",
+        "meshGuid": "d314e34d6861bac4d9c40bac4b9e0f67",
+        "materialGuids": [
+          "b3d52e7c3f98b7f41b352500924cc4b6"
+        ],
+        "scaling": true,
+        "flipping": true,
+        "selectable": true,
+        "placementSurface": true,
+        "durableMaterialID": "dupletHullActive",
+        "mass": 1.6125
+      }
+    }
+  ],
+  "transform": {
+    "mirroring": true,
+    "duplication": true,
+    "pickup": true,
+    "snapToCentre": true,
+    "autoRotate": false,
+    "airPlacement": true,
+    "translation": true,
+    "rotation": true,
+    "scaling": true,
+    "dynamic": false,
+    "placementMode": "upFaceNormal",
+    "scale": [
+      1.0,
+      1.0,
+      2.0
+    ],
+    "maxScale": [
+      8.0,
+      1.0,
+      2.0
+    ],
+    "minScale": [
+      1.0,
+      1.0,
+      2.0
+    ],
+    "objects": []
+  },
+  "date": "2009.01.01"
+}

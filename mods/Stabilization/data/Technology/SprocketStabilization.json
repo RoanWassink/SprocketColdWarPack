@@ -1,0 +1,7 @@
+{
+  "v": "0.0",
+  "id": "sprocket.stabilization.editor",
+  "type": "sprocketStabilization",
+  "date": "1948.01.01",
+  "properties": { "enabled": true, "strengthScale": 100, "maxElevationStrength": 10000 }
+}

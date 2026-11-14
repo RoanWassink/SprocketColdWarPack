@@ -1,0 +1,24 @@
+IR searchlight validation (m)
+Bounding box:
+  X: -0.150000 .. 0.150000 (span 0.300000)
+  Y: 0.000000 .. 0.400000 (span 0.400000)
+  Z: -0.180000 .. 0.130000 (span 0.310000)
+Topological vertices before hard-edge/UV splits: 1512
+Triangles: 2992
+Closed (each indexed edge incident on exactly two faces): True
+Boundary/nonmanifold edges: 0
+Duplicate faces: 0
+Degenerate faces: 0
+Exported v/vt/vn: 2573/2573/2573
+All face v/vt/vn references in range: True
+housing closed per original solid topology: True
+lens closed per original solid topology: True
+Target dimensions:
+  Housing diameter: 0.3000 m; target 0.3000 m; deviation +0.00%
+  Housing depth including dome: 0.2500 m; target 0.2500 m; deviation +0.00%
+  Foot width: 0.1200 m; target 0.1200 m; deviation +0.00%
+  Foot depth: 0.1000 m; target 0.1000 m; deviation +0.00%
+  Total height: 0.4000 m; target 0.4000 m; deviation +0.00%
+Note: the mesh comprises intersecting closed solids, as do reference assets; it is not a boolean-unioned shell.
+OBJ reread: {'v': 2573, 'vt': 2573, 'vn': 2573}, faces 2992, groups ['housing', 'lens']
+Invalid face-corner references in written OBJ: 0

@@ -1,0 +1,17 @@
+# Sprocket Cupolas 0.1.0
+
+One placeable **Cupola T-90A**, a commander cupola in the style of the T-90A, available from 1992.01.01. The lid is a static model. Native commander, viewport and cook-off behaviour use the German stock cupola adapter. Collision and damage remain those of that stock cupola; the visible ring is not additional armour. Model mass and model cost remain stock (0 kg / 0 model cost).
+
+Prepared development build for the locally inspected Sprocket 0.2.56.2 Experimental / BepInEx 6 IL2CPP environment. No installation or game test has been performed. Requires the existing compatible loader. This package contains only this mod's DLL, icon, part, localization and default config.
+
+With Sprocket closed, copy the five shipped files into the Sprocket folder, keeping the folder layout: `BepInEx/plugins/SprocketCupolas/SprocketCupolas.dll` and `t90a-cupola-icon.png`, `Sprocket_Data/StreamingAssets/Parts/t90aCupolaPart.json`, `Sprocket_Data/StreamingAssets/Localization/en-UK/Parts/t90aCupola.xml` and the default `BepInEx/config/sprocket.cupolas.cfg` (do not overwrite an existing config). `Build-Package.ps1 -Out <empty folder>` stages exactly these files in that layout after a build. To uninstall, remove the plugin folder `BepInEx/plugins/SprocketCupolas` and the two part files.
+
+`BepInEx/config/sprocket.cupolas.cfg` has `[Diagnostics] DetailedLogging = true` in this development build. Logs include bounded READY / SCAN / REJECT / ADOPT / SWAP / STATE / BALANCE / RELEASE records. `CLOSED_REFERENCE` means the initial measured pose; it is not a native open/closed state. There are no new Harmony hooks, UI or controls.
+
+The supplied approved icon registers through the optional Telescopic Mast IO-API revision 1 already present in that mod. Without that API, the native fallback icon appears and the part remains usable. This mod does not register any flow output or save data.
+
+Native materials and collision are retained. Runtime metric cylindrical/planar UV charts split vertices at projection seams (source: 1698/763 vertices; render charts: 2033/866); positions, normals, 1744/796 triangles and winding are unchanged. Native LOD levels receive the same approved geometry. Ghosts retain stock geometry. Extra attached objects, ambiguous topology, missing renderer/atlas information, existing atlas membership or failed validation keep the stock adapter. In particular, a vehicle without an inspectable renderer-merger stage retains stock geometry. These conservative gates need live validation in both designer and Play.
+
+`Verify.ps1` performs a clean SDK 8 build, shared managed policy/mesh checks, independent OBJ/hash/schema checks, icon style check (needs `-IconChecker`), static interop scan with positive and negative probes, and a staging check of the shipped files. Evidence is written to the folder given with `-Out`; the game folder is only read. The checks do not prove native atlas, save/reload, distant LOD, collision/interaction, icon, commander, cook-off or mass/cost behaviour. See `LIVE-ACCEPTANCE.md` for the handoff tests.
+
+Approved asset sources, STL/OBJ exports, render images, contact sheet and original authoring scripts are copied unchanged to `Assets/approved`. `Tools/obj_to_cs.py` only embeds the approved OBJs; `--check` tests deterministic output. The game never reads OBJ files. Rebuilding the approved geometry or icon is outside this version's scope.

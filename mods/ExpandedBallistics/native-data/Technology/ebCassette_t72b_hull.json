@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "ebCassette_t72b_hull",
+  "date": "1985.01.01",
+  "properties": {
+    "rhaFactor": 0.851991341991342,
+    "costMultiplier": 4.530011864621625,
+    "spallFactor": 0.0005,
+    "density": 5122.727272727273
+  }
+}

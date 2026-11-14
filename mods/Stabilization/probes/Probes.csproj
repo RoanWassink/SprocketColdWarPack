@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../src/StabilizerState.cs" Link="Actual/StabilizerState.cs" />
+    <Compile Include="../src/StabilizerPersistence.cs" Link="Actual/StabilizerPersistence.cs" />
+    <Compile Include="../src/StabilizerBlueprintPersistence.cs" Link="Actual/StabilizerBlueprintPersistence.cs" />
+    <Compile Include="../src/StabilizerRuntime.cs" Link="Actual/StabilizerRuntime.cs" />
+    <Compile Include="../src/StabilizerMath.cs" Link="Actual/StabilizerMath.cs" />
+    <Compile Include="../src/StabilizerBoost.cs" Link="Actual/StabilizerBoost.cs" />
+  </ItemGroup>
+</Project>

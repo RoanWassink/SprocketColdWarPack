@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "heavyAlloyInsert",
+  "date": "1980.01.01",
+  "properties": {
+    "rhaFactor": 1.5,
+    "costMultiplier": 7,
+    "spallFactor": 0.00035,
+    "density": 17500
+  }
+}

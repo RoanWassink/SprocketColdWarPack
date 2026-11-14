@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "ebCassette_merkava4",
+  "date": "2004.01.01",
+  "properties": {
+    "rhaFactor": 0.4026206995619347,
+    "costMultiplier": 11.116343591416666,
+    "spallFactor": 0.0005,
+    "density": 3239.8726003927236
+  }
+}

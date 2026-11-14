@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "romorAActive",
+  "date": "1991.01.01",
+  "properties": {
+    "density": 3313.609467455621,
+    "rhaFactor": 0.15,
+    "spallFactor": 0.25,
+    "costMultiplier": 16
+  }
+}

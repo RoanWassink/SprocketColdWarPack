@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "duplet2MHullActive",
+  "date": "2009.01.01",
+  "properties": {
+    "density": 4300,
+    "rhaFactor": 0.15,
+    "spallFactor": 0.25,
+    "costMultiplier": 32
+  }
+}

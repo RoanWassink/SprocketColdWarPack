@@ -1,0 +1,8 @@
+{
+  "v": "0.0",
+  "name": "Coldwar3",
+  "start": "1975.01.01",
+  "playable": true,
+  "mediumVehicleMass": 18000,
+  "heavyVehicleMass": 36000,
+}

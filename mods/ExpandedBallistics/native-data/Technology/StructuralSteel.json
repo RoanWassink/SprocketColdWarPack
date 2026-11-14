@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "structuralSteel",
+  "date": "1916.01.01",
+  "properties": {
+    "rhaFactor": 0.7,
+    "costMultiplier": 0.6,
+    "spallFactor": 0.001,
+    "density": 7850
+  }
+}

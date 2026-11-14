@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "kontakt5Active",
+  "date": "1985.01.01",
+  "properties": {
+    "density": 3171.788731181019,
+    "rhaFactor": 0.15,
+    "spallFactor": 0.25,
+    "costMultiplier": 10
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "nizh34Active",
+  "date": "2003.01.01",
+  "properties": {
+    "density": 2488.8888888888882,
+    "rhaFactor": 0.15,
+    "spallFactor": 0.25,
+    "costMultiplier": 32
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "cwepNeraCassette",
+  "date": "1979.01.01",
+  "properties": {
+    "rhaFactor": 0.55,
+    "density": 5633.333333,
+    "spallFactor": 0.0008,
+    "costMultiplier": 10.6866
+  }
+}

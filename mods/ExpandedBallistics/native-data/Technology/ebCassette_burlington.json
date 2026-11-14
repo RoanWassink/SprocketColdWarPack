@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "ebCassette_burlington",
+  "date": "1983.01.01",
+  "properties": {
+    "rhaFactor": 0.5841666666666666,
+    "costMultiplier": 11.09467972027972,
+    "spallFactor": 0.0005,
+    "density": 4170.833333333333
+  }
+}

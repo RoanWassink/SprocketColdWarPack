@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "model": "directional-single-slab",
+  "historicalAngleClaim": false,
+  "lidBottomM": 0.128,
+  "lidClearanceM": 0.0005,
+  "mountClearanceM": 0.004,
+  "families": {
+    "reliktHull22": {
+      "cells": 4,
+      "riseAxis": "X",
+      "riseSign": 1,
+      "angleDegrees": 25,
+      "playerOrientation": "Incoming projectile travels toward local +X along the long internal plate axis."
+    },
+    "reliktTurretCompact12": {
+      "cells": 2,
+      "riseAxis": "X",
+      "riseSign": 1,
+      "angleDegrees": 25,
+      "playerOrientation": "Incoming projectile travels toward local +X along the long internal plate axis."
+    },
+    "reliktTurretCompact11": {
+      "cells": 1,
+      "riseAxis": "X",
+      "riseSign": 1,
+      "angleDegrees": 25,
+      "playerOrientation": "Incoming projectile travels toward local +X along the long internal plate axis."
+    },
+    "reliktTurret2Plus1": {
+      "cells": 3,
+      "riseAxis": "X",
+      "riseSign": 1,
+      "angleDegrees": 25,
+      "playerOrientation": "Upper cells: local +X; lower transverse cell: local +Z. Align each cell with its intended firing sector.",
+      "cellOverrides": {
+        "3": {
+          "angleDegrees": 25,
+          "riseAxis": "Z"
+        }
+      }
+    },
+    "reliktCompact": {
+      "cells": 2,
+      "riseAxis": "X",
+      "riseSign": 1,
+      "angleDegrees": 25,
+      "playerOrientation": "Incoming projectile travels toward local +X along the long internal plate axis."
+    }
+  }
+}

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="obj/RuntimeDependencies.cs" />
+    <Compile Include="../../ExternalDiscoveryRuntime.cs" Link="ExternalDiscoveryRuntime.cs" />
+    <Compile Include="../../SettingsPanel.cs" Link="SettingsPanel.cs" />
+    <Compile Include="../../FlowPanelRuntime.cs" Link="FlowPanelRuntime.cs" />
+    <Compile Include="../../TwinRuntime.cs" Link="TwinRuntime.cs" />
+    <Compile Include="../RuntimeMath.cs" Link="RuntimeMath.cs" />
+    <Compile Include="../../HingeMath.cs" Link="HingeMath.cs" />
+    <Compile Include="../../Travel.cs" Link="Travel.cs" />
+    <Compile Include="../../Io/*.cs" LinkBase="Io" />
+  </ItemGroup>
+</Project>

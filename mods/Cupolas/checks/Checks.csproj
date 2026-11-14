@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><EnableDefaultCompileItems>false</EnableDefaultCompileItems><Authors>Nero</Authors><Company>Nero</Company><Copyright>Nero</Copyright><Product>Sprocket Cupolas</Product><PathMap>$(MSBuildProjectDirectory)=/SprocketCupolas/checks/Checks</PathMap><DebugType>none</DebugType><DebugSymbols>false</DebugSymbols><Deterministic>true</Deterministic><IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs;../CupolaPolicy.cs;../MeshGeometry.cs;../CupolaMeshData.cs" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SprocketAIOrders", "src\SprocketAIOrders.csproj", "{034FE5BC-99F0-44C3-B87E-A3D77513E668}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PolicyTests", "tests\PolicyTests.csproj", "{08A39E9D-7716-4D5E-8897-F454A0489210}"
+EndProject
+Global
+    GlobalSection(SolutionConfigurationPlatforms) = preSolution
+        Release|Any CPU = Release|Any CPU
+        Debug|Any CPU = Debug|Any CPU
+    EndGlobalSection
+    GlobalSection(ProjectConfigurationPlatforms) = postSolution
+        {034FE5BC-99F0-44C3-B87E-A3D77513E668}.Release|Any CPU.ActiveCfg = Release|Any CPU
+        {034FE5BC-99F0-44C3-B87E-A3D77513E668}.Release|Any CPU.Build.0 = Release|Any CPU
+        {034FE5BC-99F0-44C3-B87E-A3D77513E668}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+        {034FE5BC-99F0-44C3-B87E-A3D77513E668}.Debug|Any CPU.Build.0 = Debug|Any CPU
+        {08A39E9D-7716-4D5E-8897-F454A0489210}.Release|Any CPU.ActiveCfg = Release|Any CPU
+        {08A39E9D-7716-4D5E-8897-F454A0489210}.Release|Any CPU.Build.0 = Release|Any CPU
+        {08A39E9D-7716-4D5E-8897-F454A0489210}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+        {08A39E9D-7716-4D5E-8897-F454A0489210}.Debug|Any CPU.Build.0 = Debug|Any CPU
+    EndGlobalSection
+EndGlobal

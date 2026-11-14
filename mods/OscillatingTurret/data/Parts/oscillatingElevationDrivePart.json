@@ -1,0 +1,131 @@
+{
+  "v": "0.0",
+  "guid": "31fa3dd0-0738-4d29-b6a5-c3d77c291ea2",
+  "name": "oscillatingElevationDrive",
+  "date": "1952.01.01",
+  "tags": [
+    "oscillatingElevationDrive"
+  ],
+  "components": [
+    {
+      "fileID": "turretRing",
+      "type": "turretRing",
+      "info": {
+        "v": "0.0",
+        "motorGuid": "147d4042-4a13-4477-9adf-12e8291481e0",
+        "basketFileID": "basket",
+        "modelFileID": "ringModel",
+        "modelDiameter": 1.0,
+        "modelInnerDiameter": 0.9,
+        "modelHeight": 0.025
+      }
+    },
+    {
+      "fileID": "basket",
+      "type": "turretBasket",
+      "info": {
+        "v": "0.0",
+        "wallMaterialGuid": "0d4542fbcd82f1f48a5c2a1a4b029528",
+        "wallMeshGuid": "0e7a62cab49138842a600c269a8aed09",
+        "wallMeshRadius": 0.5,
+        "wallMeshDepth": 0.3,
+        "wallCollisionMeshGuid": "23d527ece3a18b646ad4a1fa414a3e2f",
+        "floorMaterialGuid": "0d4542fbcd82f1f48a5c2a1a4b029528"
+      }
+    },
+    {
+      "fileID": "decoupler",
+      "type": "decoupler",
+      "info": {
+        "v": "0.0",
+        "collisionDecouple": false,
+        "pressureDecouple": true,
+        "mass": -1,
+        "impulseMultiplierMax": 0.9,
+        "impulseMultiplierMin": 0.3,
+        "directionOverrideFactor": 1,
+        "directionOverride": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "directionOverrideInLocal": true,
+        "impulseOriginOffset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "randomImpulseOriginOffset": true,
+        "randomImpulseOriginOffsetMaxDistance": 0.2,
+        "randomImpulseDirectionMaxAngle": 15
+      }
+    }
+  ],
+  "transform": {
+    "mirroring": false,
+    "duplication": false,
+    "pickup": true,
+    "snapToCentre": true,
+    "autoRotate": false,
+    "airPlacement": true,
+    "translation": true,
+    "rotation": true,
+    "scaling": true,
+    "dynamic": true,
+    "placementMode": "upFaceNormal",
+    "scale": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "maxScale": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "minScale": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "objects": [
+      {
+        "fileID": "ringModelObject",
+        "parentFileID": null,
+        "localPosition": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "localRotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "localScale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "components": [
+          {
+            "fileID": "ringModel",
+            "type": "model",
+            "info": {
+              "v": "0.2",
+              "meshGuid": "e3b0aff7fd8705b43944e6a0bbb6c7c3",
+              "materialGuids": [
+                "149910cdbf8ab324aa95feefb7a55d1e"
+              ],
+              "scaling": true,
+              "flipping": true,
+              "selectable": true,
+              "placementSurface": false,
+              "damageable": false
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+{
+    "v":  "0.0",
+    "id":  "",
+    "type":  "perforatedHhs",
+    "date":  "1980.01.01",
+    "properties":  {
+                       "rhaFactor":  0.6,
+                       "costMultiplier":  6,
+                       "spallFactor":  0.00065,
+                       "density":  4710
+                   }
+}

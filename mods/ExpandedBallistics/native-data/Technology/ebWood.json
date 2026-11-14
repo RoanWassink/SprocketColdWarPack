@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "ebWood",
+  "date": "1900.01.01",
+  "properties": {
+    "rhaFactor": 0.03,
+    "costMultiplier": 0.5,
+    "spallFactor": 5e-05,
+    "density": 600
+  }
+}

@@ -1,0 +1,188 @@
+{
+  "schemaVersion": 2,
+  "modelVersion": "2.0.4",
+  "enabled": false,
+  "maximumAdditionalKineticLoss": 0.35,
+  "recipes": [
+    {
+      "responseId": "experimentalKontakt5Cassette",
+      "kind": "rodDisruption",
+      "baseLoss": 0.12,
+      "maximumLoss": 0.24,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "exposureWeight": 1
+    },
+    {
+      "responseId": "experimentalReliktCassette",
+      "kind": "rodDisruption",
+      "baseLoss": 0.18,
+      "maximumLoss": 0.35,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "exposureWeight": 1
+    },
+    {
+      "responseId": "experimentalNizhCassette",
+      "kind": "rodDisruption",
+      "baseLoss": 0.2,
+      "maximumLoss": 0.35,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "exposureWeight": 1
+    },
+    {
+      "responseId": "experimentalNizh34Insert",
+      "kind": "rodDisruption",
+      "baseLoss": 0.2,
+      "maximumLoss": 0.35,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "exposureWeight": 1
+    },
+    {
+      "responseId": "experimentalNizh19Insert",
+      "kind": "rodDisruption",
+      "baseLoss": 0.15,
+      "maximumLoss": 0.24,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "exposureWeight": 1
+    },
+    {
+      "responseId": "kontakt5Active",
+      "kind": "rodDisruption",
+      "baseLoss": 0.12,
+      "maximumLoss": 0.24,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "exposureWeight": 1
+    },
+    {
+      "responseId": "reliktActive",
+      "kind": "rodDisruption",
+      "baseLoss": 0.18,
+      "maximumLoss": 0.35,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "exposureWeight": 1
+    },
+    {
+      "responseId": "reliktTurretActive",
+      "kind": "rodDisruption",
+      "baseLoss": 0.18,
+      "maximumLoss": 0.35,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "exposureWeight": 1
+    },
+    {
+      "responseId": "nizhLegacyActive",
+      "kind": "rodDisruption",
+      "baseLoss": 0.2,
+      "maximumLoss": 0.35,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "exposureWeight": 1
+    },
+    {
+      "responseId": "dupletLegacySingleActive",
+      "kind": "rodDisruption",
+      "baseLoss": 0.22,
+      "maximumLoss": 0.35,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "exposureWeight": 1
+    },
+    {
+      "responseId": "dupletLegacyIntegratedActive",
+      "kind": "rodDisruption",
+      "baseLoss": 0.16333997346592444,
+      "maximumLoss": 0.24,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "exposureWeight": 1
+    },
+    {
+      "responseId": "dupletHullActive",
+      "kind": "rodDisruption",
+      "baseLoss": 0.16333997346592444,
+      "maximumLoss": 0.24,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "exposureWeight": 1
+    },
+    {
+      "responseId": "dupletHullZonesActive",
+      "kind": "rodDisruption",
+      "baseLoss": 0.16333997346592444,
+      "maximumLoss": 0.24,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "exposureWeight": 1
+    },
+    {
+      "responseId": "nizh34Active",
+      "kind": "rodDisruption",
+      "baseLoss": 0.2,
+      "maximumLoss": 0.35,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "exposureWeight": 1
+    },
+    {
+      "responseId": "nizh19Active",
+      "kind": "rodDisruption",
+      "baseLoss": 0.15,
+      "maximumLoss": 0.24,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "exposureWeight": 1
+    },
+    {
+      "responseId": "nizh1MActive",
+      "kind": "rodDisruption",
+      "baseLoss": 0.25,
+      "maximumLoss": 0.35,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "exposureWeight": 1
+    },
+    {
+      "responseId": "duplet2MActive",
+      "kind": "rodDisruption",
+      "baseLoss": 0.19377422517014498,
+      "maximumLoss": 0.24,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "exposureWeight": 1
+    },
+    {
+      "responseId": "duplet2MHullActive",
+      "kind": "rodDisruption",
+      "baseLoss": 0.19377422517014498,
+      "maximumLoss": 0.24,
+      "referenceLD": 30,
+      "minimumSusceptibility": 0.7,
+      "maximumSusceptibility": 1.6,
+      "exposureWeight": 1
+    }
+  ]
+}

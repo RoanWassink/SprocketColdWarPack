@@ -1,0 +1,7 @@
+Het model is niet aangepast. Alleen housing, dark en lens zijn geëxporteerd, met een zuivere Y-rotatie van 180 graden. Roof, hatchring en mantlet ontbreken in alle attribute streams.
+
+De Blender-export bevat samengevallen bevel-faces met gelijke posities. Die leveren samen 24 driehoeken met nul oppervlakte op. De converter bewaart ze om de bron en de verwachte 5034 driehoeken te behouden. Er bestaat voor die driehoeken geen geometrische normaal; dit is de afwijking van de gevraagde controle op een gelijke normaal. Bij iedere andere face gebruikt de converter ear clipping en controleert hij de winding. Een ongeldige face stopt de export. OpenSCAD kan driehoeken met nul oppervlakte niet zichtbaar maken; de STL-bestanden bevatten ze wel.
+
+De frontplaat is schuin. Gemeten middelpunten van de lens-bounds na de rotatie (m): groot (0,085; 0,138722; 0,263302), middel (-0,085; 0,138722; 0,263302), klein (0; 0,198722; 0,250549). De kleine lens ligt dus iets achter de afgeronde z≈0,263 uit de brief. De lensdiameters in X zijn 0,098/0,068/0,028 m. De voorgeschreven objectiveLensPosition (0,085; 0,139; 0,263) en eyepiecePosition (0,085; 0,139; -0,255) zijn exact overgenomen. Er is geen fysiek oculair toegevoegd.
+
+OpenSCAD toont de exacte vier STL-submeshes in millimeters, met game +Y omhoog en game +Z naar voren (SCAD -Y). Het masker toont alleen paint in felroze en alle andere materialen in grijs. De iconen gebruiken de ondoorzichtige OpenSCAD-modelrender met transparante achtergrond; het HDRP-glas en native camo vereisen controle in de game.

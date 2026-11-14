@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<Part><name>ROMOR-A inspired front ERA (game proxy)</name><description>ROMOR-A inspired front ERA
+Plates: 1
+Effective angles: 0-60° (best HEAT)
+Kinetic (APFSDS): no added protection
+Chemical (HEAT) at 60°: 65% less pen.
+Tandem: no guaranteed protection
+Values: extra remaining-penetration loss
+Used on: Challenger 1 front (family)</description></Part>

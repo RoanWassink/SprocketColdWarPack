@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<Part><name>Duplet - three-zone hull panel</name><description>Duplet - three-zone hull panel
+Plates: 6 | Layers: 2
+Effective angles: 30-70° (best APFSDS)
+Kinetic (APFSDS) at 60°: 30% less pen.
+Chemical (HEAT) at 60°: 70% less pen.
+Tandem: no guaranteed protection
+Extra loss, reference L/D 30; all layers intact</description></Part>

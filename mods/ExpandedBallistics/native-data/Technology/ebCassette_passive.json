@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "ebCassette_passive",
+  "date": "1975.01.01",
+  "properties": {
+    "rhaFactor": 0.8615384615384616,
+    "costMultiplier": 7.43156285012285,
+    "spallFactor": 0.0005,
+    "density": 4696.153846153846
+  }
+}

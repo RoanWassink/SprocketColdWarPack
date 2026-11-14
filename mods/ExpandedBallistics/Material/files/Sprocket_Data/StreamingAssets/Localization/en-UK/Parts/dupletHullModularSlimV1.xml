@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<Part><name>Duplet - modular 1x1 panel (slim 26 mm)</name><description>Duplet - modular hull panel (game proxy)
+Starts at one surface cell; resize X/Z to add whole cells (1x1, 1x2, 2x1, 2x2 ... 8x8).
+Each cell has its own visible cover and finite reactive charge.
+Two physically separate paid depth stages; depth is locked.
+Base cell: 125 x 250 x 26 mm; two 10 mm active slabs (authoring estimate, not factory data)
+Plates: 2 | Layers: 2
+Effective angles: 30-70 deg (best APFSDS)
+Kinetic (APFSDS) at 60 deg: 30% less pen.
+Chemical (HEAT) at 60 deg: 70% less pen.
+Tandem: each reached layer spends its own exact cell; no proximity ownership
+Mass and cost scale with paid cell area only, never depth</description></Part>

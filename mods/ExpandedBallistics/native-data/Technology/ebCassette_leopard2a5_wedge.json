@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "ebCassette_leopard2a5_wedge",
+  "date": "1995.01.01",
+  "properties": {
+    "rhaFactor": 0.3701728412452693,
+    "costMultiplier": 11.849565540789603,
+    "spallFactor": 0.0005,
+    "density": 2900.084430476734
+  }
+}

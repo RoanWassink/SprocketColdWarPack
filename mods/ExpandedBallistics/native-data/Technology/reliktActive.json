@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "reliktActive",
+  "date": "2006.01.01",
+  "properties": {
+    "density": 3313.6094674556207,
+    "rhaFactor": 0.15,
+    "spallFactor": 0.25,
+    "costMultiplier": 10
+  }
+}

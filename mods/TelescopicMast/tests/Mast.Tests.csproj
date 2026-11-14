@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><DefineConstants>$(DefineConstants);FLOW_TEST_CAPTURE</DefineConstants></PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="KitRepro/**;DiscoveryRepro/**;PlayRepro/**;MeshAudit/**;TwinRepro/**;RuntimeMath.cs" />
+    <Compile Include="../RotatorMesh.cs" Link="RotatorMesh.cs" />
+    <Compile Include="../RotatorMeshData.cs" Link="RotatorMeshData.cs" />
+    <Compile Include="../PartPaintCache.cs" Link="PartPaintCache.cs" />
+    <Compile Include="../PaintUv.cs" Link="PaintUv.cs" />
+    <Compile Include="../HingeMesh.cs" Link="HingeMesh.cs" />
+    <Compile Include="../CylinderMesh.cs" Link="CylinderMesh.cs" />
+    <Compile Include="../NativeUv.cs" Link="NativeUv.cs" />
+    <Compile Include="../Travel.cs" Link="Travel.cs" />
+    <Compile Include="../SettingsPanel.cs" Link="SettingsPanel.cs" />
+    <Compile Include="../HingePanel.cs" Link="HingePanel.cs" />
+    <Compile Include="../HingeMath.cs" Link="HingeMath.cs" />
+    <Compile Include="../MastDatePolicy.cs" Link="MastDatePolicy.cs" />
+    <Compile Include="../Io/*.cs" LinkBase="Io" />
+    <Compile Include="../api/IoApiClient.cs" Link="api/IoApiClient.cs" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,9 @@
+﻿{
+    "v":  "0.0",
+    "id":  "",
+    "type":  "expandedBallistics_atgm_gun",
+    "date":  "1976.01.01",
+    "properties":  {
+                       "enabled":  true
+                   }
+}

@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "ebCassette_m1a1_hull",
+  "date": "1985.01.01",
+  "properties": {
+    "rhaFactor": 0.28385670360461346,
+    "costMultiplier": 22.570882402615403,
+    "spallFactor": 0.0005,
+    "density": 2539.738487540077
+  }
+}

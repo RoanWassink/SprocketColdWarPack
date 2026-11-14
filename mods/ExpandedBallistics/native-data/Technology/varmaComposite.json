@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "varmaComposite",
+  "date": "1980.01.01",
+  "properties": {
+    "density": 2500,
+    "rhaFactor": 0.4,
+    "spallFactor": 0.0008,
+    "costMultiplier": 9
+  }
+}

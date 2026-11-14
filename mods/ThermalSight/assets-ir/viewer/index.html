@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IR-zoeklicht · 3D-viewer</title>
+<style>html,body{height:100%;margin:0;background:#1c221d;color:#e4e9dc;font:14px system-ui}canvas{display:block}aside{position:absolute;top:16px;left:16px;max-width:330px;background:#202a22e8;padding:14px 18px;border:1px solid #60725b;border-radius:8px;line-height:1.5;pointer-events:auto}h1{font-size:17px;margin:0 0 6px}p{margin:4px 0}.error{color:#ffc4ad}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"}}</script></head>
+<body><aside><h1>IR-zoeklicht</h1><p>Sleep om te draaien · scroll om te zoomen · rechts slepen om te verschuiven.</p><p>Raster: 0,1 m · maatlat: 1,0 m<br><span style="color:#ff7777">X</span> · <span style="color:#9ee78e">Y omhoog</span> · <span style="color:#88b8ff">Z vooruit</span></p><button id="camo">Camo aan</button><p id="status">Model laden…</p></aside>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {OBJLoader} from 'three/addons/loaders/OBJLoader.js';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x1c221d);
+const camera=new THREE.PerspectiveCamera(38,innerWidth/innerHeight,.01,100);camera.position.set(.9,.75,1.25);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;document.body.appendChild(renderer.domElement);
+const environment=new RoomEnvironment();const pmrem=new THREE.PMREMGenerator(renderer);scene.environment=pmrem.fromScene(environment,0.04).texture;environment.dispose();pmrem.dispose();
+const canvas=document.createElement('canvas');canvas.width=canvas.height=512;const ctx=canvas.getContext('2d');ctx.fillStyle='#65744c';ctx.fillRect(0,0,512,512);let seed=1247;function rand(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}for(let i=0;i<30;i++){const cx=rand()*512,cy=rand()*512,rx=40+rand()*95,ry=28+rand()*65;ctx.fillStyle=['#484b32','#a59768','#3d5138'][i%3];for(let dx=-512;dx<=512;dx+=512)for(let dy=-512;dy<=512;dy+=512){ctx.beginPath();ctx.ellipse(cx+dx,cy+dy,rx,ry,0,0,Math.PI*2);ctx.fill()}}const camo=new THREE.CanvasTexture(canvas);camo.wrapS=camo.wrapT=THREE.RepeatWrapping;camo.repeat.set(2,2);camo.colorSpace=THREE.SRGBColorSpace;
+const paint=new THREE.MeshStandardMaterial({color:0x647650,roughness:.84,metalness:.12});const glass=new THREE.MeshPhysicalMaterial({color:0xb66b70,transmission:1,roughness:.05,clearcoat:1,clearcoatRoughness:.05,ior:1.5,thickness:.008,metalness:0});let camoOn=false;document.getElementById('camo').addEventListener('click',()=>{camoOn=!camoOn;paint.map=camoOn?camo:null;paint.color.set(camoOn?0xffffff:0x647650);paint.needsUpdate=true;document.getElementById('camo').textContent=camoOn?'Camo uit':'Camo aan'});
+const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(.12,.22,0);controls.enableDamping=true;controls.minDistance=.25;controls.maxDistance=8;controls.update();
+scene.add(new THREE.HemisphereLight(0xddebd7,0x34392e,2));const sun=new THREE.DirectionalLight(0xffffff,2);sun.position.set(2,4,5);scene.add(sun);
+scene.add(new THREE.GridHelper(2,20,0x83947c,0x485548));scene.add(new THREE.AxesHelper(.45));
+const tickMat=new THREE.LineBasicMaterial({color:0xe8d8a1});const pts=[];const x=.48,z=0;pts.push(x,0,z,x,1,z);for(let i=0;i<=10;i++){let y=i/10,w=i%5===0?.055:.025;pts.push(x-w,y,z,x+w,y,z)}scene.add(new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position',new THREE.Float32BufferAttribute(pts,3)),tickMat));
+function label(t,y){const c=document.createElement('canvas');c.width=256;c.height=64;const ctx=c.getContext('2d');ctx.fillStyle='#e8d8a1';ctx.font='bold 36px sans-serif';ctx.fillText(t,5,45);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true}));s.scale.set(.19,.047,1);s.position.set(.61,y,0);scene.add(s)}label('1,0 m',1);label('0 m',0);
+new OBJLoader().load('../ir-searchlight.obj',obj=>{obj.traverse(child=>{if(child.isMesh){child.material=child.name==='lens'?glass:paint}});scene.add(obj);document.getElementById('status').textContent='Model geladen.'},undefined,()=>{const e=document.getElementById('status');e.className='error';e.textContent='Model kon niet laden. Start in de assetmap: py -m http.server 8000; open daarna http://localhost:8000/viewer/.'});
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});renderer.setAnimationLoop(()=>{controls.update();renderer.render(scene,camera)});
+</script></body></html>

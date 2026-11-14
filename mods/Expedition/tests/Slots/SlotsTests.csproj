@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net6.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><TreatWarningsAsErrors>true</TreatWarningsAsErrors></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/SprocketExpedition.Core/SprocketExpedition.Core.csproj" />
+    <Compile Include="../../src/SprocketExpedition.Game/CampaignSlotPolicy.cs" Link="CampaignSlotPolicy.cs" />
+    <Compile Include="../../src/SprocketExpedition.Game/CampaignSlotManager.cs" Link="CampaignSlotManager.cs" />
+    <Compile Include="../../src/SprocketExpedition.Game/CampaignResumePreparation.cs" Link="CampaignResumePreparation.cs" />
+  </ItemGroup>
+</Project>

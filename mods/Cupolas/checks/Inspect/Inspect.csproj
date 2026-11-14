@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
+    <Authors>Nero</Authors><Company>Nero</Company><Copyright>Nero</Copyright><Product>Sprocket Cupolas</Product><PathMap>$(MSBuildProjectDirectory)=/SprocketCupolas/checks/Inspect</PathMap><DebugType>none</DebugType><DebugSymbols>false</DebugSymbols><Deterministic>true</Deterministic><IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <GameDir Condition="'$(GameDir)'==''">C:\Program Files (x86)\Steam\steamapps\common\Sprocket</GameDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Read-only reference to the Cecil copy BepInEx already ships; copied to bin only. -->
+    <Reference Include="$(GameDir)\BepInEx\core\Mono.Cecil.dll"><Private>true</Private></Reference>
+  </ItemGroup>
+</Project>

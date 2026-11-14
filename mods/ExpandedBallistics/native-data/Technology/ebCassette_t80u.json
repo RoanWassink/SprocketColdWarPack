@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "ebCassette_t80u",
+  "date": "1985.01.01",
+  "properties": {
+    "rhaFactor": 0.41068100275731384,
+    "costMultiplier": 12.785983845669701,
+    "spallFactor": 0.0005,
+    "density": 3550.8555233640577
+  }
+}

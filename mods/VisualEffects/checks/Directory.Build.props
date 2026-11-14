@@ -1,0 +1,9 @@
+<Project>
+  <!-- Shared metadata for the check programs (they ship nothing to the game). -->
+  <PropertyGroup>
+    <Authors>Nero</Authors><Company>Nero</Company><Copyright>Nero</Copyright><Product>Sprocket Visual Effects checks</Product>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <DebugType>none</DebugType><DebugSymbols>false</DebugSymbols><Deterministic>true</Deterministic>
+    <PathMap>$(MSBuildProjectDirectory)=/SprocketVisualEffects/checks/$(MSBuildProjectName)</PathMap>
+  </PropertyGroup>
+</Project>

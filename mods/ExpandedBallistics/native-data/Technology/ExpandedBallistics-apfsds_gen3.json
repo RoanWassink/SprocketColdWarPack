@@ -1,0 +1,9 @@
+﻿{
+    "v":  "0.0",
+    "id":  "",
+    "type":  "expandedBallistics_apfsds_gen3",
+    "date":  "1985.01.01",
+    "properties":  {
+                       "enabled":  true
+                   }
+}

@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "ebCassette_challenger1_hull",
+  "date": "1983.01.01",
+  "properties": {
+    "rhaFactor": 0.6346797600272401,
+    "costMultiplier": 12.056074158518264,
+    "spallFactor": 0.0005,
+    "density": 3939.6096254657223
+  }
+}

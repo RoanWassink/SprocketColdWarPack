@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "sheetMetal",
+  "date": "1916.01.01",
+  "properties": {
+    "rhaFactor": 0.4,
+    "costMultiplier": 1,
+    "spallFactor": 0.001,
+    "density": 7850
+  }
+}

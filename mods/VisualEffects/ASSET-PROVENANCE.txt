@@ -1,0 +1,9 @@
+Author credit: Nero.
+Source: approved muzzle-side.png, muzzle-front.png and effect-manifest.json (folder assets\), copied byte-for-byte from the prototype exports.
+The hybrid atlas uses artist-shaped fireball geometry plus Blender Mantaflow baked smoke/residual flame; playback is artist-retimed. See assets\effect-manifest.json for exact dimensions, frame times, bounds and author.
+These two images are original project exports. No War Thunder image or game texture is packaged.
+Kenney CC0 dirt_01 was used only in an earlier browser preview and is not part of this package.
+This file does not grant a new public distribution license or change any project license.
+The renderer follows the project's existing mesh/texture/HDRP Unlit approach in RuntimeAtgmTrail; no Expanded Ballistics binary or source is bundled.
+
+Lamp assets (lamp-assets\): three approved house-style part icons (lamp-round-icon.png, lamp-rect-icon.png, lamp-marker-icon.png, renders of own OpenSCAD models) and the generated lamp-halo.png (128 x 128 soft glow). The lamps use the stock headlight/tail-light model by GUID: no game mesh or texture is copied or shipped. Lens positions are constants measured from the installed stock meshes (checks\lens\l9-lens.json); no mesh data is embedded. No new bundle, third-party asset, game assembly or shared dependency DLL is shipped.

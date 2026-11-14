@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "ebCassette_challenger2",
+  "date": "1998.01.01",
+  "properties": {
+    "rhaFactor": 0.6626760563380283,
+    "costMultiplier": 14.407191611324711,
+    "spallFactor": 0.0005,
+    "density": 4029.5774647887324
+  }
+}

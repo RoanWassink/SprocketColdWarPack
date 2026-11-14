@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "sprocketCustomMaterial1",
+  "properties": {
+    "density": 4000,
+    "rhaFactor": 0.75,
+    "spallFactor": 0.25,
+    "costMultiplier": 10.5
+  },
+  "date": "2006.01.01"
+}

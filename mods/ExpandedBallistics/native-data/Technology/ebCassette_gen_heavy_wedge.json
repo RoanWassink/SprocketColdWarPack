@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "ebCassette_gen_heavy_wedge",
+  "date": "1985.01.01",
+  "properties": {
+    "rhaFactor": 0.4827229482194989,
+    "costMultiplier": 6.4732028978569245,
+    "spallFactor": 0.00065,
+    "density": 3454.6024684405456
+  }
+}

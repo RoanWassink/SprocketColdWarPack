@@ -1,0 +1,5082 @@
+{
+  "schemaVersion": 2,
+  "enabled": true,
+  "maximumAdditionalKineticLoss": 0.65,
+  "maximumAdditionalHeatLoss": 0.85,
+  "preconditioning": {
+    "steelMaterialIds": [
+      "rha",
+      "sheetMetal",
+      "castArmour",
+      "highHardnessSteel",
+      "advancedArmourSteel",
+      "structuralSteel"
+    ],
+    "minSteelThicknessMm": 3,
+    "minObliquityDegrees": 20,
+    "maxObliquityDegrees": 70,
+    "angleFullDegrees": 50,
+    "thicknessFullMm": 20,
+    "disturbancePerLayerCap": 0.35,
+    "cumulativeDisturbanceCap": 0.6
+  },
+  "responses": [
+    {
+      "responseId": "aratIActive",
+      "kind": "lightEra",
+      "compatibleMaterialIds": [
+        "aratIActive"
+      ],
+      "minimumDate": "2006.01.01",
+      "historicalDate": "2006.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 3313.609467455621,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 16
+      },
+      "calibration": {
+        "heatRetention": 0.45,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 12.5,
+        "maxNormalThicknessMm": 13.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0.33
+      }
+    },
+    {
+      "responseId": "aratIIActive",
+      "kind": "lightEra",
+      "compatibleMaterialIds": [
+        "aratIIActive"
+      ],
+      "minimumDate": "2009.01.01",
+      "historicalDate": "2009.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 3313.609467455621,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 20
+      },
+      "calibration": {
+        "heatRetention": 0.35,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 12.5,
+        "maxNormalThicknessMm": 13.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0.33
+      }
+    },
+    {
+      "responseId": "dupletCassette",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "dupletCassette"
+      ],
+      "minimumDate": "2009.01.01",
+      "historicalDate": "2009.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4000,
+        "rhaFactor": 0.55,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 14
+      },
+      "calibration": {
+        "heatRetention": 0.4,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 60,
+        "maxNormalThicknessMm": 80,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.1
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.1308641975308642
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.21358024691358024
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.33333333333333337
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.47530864197530864
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.6246913580246914
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.7666666666666666
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.8302469135802469
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.8864197530864198
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9333333333333335
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9635942691358025
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9691358024691359
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9919753086419754
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999966691358025
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0.25
+      },
+      "rodInteraction": {
+        "mechanism": "linearCharge",
+        "reserveFraction": 0.1,
+        "yawDegrees": 0,
+        "breakupFraction": 0.2,
+        "erosionShare": 0.75
+      }
+    },
+    {
+      "responseId": "dupletHullActive",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "dupletHullActive"
+      ],
+      "minimumDate": "2009.01.01",
+      "historicalDate": "2009.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4299.999999999999,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "calibration": {
+        "heatRetention": 0.5477225575051661,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 11.5,
+        "maxNormalThicknessMm": 12.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.1
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.1308641975308642
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.21358024691358024
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.33333333333333337
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.47530864197530864
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.6246913580246914
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.7666666666666666
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.8302469135802469
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.8864197530864198
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9333333333333335
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9635942691358025
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9691358024691359
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9919753086419754
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999966691358025
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.96
+      },
+      "rodInteraction": {
+        "mechanism": "linearCharge",
+        "reserveFraction": 0.1,
+        "yawDegrees": 0,
+        "breakupFraction": 0.2,
+        "erosionShare": 0.75
+      }
+    },
+    {
+      "responseId": "dupletHullZonesActive",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "dupletHullZonesActive"
+      ],
+      "minimumDate": "2009.01.01",
+      "historicalDate": "2009.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4300,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "calibration": {
+        "heatRetention": 0.5477225575051661,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 11.5,
+        "maxNormalThicknessMm": 12.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.1
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.1308641975308642
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.21358024691358024
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.33333333333333337
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.47530864197530864
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.6246913580246914
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.7666666666666666
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.8302469135802469
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.8864197530864198
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9333333333333335
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9635942691358025
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9691358024691359
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9919753086419754
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999966691358025
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.42
+      },
+      "rodInteraction": {
+        "mechanism": "linearCharge",
+        "reserveFraction": 0.1,
+        "yawDegrees": 0,
+        "breakupFraction": 0.2,
+        "erosionShare": 0.75
+      }
+    },
+    {
+      "responseId": "dupletLegacyIntegratedActive",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "dupletLegacyIntegratedActive"
+      ],
+      "minimumDate": "2009.01.01",
+      "historicalDate": "2009.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4300,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "calibration": {
+        "heatRetention": 0.5477225575051661,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 11.5,
+        "maxNormalThicknessMm": 12.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.1
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.1308641975308642
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.21358024691358024
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.33333333333333337
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.47530864197530864
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.6246913580246914
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.7666666666666666
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.8302469135802469
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.8864197530864198
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9333333333333335
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9635942691358025
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9691358024691359
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9919753086419754
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999966691358025
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.4
+      },
+      "rodInteraction": {
+        "mechanism": "linearCharge",
+        "reserveFraction": 0.1,
+        "yawDegrees": 0,
+        "breakupFraction": 0.2,
+        "erosionShare": 0.75
+      }
+    },
+    {
+      "responseId": "dupletLegacySingleActive",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "dupletLegacySingleActive"
+      ],
+      "minimumDate": "2009.01.01",
+      "historicalDate": "2009.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4300,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "calibration": {
+        "heatRetention": 0.4,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 11.5,
+        "maxNormalThicknessMm": 12.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.1
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.1308641975308642
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.21358024691358024
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.33333333333333337
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.47530864197530864
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.6246913580246914
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.7666666666666666
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.8302469135802469
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.8864197530864198
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9333333333333335
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9635942691358025
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9691358024691359
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9919753086419754
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999966691358025
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.4
+      },
+      "rodInteraction": {
+        "mechanism": "linearCharge",
+        "reserveFraction": 0.1,
+        "yawDegrees": 0,
+        "breakupFraction": 0.2,
+        "erosionShare": 0.75
+      }
+    },
+    {
+      "responseId": "duplet2MActive",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "duplet2MActive"
+      ],
+      "minimumDate": "2009.01.01",
+      "historicalDate": "2009.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4300,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "calibration": {
+        "heatRetention": 0.44721359549995787,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 11.5,
+        "maxNormalThicknessMm": 12.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.1
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.1308641975308642
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.21358024691358024
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.33333333333333337
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.47530864197530864
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.6246913580246914
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.7666666666666666
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.8302469135802469
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.8864197530864198
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9333333333333335
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9635942691358025
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9691358024691359
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9919753086419754
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999966691358025
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.26
+      },
+      "rodInteraction": {
+        "mechanism": "linearCharge",
+        "reserveFraction": 0.1,
+        "yawDegrees": 0,
+        "breakupFraction": 0.2,
+        "erosionShare": 0.75
+      }
+    },
+    {
+      "responseId": "duplet2MHullActive",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "duplet2MHullActive"
+      ],
+      "minimumDate": "2009.01.01",
+      "historicalDate": "2009.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4300,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "calibration": {
+        "heatRetention": 0.44721359549995787,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 11.5,
+        "maxNormalThicknessMm": 12.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.1
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.1308641975308642
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.21358024691358024
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.33333333333333337
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.47530864197530864
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.6246913580246914
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.7666666666666666
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.8302469135802469
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.8864197530864198
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9333333333333335
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9635942691358025
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9691358024691359
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9919753086419754
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999966691358025
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.43
+      },
+      "rodInteraction": {
+        "mechanism": "linearCharge",
+        "reserveFraction": 0.1,
+        "yawDegrees": 0,
+        "breakupFraction": 0.2,
+        "erosionShare": 0.75
+      }
+    },
+    {
+      "responseId": "dynaActive",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "dynaActive"
+      ],
+      "minimumDate": "2003.01.01",
+      "historicalDate": "2003.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 3313.609467455621,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 16
+      },
+      "calibration": {
+        "heatRetention": 0.4,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 12.5,
+        "maxNormalThicknessMm": 13.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.1
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.1308641975308642
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.21358024691358024
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.33333333333333337
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.47530864197530864
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.6246913580246914
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.7666666666666666
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.8302469135802469
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.8864197530864198
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9333333333333335
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9635942691358025
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9691358024691359
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9919753086419754
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999966691358025
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.25
+      },
+      "rodInteraction": {
+        "mechanism": "movingPlate",
+        "reserveFraction": 0.1,
+        "yawDegrees": 2,
+        "breakupFraction": 0,
+        "erosionShare": 0.65
+      }
+    },
+    {
+      "responseId": "experimentalKontakt5Cassette",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "experimentalKontakt5Cassette"
+      ],
+      "minimumDate": "1985.01.01",
+      "historicalDate": "1985.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4000,
+        "rhaFactor": 0.55,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 9.5
+      },
+      "calibration": {
+        "heatRetention": 0.42,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 60,
+        "maxNormalThicknessMm": 80,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.1
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.1308641975308642
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.21358024691358024
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.33333333333333337
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.47530864197530864
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.6246913580246914
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.7666666666666666
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.8302469135802469
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.8864197530864198
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9333333333333335
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9635942691358025
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9691358024691359
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9919753086419754
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999966691358025
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0.25
+      },
+      "rodInteraction": {
+        "mechanism": "movingPlate",
+        "reserveFraction": 0.1,
+        "yawDegrees": 2,
+        "breakupFraction": 0,
+        "erosionShare": 0.65
+      }
+    },
+    {
+      "responseId": "experimentalNizhCassette",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "experimentalNizhCassette"
+      ],
+      "minimumDate": "2003.01.01",
+      "historicalDate": "2003.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4000,
+        "rhaFactor": 0.55,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 10
+      },
+      "calibration": {
+        "heatRetention": 0.45,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 60,
+        "maxNormalThicknessMm": 80,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.1
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.1308641975308642
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.21358024691358024
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.33333333333333337
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.47530864197530864
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.6246913580246914
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.7666666666666666
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.8302469135802469
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.8864197530864198
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9333333333333335
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9635942691358025
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9691358024691359
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9919753086419754
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999966691358025
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0.25
+      },
+      "rodInteraction": {
+        "mechanism": "linearCharge",
+        "reserveFraction": 0.1,
+        "yawDegrees": 0,
+        "breakupFraction": 0.2,
+        "erosionShare": 0.75
+      }
+    },
+    {
+      "responseId": "experimentalNizh19Insert",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "experimentalNizh19Insert"
+      ],
+      "minimumDate": "2003.01.01",
+      "historicalDate": "2003.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 2584.6153846153848,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 24
+      },
+      "calibration": {
+        "heatRetention": 0.55,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 25.5,
+        "maxNormalThicknessMm": 26.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.1
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.1308641975308642
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.21358024691358024
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.33333333333333337
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.47530864197530864
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.6246913580246914
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.7666666666666666
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.8302469135802469
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.8864197530864198
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9333333333333335
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9635942691358025
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9691358024691359
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9919753086419754
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999966691358025
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0.25
+      },
+      "rodInteraction": {
+        "mechanism": "linearCharge",
+        "reserveFraction": 0.1,
+        "yawDegrees": 0,
+        "breakupFraction": 0.2,
+        "erosionShare": 0.75
+      }
+    },
+    {
+      "responseId": "experimentalNizh34Insert",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "experimentalNizh34Insert"
+      ],
+      "minimumDate": "2003.01.01",
+      "historicalDate": "2003.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 2488.888888888889,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "calibration": {
+        "heatRetention": 0.45,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 35.5,
+        "maxNormalThicknessMm": 36.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.1
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.1308641975308642
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.21358024691358024
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.33333333333333337
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.47530864197530864
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.6246913580246914
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.7666666666666666
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.8302469135802469
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.8864197530864198
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9333333333333335
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9635942691358025
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9691358024691359
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9919753086419754
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999966691358025
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0.25
+      },
+      "rodInteraction": {
+        "mechanism": "linearCharge",
+        "reserveFraction": 0.1,
+        "yawDegrees": 0,
+        "breakupFraction": 0.2,
+        "erosionShare": 0.75
+      }
+    },
+    {
+      "responseId": "experimentalReliktCassette",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "experimentalReliktCassette"
+      ],
+      "minimumDate": "2006.01.01",
+      "historicalDate": "2006.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4000,
+        "rhaFactor": 0.55,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 10.5
+      },
+      "calibration": {
+        "heatRetention": 0.4,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 60,
+        "maxNormalThicknessMm": 80,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.1
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.1308641975308642
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.21358024691358024
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.33333333333333337
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.47530864197530864
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.6246913580246913
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.7666666666666666
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.8302469135802469
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.8864197530864198
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9333333333333332
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9635942691358025
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9691358024691358
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9919753086419753
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999966691358024
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0.25
+      },
+      "rodInteraction": {
+        "mechanism": "movingPlate",
+        "reserveFraction": 0.15,
+        "yawDegrees": 3,
+        "breakupFraction": 0,
+        "erosionShare": 0.65
+      }
+    },
+    {
+      "responseId": "editor_cwepGlassTextolite",
+      "kind": "glassTextolite",
+      "compatibleMaterialIds": [
+        "cwepGlassTextolite"
+      ],
+      "minimumDate": "1964.01.01",
+      "historicalDate": "1964.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 1850,
+        "rhaFactor": 0.65,
+        "spallFactor": 0,
+        "requestedCostMultiplier": 10.8734
+      },
+      "calibration": {
+        "heatRetention": 1,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 0.8,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "resolvedLayers",
+        "minNormalThicknessMm": 10,
+        "maxNormalThicknessMm": 200,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 1
+          }
+        ],
+        "measuredGapCurve": [
+          {
+            "distanceMm": 0,
+            "weight": 0
+          },
+          {
+            "distanceMm": 20,
+            "weight": 1
+          },
+          {
+            "distanceMm": 150,
+            "weight": 1
+          },
+          {
+            "distanceMm": 300,
+            "weight": 0
+          }
+        ],
+        "minMeasuredGapMm": 5,
+        "maxMeasuredGapMm": 300
+      },
+      "era": {
+        "cellPitchM": 0
+      }
+    },
+    {
+      "responseId": "editor_cwepHeavyEraCassette",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "cwepHeavyEraCassette"
+      ],
+      "minimumDate": "1985.01.01",
+      "historicalDate": "1985.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4000,
+        "rhaFactor": 0.55,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 10.5
+      },
+      "calibration": {
+        "heatRetention": 0.5,
+        "intactRodRetention": 0.85,
+        "disturbedRodRetention": 0.85,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 60,
+        "maxNormalThicknessMm": 80,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0.25
+      }
+    },
+    {
+      "responseId": "kontakt1Active",
+      "kind": "lightEra",
+      "compatibleMaterialIds": [
+        "kontakt1Active"
+      ],
+      "minimumDate": "1983.01.01",
+      "historicalDate": "1983.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 3169.907016060862,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 8.25
+      },
+      "calibration": {
+        "heatRetention": 0.45,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 25.5,
+        "maxNormalThicknessMm": 26.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0.252
+      }
+    },
+    {
+      "responseId": "kontakt1Cassette",
+      "kind": "lightEra",
+      "compatibleMaterialIds": [
+        "kontakt1Cassette"
+      ],
+      "minimumDate": "1983.01.01",
+      "historicalDate": "1983.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4300,
+        "rhaFactor": 0.35,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 8.25
+      },
+      "calibration": {
+        "heatRetention": 0.45,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 15,
+        "maxNormalThicknessMm": 60,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0.25
+      }
+    },
+    {
+      "responseId": "kontakt5Active",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "kontakt5Active"
+      ],
+      "minimumDate": "1985.01.01",
+      "historicalDate": "1985.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 3171.788731181019,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 10
+      },
+      "calibration": {
+        "heatRetention": 0.42,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 12.5,
+        "maxNormalThicknessMm": 13.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.1
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.1308641975308642
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.21358024691358024
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.33333333333333337
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.47530864197530864
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.6246913580246914
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.7666666666666666
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.8302469135802469
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.8864197530864198
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9333333333333335
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9635942691358025
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9691358024691359
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9919753086419754
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999966691358025
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.2519
+      },
+      "rodInteraction": {
+        "mechanism": "movingPlate",
+        "reserveFraction": 0.1,
+        "yawDegrees": 2,
+        "breakupFraction": 0,
+        "erosionShare": 0.65
+      }
+    },
+    {
+      "responseId": "kontakt5Cassette",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "kontakt5Cassette"
+      ],
+      "minimumDate": "1985.01.01",
+      "historicalDate": "1985.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4000,
+        "rhaFactor": 0.55,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 9.5
+      },
+      "calibration": {
+        "heatRetention": 0.42,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 60,
+        "maxNormalThicknessMm": 80,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.1
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.1308641975308642
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.21358024691358024
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.33333333333333337
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.47530864197530864
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.6246913580246914
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.7666666666666666
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.8302469135802469
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.8864197530864198
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9333333333333335
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9635942691358025
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9691358024691359
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9919753086419754
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999966691358025
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0.25
+      },
+      "rodInteraction": {
+        "mechanism": "movingPlate",
+        "reserveFraction": 0.1,
+        "yawDegrees": 2,
+        "breakupFraction": 0,
+        "erosionShare": 0.65
+      }
+    },
+    {
+      "responseId": "editor_cwepLightEraCassette",
+      "kind": "lightEra",
+      "compatibleMaterialIds": [
+        "cwepLightEraCassette"
+      ],
+      "minimumDate": "1983.01.01",
+      "historicalDate": "1983.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4300,
+        "rhaFactor": 0.35,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 8.25
+      },
+      "calibration": {
+        "heatRetention": 0.62,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 15,
+        "maxNormalThicknessMm": 60,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0.25
+      }
+    },
+    {
+      "responseId": "editor_cwepNeraCassette",
+      "kind": "nera",
+      "compatibleMaterialIds": [
+        "cwepNeraCassette"
+      ],
+      "minimumDate": "1979.01.01",
+      "historicalDate": "1979.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 5633.333333,
+        "rhaFactor": 0.55,
+        "spallFactor": 0.0008,
+        "requestedCostMultiplier": 10.6866
+      },
+      "calibration": {
+        "heatRetention": 0.88,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 0.95,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 20,
+        "maxNormalThicknessMm": 100,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0
+      }
+    },
+    {
+      "responseId": "nizhCassette",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "nizhCassette"
+      ],
+      "minimumDate": "2003.01.01",
+      "historicalDate": "2003.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4000,
+        "rhaFactor": 0.55,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 10
+      },
+      "calibration": {
+        "heatRetention": 0.45,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 60,
+        "maxNormalThicknessMm": 80,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.1
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.1308641975308642
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.21358024691358024
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.33333333333333337
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.47530864197530864
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.6246913580246914
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.7666666666666666
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.8302469135802469
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.8864197530864198
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9333333333333335
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9635942691358025
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9691358024691359
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9919753086419754
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999966691358025
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0.25
+      },
+      "rodInteraction": {
+        "mechanism": "linearCharge",
+        "reserveFraction": 0.1,
+        "yawDegrees": 0,
+        "breakupFraction": 0.2,
+        "erosionShare": 0.75
+      }
+    },
+    {
+      "responseId": "nizhLegacyActive",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "nizhLegacyActive"
+      ],
+      "minimumDate": "2003.01.01",
+      "historicalDate": "2003.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4300,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "calibration": {
+        "heatRetention": 0.44999999999999996,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 11.5,
+        "maxNormalThicknessMm": 12.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.1
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.1308641975308642
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.21358024691358024
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.33333333333333337
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.47530864197530864
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.6246913580246914
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.7666666666666666
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.8302469135802469
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.8864197530864198
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9333333333333335
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9635942691358025
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9691358024691359
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9919753086419754
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999966691358025
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.4
+      },
+      "rodInteraction": {
+        "mechanism": "linearCharge",
+        "reserveFraction": 0.1,
+        "yawDegrees": 0,
+        "breakupFraction": 0.2,
+        "erosionShare": 0.75
+      }
+    },
+    {
+      "responseId": "nizhLmInsert",
+      "kind": "lightEra",
+      "compatibleMaterialIds": [
+        "nizhLmInsert"
+      ],
+      "minimumDate": "2003.01.01",
+      "historicalDate": "2003.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4300,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "calibration": {
+        "heatRetention": 0.19999999999999996,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 11.5,
+        "maxNormalThicknessMm": 12.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0.26
+      },
+      "eligibleThreatClasses": [
+        "unitaryAntitankGrenade"
+      ]
+    },
+    {
+      "responseId": "nizh1MActive",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "nizh1MActive"
+      ],
+      "minimumDate": "2003.01.01",
+      "historicalDate": "2003.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4300,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "calibration": {
+        "heatRetention": 0.35,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 11.5,
+        "maxNormalThicknessMm": 12.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.1
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.1308641975308642
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.21358024691358024
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.33333333333333337
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.47530864197530864
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.6246913580246914
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.7666666666666666
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.8302469135802469
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.8864197530864198
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9333333333333335
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9635942691358025
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9691358024691359
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9919753086419754
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999966691358025
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.26
+      },
+      "rodInteraction": {
+        "mechanism": "linearCharge",
+        "reserveFraction": 0.1,
+        "yawDegrees": 0,
+        "breakupFraction": 0.2,
+        "erosionShare": 0.75
+      }
+    },
+    {
+      "responseId": "nizh19Active",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "nizh19Active"
+      ],
+      "minimumDate": "2003.01.01",
+      "historicalDate": "2003.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 2584.6153846153843,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "calibration": {
+        "heatRetention": 0.55,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 25.5,
+        "maxNormalThicknessMm": 26.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.1
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.1308641975308642
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.21358024691358024
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.33333333333333337
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.47530864197530864
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.6246913580246914
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.7666666666666666
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.8302469135802469
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.8864197530864198
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9333333333333335
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9635942691358025
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9691358024691359
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9919753086419754
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999966691358025
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.25
+      },
+      "rodInteraction": {
+        "mechanism": "linearCharge",
+        "reserveFraction": 0.1,
+        "yawDegrees": 0,
+        "breakupFraction": 0.2,
+        "erosionShare": 0.75
+      }
+    },
+    {
+      "responseId": "nizh34Active",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "nizh34Active"
+      ],
+      "minimumDate": "2003.01.01",
+      "historicalDate": "2003.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 2488.8888888888882,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "calibration": {
+        "heatRetention": 0.44999999999999996,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 35.5,
+        "maxNormalThicknessMm": 36.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.1
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.1308641975308642
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.21358024691358024
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.33333333333333337
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.47530864197530864
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.6246913580246914
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.7666666666666666
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.8302469135802469
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.8864197530864198
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9333333333333335
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9635942691358025
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9691358024691359
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9919753086419754
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999966691358025
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.25
+      },
+      "rodInteraction": {
+        "mechanism": "linearCharge",
+        "reserveFraction": 0.1,
+        "yawDegrees": 0,
+        "breakupFraction": 0.2,
+        "erosionShare": 0.75
+      }
+    },
+    {
+      "responseId": "editor_cwepPassiveComposite",
+      "kind": "passiveComposite",
+      "compatibleMaterialIds": [
+        "cwepPassiveComposite"
+      ],
+      "minimumDate": "1964.01.01",
+      "historicalDate": "1964.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 3800,
+        "rhaFactor": 0.55,
+        "spallFactor": 0.0008,
+        "requestedCostMultiplier": 12.2552
+      },
+      "calibration": {
+        "heatRetention": 0.92,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 0.92,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 30,
+        "maxNormalThicknessMm": 300,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0
+      }
+    },
+    {
+      "responseId": "editor_sprocketCustomMaterial1",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "sprocketCustomMaterial1"
+      ],
+      "minimumDate": "2006.01.01",
+      "historicalDate": "2006.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4000,
+        "rhaFactor": 0.75,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 10.5
+      },
+      "calibration": {
+        "heatRetention": 0.4,
+        "intactRodRetention": 0.65,
+        "disturbedRodRetention": 0.65,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 60,
+        "maxNormalThicknessMm": 100,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0.25
+      }
+    },
+    {
+      "responseId": "reliktActive",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "reliktActive"
+      ],
+      "minimumDate": "2006.01.01",
+      "historicalDate": "2006.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 3313.6094674556207,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 10
+      },
+      "calibration": {
+        "heatRetention": 0.4,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 12.5,
+        "maxNormalThicknessMm": 13.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.1
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.1308641975308642
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.21358024691358024
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.33333333333333337
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.47530864197530864
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.6246913580246913
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.7666666666666666
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.8302469135802469
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.8864197530864198
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9333333333333332
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9635942691358025
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9691358024691358
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9919753086419753
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999966691358024
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.25
+      },
+      "rodInteraction": {
+        "mechanism": "movingPlate",
+        "reserveFraction": 0.15,
+        "yawDegrees": 3,
+        "breakupFraction": 0,
+        "erosionShare": 0.65
+      }
+    },
+    {
+      "responseId": "reliktCassette",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "reliktCassette"
+      ],
+      "minimumDate": "2006.01.01",
+      "historicalDate": "2006.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4000,
+        "rhaFactor": 0.55,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 10.5
+      },
+      "calibration": {
+        "heatRetention": 0.4,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 60,
+        "maxNormalThicknessMm": 80,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.1
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.1308641975308642
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.21358024691358024
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.33333333333333337
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.47530864197530864
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.6246913580246913
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.7666666666666666
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.8302469135802469
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.8864197530864198
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9333333333333332
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9635942691358025
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9691358024691358
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9919753086419753
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999966691358024
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0.25
+      },
+      "rodInteraction": {
+        "mechanism": "movingPlate",
+        "reserveFraction": 0.15,
+        "yawDegrees": 3,
+        "breakupFraction": 0,
+        "erosionShare": 0.65
+      }
+    },
+    {
+      "responseId": "reliktTurretActive",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "reliktTurretActive"
+      ],
+      "minimumDate": "2006.01.01",
+      "historicalDate": "2006.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 3313.6094674556207,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 10
+      },
+      "calibration": {
+        "heatRetention": 0.4,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 12.5,
+        "maxNormalThicknessMm": 13.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.1
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.1308641975308642
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.21358024691358024
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.33333333333333337
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.47530864197530864
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.6246913580246913
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.7666666666666666
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.8302469135802469
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.8864197530864198
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9333333333333332
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9635942691358025
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9691358024691358
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9919753086419753
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999966691358024
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.25
+      },
+      "rodInteraction": {
+        "mechanism": "movingPlate",
+        "reserveFraction": 0.15,
+        "yawDegrees": 3,
+        "breakupFraction": 0,
+        "erosionShare": 0.65
+      }
+    },
+    {
+      "responseId": "romorAActive",
+      "kind": "lightEra",
+      "compatibleMaterialIds": [
+        "romorAActive"
+      ],
+      "minimumDate": "1991.01.01",
+      "historicalDate": "1991.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 3313.609467455621,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 16
+      },
+      "calibration": {
+        "heatRetention": 0.45,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 12.5,
+        "maxNormalThicknessMm": 13.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0.2
+      }
+    },
+    {
+      "responseId": "bratActive",
+      "kind": "lightEra",
+      "compatibleMaterialIds": [
+        "bratActive"
+      ],
+      "minimumDate": "1995.01.01",
+      "historicalDate": "1995.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 3313.609467455621,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 16
+      },
+      "calibration": {
+        "heatRetention": 0.45,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 12.5,
+        "maxNormalThicknessMm": 13.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0.65
+          },
+          {
+            "angleDegrees": 10,
+            "weight": 0.6620027434842249
+          },
+          {
+            "angleDegrees": 20,
+            "weight": 0.6941700960219479
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 0.7407407407407407
+          },
+          {
+            "angleDegrees": 40,
+            "weight": 0.7959533607681756
+          },
+          {
+            "angleDegrees": 50,
+            "weight": 0.8540466392318244
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 0.9092592592592592
+          },
+          {
+            "angleDegrees": 65,
+            "weight": 0.9339849108367627
+          },
+          {
+            "angleDegrees": 70,
+            "weight": 0.9558299039780521
+          },
+          {
+            "angleDegrees": 75,
+            "weight": 0.9740740740740741
+          },
+          {
+            "angleDegrees": 79.1,
+            "weight": 0.9858422157750343
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0.9879972565157751
+          },
+          {
+            "angleDegrees": 85,
+            "weight": 0.9968792866941015
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 0.9999987046639232
+          },
+          {
+            "angleDegrees": 90,
+            "weight": 1.0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0.33
+      }
+    },
+    {
+      "responseId": "editor_perforatedHhs",
+      "kind": "passiveComposite",
+      "compatibleMaterialIds": [
+        "perforatedHhs"
+      ],
+      "minimumDate": "1980.01.01",
+      "historicalDate": "1980.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4710,
+        "rhaFactor": 0.6,
+        "spallFactor": 0.00065,
+        "requestedCostMultiplier": 6
+      },
+      "calibration": {
+        "heatRetention": 1,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 30,
+        "maxNormalThicknessMm": 300,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0
+      }
+    },
+    {
+      "responseId": "editor_quartzFiller",
+      "kind": "passiveComposite",
+      "compatibleMaterialIds": [
+        "quartzFiller"
+      ],
+      "minimumDate": "1979.01.01",
+      "historicalDate": "1979.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 2200,
+        "rhaFactor": 0.78,
+        "spallFactor": 0,
+        "requestedCostMultiplier": 7.9727
+      },
+      "calibration": {
+        "heatRetention": 1,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 30,
+        "maxNormalThicknessMm": 300,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0
+      }
+    },
+    {
+      "responseId": "editor_boronCarbide",
+      "kind": "passiveComposite",
+      "compatibleMaterialIds": [
+        "boronCarbide"
+      ],
+      "minimumDate": "1990.01.01",
+      "historicalDate": "1990.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 2520,
+        "rhaFactor": 0.8,
+        "spallFactor": 0.0015,
+        "requestedCostMultiplier": 45.6177
+      },
+      "calibration": {
+        "heatRetention": 1,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 30,
+        "maxNormalThicknessMm": 300,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0
+      }
+    },
+    {
+      "responseId": "editor_duMesh",
+      "kind": "passiveComposite",
+      "compatibleMaterialIds": [
+        "duMesh"
+      ],
+      "minimumDate": "1988.01.01",
+      "historicalDate": "1988.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 18600,
+        "rhaFactor": 1.6,
+        "spallFactor": 0.00035,
+        "requestedCostMultiplier": 8.8509
+      },
+      "calibration": {
+        "heatRetention": 1,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 30,
+        "maxNormalThicknessMm": 300,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0
+      }
+    },
+    {
+      "responseId": "editor_aluminaCeramic",
+      "kind": "passiveComposite",
+      "compatibleMaterialIds": [
+        "aluminaCeramic"
+      ],
+      "minimumDate": "1965.01.01",
+      "historicalDate": "1965.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 3500,
+        "rhaFactor": 0.95,
+        "spallFactor": 0.0015,
+        "requestedCostMultiplier": 14.1866
+      },
+      "calibration": {
+        "heatRetention": 1,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 30,
+        "maxNormalThicknessMm": 300,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0
+      }
+    },
+    {
+      "responseId": "editor_siliconCarbide",
+      "kind": "passiveComposite",
+      "compatibleMaterialIds": [
+        "siliconCarbide"
+      ],
+      "minimumDate": "1985.01.01",
+      "historicalDate": "1985.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 3200,
+        "rhaFactor": 1.0,
+        "spallFactor": 0.0015,
+        "requestedCostMultiplier": 25.8329
+      },
+      "calibration": {
+        "heatRetention": 1,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 30,
+        "maxNormalThicknessMm": 300,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0
+      }
+    }
+  ]
+}

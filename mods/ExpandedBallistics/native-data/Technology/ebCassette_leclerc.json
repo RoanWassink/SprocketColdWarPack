@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "ebCassette_leclerc",
+  "date": "1993.01.01",
+  "properties": {
+    "rhaFactor": 0.5422917947797248,
+    "costMultiplier": 16.387777420495496,
+    "spallFactor": 0.0005,
+    "density": 3522.7386179778305
+  }
+}

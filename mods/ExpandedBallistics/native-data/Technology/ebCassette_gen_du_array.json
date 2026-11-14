@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "ebCassette_gen_du_array",
+  "date": "1990.01.01",
+  "properties": {
+    "rhaFactor": 1.2347826086956522,
+    "costMultiplier": 7.362887818247386,
+    "spallFactor": 0.0005,
+    "density": 12056.521739130434
+  }
+}

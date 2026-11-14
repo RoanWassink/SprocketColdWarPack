@@ -1,0 +1,329 @@
+{
+  "schemaVersion": 1,
+  "presets": [
+    {
+      "id": "user_t84_surblinde_glacic_v1",
+      "label": "T84 surblinde glacic",
+      "date": "1964.01.01",
+      "location": "turret",
+      "window": {
+        "minDepthMm": 67.5,
+        "maxDepthMm": 112.5
+      },
+      "layers": [
+        {
+          "material": "highHardnessSteel",
+          "thicknessMm": 50,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "cwepGlassTextolite",
+          "thicknessMm": 10,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "highHardnessSteel",
+          "thicknessMm": 10,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "cwepGlassTextolite",
+          "thicknessMm": 10,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "highHardnessSteel",
+          "thicknessMm": 10,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ]
+    },
+    {
+      "id": "user_nera_v1",
+      "label": "NERA cassette (own)",
+      "date": "1979.01.01",
+      "location": "turret",
+      "window": {
+        "minDepthMm": 114.89060364736139,
+        "maxDepthMm": 191.48433941226898
+      },
+      "layers": [
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 57,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 57,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ]
+    },
+    {
+      "id": "user_new_cassette_v1",
+      "label": "New cassette",
+      "date": "1975.01.01",
+      "location": "turret",
+      "window": {
+        "minDepthMm": 127.5,
+        "maxDepthMm": 212.5
+      },
+      "layers": [
+        {
+          "material": "rha",
+          "thicknessMm": 100,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "ceramicArray",
+          "thicknessMm": 40,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 30,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ]
+    },
+    {
+      "id": "user_nera_cassette_own_v1",
+      "label": "NERA cassette (own)",
+      "date": "1979.01.01",
+      "location": "turret",
+      "window": {
+        "minDepthMm": 99.55960043841964,
+        "maxDepthMm": 165.93266739736606
+      },
+      "layers": [
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ]
+    },
+    {
+      "id": "user_nera_v2",
+      "label": "NERA cassette (own)",
+      "date": "1979.01.01",
+      "location": "turret",
+      "window": {
+        "minDepthMm": 99.55960043841964,
+        "maxDepthMm": 165.93266739736606
+      },
+      "layers": [
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "elastomerNERA",
+          "thicknessMm": 15,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "rha",
+          "thicknessMm": 3,
+          "tiltDegrees": 30,
+          "tiltDirection": "up"
+        },
+        {
+          "material": "air",
+          "thicknessMm": 20,
+          "tiltDegrees": 0,
+          "tiltDirection": "up"
+        }
+      ]
+    }
+  ]
+}

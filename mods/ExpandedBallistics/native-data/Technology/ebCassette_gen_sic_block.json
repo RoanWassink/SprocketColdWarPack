@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "ebCassette_gen_sic_block",
+  "date": "1990.01.01",
+  "properties": {
+    "rhaFactor": 1,
+    "costMultiplier": 16.835068769716088,
+    "spallFactor": 0.0005,
+    "density": 4528.571428571428
+  }
+}

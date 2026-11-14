@@ -1,0 +1,7 @@
+# Expedition 0.3.12 - live test (not yet executed)
+
+1. After owner installation with the game closed, check version 0.3.12 and default SaveSlots=8 / AllowFixtureCatalogue=false. Load the existing slot 1 and 2; check their tank, round and pinned enemies.
+2. Fill the configured slots. Press New Game in the main menu, then repeat via first Play in a fresh Expedition designer. Check era, round, save date and Delete & start new for every row; scroll the list. Back/Esc must leave saves intact.
+3. Select Delete & start new, cancel once, then confirm once. Verify an exact archive under slots/archive and immediate era / Ironman options. Choose nondefault options, start, press Play and check that the new native run uses exactly the freed slot. Repeat with an archive failure (read-only test copy): no new run may start.
+4. Open an empty slot from the main menu and designer; choose era / Ironman and press Play. Check native enemies, the chosen slot and the single empty-slot log line. With native content unavailable, no run should be created. In a disposable test config only, enable AllowFixtureCatalogue and check a diagnostic fixture run; disable again and check an existing fixture save can load.
+5. Restart with SaveSlots=4, 8 and 12 and out-of-range values; check clamping to 4-12, scrolling and unchanged slot-1 through slot-4. Inspect the full-delete and empty-slot log messages for one line per completed action.

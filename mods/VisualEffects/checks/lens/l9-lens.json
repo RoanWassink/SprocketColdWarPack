@@ -1,0 +1,67 @@
+{
+ "method": "L9: lens position, normal and size of the stock lamp meshes (Visual Effects 0.4.5).",
+ "disc_offset_m": 0.0015,
+ "forms": {
+  "round": {
+   "mesh": "HeadLamp_LOD0",
+   "bundle": "vehicle_assets_headlampmesh_fc680181c25fa963b95b98000da85e36.bundle",
+   "bundle_sha256": "075ed8e345c21af2410b7bff6b601ea4c8f5ed62a1ae25909b68dae9ea812509",
+   "ring_vertices": 12,
+   "centre": [
+    -0.0,
+    0.1502,
+    0.0946
+   ],
+   "normal": [
+    0,
+    0,
+    1
+   ],
+   "radius": 0.0724,
+   "fit_max_residual": 0.0,
+   "lens_front_z": 0.0931,
+   "bezel_inner_radius": 0.0765
+  },
+  "rect": {
+   "mesh": "TailLight_LOD0",
+   "bundle": "vehicle_assets_taillightmesh_bdc4b6641c44c90d1e08a227411fc89e.bundle",
+   "bundle_sha256": "7c73b4921cb66eed0051128838ee6dab8849ae85b6ec2828624b8178b16069c3",
+   "ring_vertices": 20,
+   "centre": [
+    -0.0019,
+    0.0021,
+    0.0235
+   ],
+   "normal": [
+    0,
+    0,
+    1
+   ],
+   "radius": 0.0355,
+   "fit_max_residual": 0.0,
+   "lens_front_z": 0.022,
+   "bezel_inner_radius": 0.0378
+  },
+  "marker": {
+   "mesh": "TailLight_LOD0",
+   "bundle": "vehicle_assets_taillightmesh_bdc4b6641c44c90d1e08a227411fc89e.bundle",
+   "bundle_sha256": "7c73b4921cb66eed0051128838ee6dab8849ae85b6ec2828624b8178b16069c3",
+   "ring_vertices": 20,
+   "centre": [
+    -0.0019,
+    0.0021,
+    0.0235
+   ],
+   "normal": [
+    0,
+    0,
+    1
+   ],
+   "radius": 0.0355,
+   "fit_max_residual": 0.0,
+   "lens_front_z": 0.022,
+   "bezel_inner_radius": 0.0378,
+   "note": "same stock tail-light mesh as rect; smaller default part scale"
+  }
+ }
+}

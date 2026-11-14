@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "ebCassette_oplot",
+  "date": "2001.01.01",
+  "properties": {
+    "rhaFactor": 0.4711764705882353,
+    "costMultiplier": 14.80710166358595,
+    "spallFactor": 0.00065,
+    "density": 3818.823529411765
+  }
+}

@@ -1,0 +1,463 @@
+{
+    "schemaVersion":  1,
+    "enabled":  true,
+    "maximumInteractionLoss":  0.5,
+    "workCalibration":  {
+                            "rodDensityKgM3":  17500,
+                            "rodLengthM":  0.12,
+                            "rodSpeedMps":  1600,
+                            "jetBudgetMm":  600,
+                            "interfaceWeight":  0.5,
+                            "steelErosionShare":  0.75,
+                            "otherErosionShare":  0.3,
+                            "directErosionShare":  0.75,
+                            "backedErosionShare":  0.65,
+                            "sandwichErosionShare":  0.15
+                        },
+    "steelMaterialIds":  [
+                             "rha",
+                             "sheetMetal",
+                             "structuralSteel",
+                             "highHardnessSteel",
+                             "advancedArmourSteel",
+                             "castArmour"
+                         ],
+    "recipes":  [
+                    {
+                        "id":  "hardSteel",
+                        "label":  "High-hardness steel",
+                        "mode":  "direct",
+                        "threatTags":  [
+                                           "kineticFullBore",
+                                           "shortRod"
+                                       ],
+                        "threatScale":  {
+                                            "shortRod":  1,
+                                            "kineticFullBore":  1
+                                        },
+                        "lossPerReference":  0.03,
+                        "referenceThicknessMm":  20,
+                        "maximumLoss":  0.06,
+                        "minimumThicknessMm":  1,
+                        "maximumThicknessMm":  80,
+                        "minimumAngleDegrees":  0,
+                        "fullAngleDegrees":  0,
+                        "maximumAngleDegrees":  85,
+                        "minimumSteelThicknessMm":  3,
+                        "maximumGapMm":  25,
+                        "cellPitchM":  0.15,
+                        "degradedFraction":  0.2,
+                        "specificAbsorptionJPerKg":  0
+                    },
+                    {
+                        "id":  "advancedSteel",
+                        "label":  "Advanced armour steel",
+                        "mode":  "direct",
+                        "threatTags":  [
+                                           "kineticFullBore",
+                                           "shortRod",
+                                           "longRod"
+                                       ],
+                        "lossPerReference":  0.03,
+                        "referenceThicknessMm":  50,
+                        "maximumLoss":  0.15,
+                        "minimumThicknessMm":  1,
+                        "maximumThicknessMm":  500,
+                        "minimumAngleDegrees":  0,
+                        "fullAngleDegrees":  0,
+                        "maximumAngleDegrees":  85,
+                        "minimumSteelThicknessMm":  3,
+                        "maximumGapMm":  25,
+                        "cellPitchM":  0.15,
+                        "degradedFraction":  0.2,
+                        "specificAbsorptionJPerKg":  0
+                    },
+                    {
+                        "id":  "ceramicStrikeFace",
+                        "label":  "Backed ceramic strike face",
+                        "mode":  "backed",
+                        "threatTags":  [
+                                           "kineticFullBore",
+                                           "shortRod",
+                                           "longRod",
+                                           "chemicalJet"
+                                       ],
+                        "threatScale":  {
+                                            "jet":  1,
+                                            "longRod":  1,
+                                            "shortRod":  1,
+                                            "kineticFullBore":  1
+                                        },
+                        "lossPerReference":  0.04,
+                        "referenceThicknessMm":  40,
+                        "maximumLoss":  0.35,
+                        "minimumThicknessMm":  5,
+                        "maximumThicknessMm":  250,
+                        "minimumAngleDegrees":  0,
+                        "fullAngleDegrees":  0,
+                        "maximumAngleDegrees":  85,
+                        "minimumSteelThicknessMm":  3,
+                        "maximumGapMm":  25,
+                        "cellPitchM":  0.15,
+                        "degradedFraction":  0.2,
+                        "specificAbsorptionJPerKg":  0
+                    },
+                    {
+                        "id":  "heavyAlloy",
+                        "label":  "Compact heavy-alloy insert",
+                        "mode":  "direct",
+                        "threatTags":  [
+                                           "longRod",
+                                           "shortRod"
+                                       ],
+                        "lossPerReference":  0.12,
+                        "referenceThicknessMm":  30,
+                        "maximumLoss":  0.25,
+                        "minimumThicknessMm":  1,
+                        "maximumThicknessMm":  500,
+                        "minimumAngleDegrees":  0,
+                        "fullAngleDegrees":  0,
+                        "maximumAngleDegrees":  85,
+                        "minimumSteelThicknessMm":  3,
+                        "maximumGapMm":  25,
+                        "cellPitchM":  0.15,
+                        "degradedFraction":  0.2,
+                        "specificAbsorptionJPerKg":  0
+                    },
+                    {
+                        "id":  "textoliteSandwich",
+                        "label":  "Steel / textolite / steel",
+                        "mode":  "sandwich",
+                        "threatTags":  [
+                                           "chemicalJet"
+                                       ],
+                        "threatScale":  {
+                                            "jet":  1
+                                        },
+                        "lossPerReference":  0.05,
+                        "referenceThicknessMm":  40,
+                        "maximumLoss":  0.2,
+                        "minimumThicknessMm":  5,
+                        "maximumThicknessMm":  500,
+                        "minimumAngleDegrees":  0,
+                        "fullAngleDegrees":  0,
+                        "maximumAngleDegrees":  85,
+                        "minimumSteelThicknessMm":  3,
+                        "maximumGapMm":  15,
+                        "cellPitchM":  0.15,
+                        "degradedFraction":  0.2,
+                        "specificAbsorptionJPerKg":  0,
+                        "rodDisturbanceShare":  0.1,
+                        "rodYawDegreesAtReference":  2
+                    },
+                    {
+                        "id":  "elastomerSandwich",
+                        "label":  "Steel / elastomer / steel NERA",
+                        "mode":  "sandwich",
+                        "threatTags":  [
+                                           "chemicalJet",
+                                           "longRod",
+                                           "shortRod",
+                                           "kineticFullBore"
+                                       ],
+                        "threatScale":  {
+                                            "jet":  1,
+                                            "longRod":  1,
+                                            "shortRod":  0.5,
+                                            "kineticFullBore":  0.25
+                                        },
+                        "lossPerReference":  0.07,
+                        "referenceThicknessMm":  15,
+                        "maximumLoss":  0.3,
+                        "minimumThicknessMm":  2,
+                        "maximumThicknessMm":  1000,
+                        "minimumAngleDegrees":  10,
+                        "fullAngleDegrees":  30,
+                        "maximumAngleDegrees":  75,
+                        "minimumSteelThicknessMm":  3,
+                        "maximumGapMm":  15,
+                        "cellPitchM":  0.15,
+                        "degradedFraction":  0.2,
+                        "specificAbsorptionJPerKg":  0,
+                        "rodDisturbanceShare":  0.2,
+                        "rodYawDegreesAtReference":  4
+                    },
+                    {
+                        "id":  "fragmentLiner",
+                        "label":  "Aramid fragment-catching liner",
+                        "mode":  "fragmentAbsorber",
+                        "threatTags":  [
+                                           "fragment"
+                                       ],
+                        "lossPerReference":  0,
+                        "referenceThicknessMm":  30,
+                        "maximumLoss":  1,
+                        "minimumThicknessMm":  1,
+                        "maximumThicknessMm":  100,
+                        "minimumAngleDegrees":  0,
+                        "fullAngleDegrees":  0,
+                        "maximumAngleDegrees":  85,
+                        "minimumSteelThicknessMm":  3,
+                        "maximumGapMm":  25,
+                        "cellPitchM":  0.15,
+                        "degradedFraction":  0.2,
+                        "specificAbsorptionJPerKg":  250000
+                    },
+                    {
+                        "id":  "perforatedHhs",
+                        "label":  "Perforated high-hardness steel",
+                        "mode":  "direct",
+                        "threatTags":  [
+                                           "longRod",
+                                           "shortRod",
+                                           "kineticFullBore"
+                                       ],
+                        "threatScale":  {
+                                            "longRod":  1,
+                                            "shortRod":  1,
+                                            "kineticFullBore":  0.5
+                                        },
+                        "lossPerReference":  0.1,
+                        "referenceThicknessMm":  20,
+                        "maximumLoss":  0.3,
+                        "minimumThicknessMm":  1,
+                        "maximumThicknessMm":  1000,
+                        "minimumAngleDegrees":  0,
+                        "fullAngleDegrees":  0,
+                        "maximumAngleDegrees":  85,
+                        "minimumSteelThicknessMm":  3,
+                        "maximumGapMm":  25,
+                        "cellPitchM":  0.15,
+                        "degradedFraction":  0.2,
+                        "specificAbsorptionJPerKg":  0,
+                        "rodDisturbanceShare":  0.5,
+                        "rodYawDegreesAtReference":  6
+                    },
+                    {
+                        "id":  "quartzFiller",
+                        "label":  "Quartz / sand filler",
+                        "mode":  "sandwich",
+                        "threatTags":  [
+                                           "chemicalJet"
+                                       ],
+                        "lossPerReference":  0.04,
+                        "referenceThicknessMm":  40,
+                        "maximumLoss":  0.3,
+                        "minimumThicknessMm":  1,
+                        "maximumThicknessMm":  1000,
+                        "minimumAngleDegrees":  0,
+                        "fullAngleDegrees":  0,
+                        "maximumAngleDegrees":  85,
+                        "minimumSteelThicknessMm":  3,
+                        "maximumGapMm":  25,
+                        "cellPitchM":  0.15,
+                        "degradedFraction":  0.2,
+                        "specificAbsorptionJPerKg":  0,
+                        "rodDisturbanceShare":  0,
+                        "rodYawDegreesAtReference":  0
+                    },
+                    {
+                        "id":  "boronCarbide",
+                        "label":  "Boron carbide ceramic",
+                        "mode":  "backed",
+                        "threatTags":  [
+                                           "chemicalJet",
+                                           "longRod",
+                                           "shortRod",
+                                           "kineticFullBore"
+                                       ],
+                        "lossPerReference":  0.06,
+                        "referenceThicknessMm":  40,
+                        "maximumLoss":  0.3,
+                        "minimumThicknessMm":  1,
+                        "maximumThicknessMm":  1000,
+                        "minimumAngleDegrees":  0,
+                        "fullAngleDegrees":  0,
+                        "maximumAngleDegrees":  85,
+                        "minimumSteelThicknessMm":  3,
+                        "maximumGapMm":  25,
+                        "cellPitchM":  0.15,
+                        "degradedFraction":  0.2,
+                        "specificAbsorptionJPerKg":  0,
+                        "rodDisturbanceShare":  0,
+                        "rodYawDegreesAtReference":  0
+                    },
+                    {
+                        "id":  "duMesh",
+                        "label":  "Depleted uranium mesh",
+                        "mode":  "direct",
+                        "threatTags":  [
+                                           "longRod",
+                                           "shortRod"
+                                       ],
+                        "lossPerReference":  0.14,
+                        "referenceThicknessMm":  30,
+                        "maximumLoss":  0.3,
+                        "minimumThicknessMm":  1,
+                        "maximumThicknessMm":  1000,
+                        "minimumAngleDegrees":  0,
+                        "fullAngleDegrees":  0,
+                        "maximumAngleDegrees":  85,
+                        "minimumSteelThicknessMm":  3,
+                        "maximumGapMm":  25,
+                        "cellPitchM":  0.15,
+                        "degradedFraction":  0.2,
+                        "specificAbsorptionJPerKg":  0,
+                        "rodDisturbanceShare":  0,
+                        "rodYawDegreesAtReference":  0
+                    },
+                         {
+                           "id": "aluminaCeramic",
+                           "label": "Alumina (corundum) ceramic",
+                           "mode": "backed",
+                           "threatTags": [
+                             "chemicalJet",
+                             "longRod",
+                             "shortRod",
+                             "kineticFullBore"
+                           ],
+                           "threatScale": {
+                             "jet": 1,
+                             "longRod": 0.75,
+                             "shortRod": 0.9,
+                             "kineticFullBore": 1
+                           },
+                           "lossPerReference": 0.05,
+                           "referenceThicknessMm": 40,
+                           "maximumLoss": 0.3,
+                           "minimumThicknessMm": 5,
+                           "maximumThicknessMm": 300,
+                           "minimumAngleDegrees": 0,
+                           "fullAngleDegrees": 0,
+                           "maximumAngleDegrees": 85,
+                           "minimumSteelThicknessMm": 3,
+                           "maximumGapMm": 25,
+                           "cellPitchM": 0.15,
+                           "degradedFraction": 0.2,
+                           "specificAbsorptionJPerKg": 0
+                         },
+                         {
+                           "id": "siliconCarbide",
+                           "label": "Silicon carbide ceramic",
+                           "mode": "backed",
+                           "threatTags": [
+                             "chemicalJet",
+                             "longRod",
+                             "shortRod",
+                             "kineticFullBore"
+                           ],
+                           "threatScale": {
+                             "jet": 1,
+                             "longRod": 1,
+                             "shortRod": 1,
+                             "kineticFullBore": 1
+                           },
+                           "lossPerReference": 0.05,
+                           "referenceThicknessMm": 40,
+                           "maximumLoss": 0.35,
+                           "minimumThicknessMm": 5,
+                           "maximumThicknessMm": 300,
+                           "minimumAngleDegrees": 0,
+                           "fullAngleDegrees": 0,
+                           "maximumAngleDegrees": 85,
+                           "minimumSteelThicknessMm": 3,
+                           "maximumGapMm": 25,
+                           "cellPitchM": 0.15,
+                           "degradedFraction": 0.2,
+                           "specificAbsorptionJPerKg": 0
+                         }
+                       ],
+    "bindings":  [
+                     {
+                         "materialId":  "highHardnessSteel",
+                         "recipeId":  "hardSteel",
+                         "density":  7850,
+                         "rhaFactor":  1.16,
+                         "spallFactor":  0.00065
+                     },
+                     {
+                         "materialId":  "advancedArmourSteel",
+                         "recipeId":  "advancedSteel",
+                         "density":  7850,
+                         "rhaFactor":  1.3,
+                         "spallFactor":  0.00045
+                     },
+                     {
+                         "materialId":  "ceramicArray",
+                         "recipeId":  "ceramicStrikeFace",
+                         "density":  3600,
+                         "rhaFactor":  0.9,
+                         "spallFactor":  0.0015
+                     },
+                     {
+                         "materialId":  "heavyAlloyInsert",
+                         "recipeId":  "heavyAlloy",
+                         "density":  17500,
+                         "rhaFactor":  1.5,
+                         "spallFactor":  0.00035
+                     },
+                     {
+                         "materialId":  "cwepGlassTextolite",
+                         "recipeId":  "textoliteSandwich",
+                         "density":  1850,
+                         "rhaFactor":  0.65,
+                         "spallFactor":  0
+                     },
+                     {
+                         "materialId":  "elastomerNERA",
+                         "recipeId":  "elastomerSandwich",
+                         "density":  1200,
+                         "rhaFactor":  0.07,
+                         "spallFactor":  0
+                     },
+                     {
+                         "materialId":  "aramidSpallLiner",
+                         "recipeId":  "fragmentLiner",
+                         "density":  1440,
+                         "rhaFactor":  0.04,
+                         "spallFactor":  0
+                     },
+                     {
+                         "materialId":  "perforatedHhs",
+                         "recipeId":  "perforatedHhs",
+                         "density":  4710,
+                         "rhaFactor":  0.6,
+                         "spallFactor":  0.00065
+                     },
+                     {
+                         "materialId":  "quartzFiller",
+                         "recipeId":  "quartzFiller",
+                         "density":  2200,
+                         "rhaFactor":  0.78,
+                         "spallFactor":  0
+                     },
+                     {
+                         "materialId":  "boronCarbide",
+                         "recipeId":  "boronCarbide",
+                         "density":  2520,
+                         "rhaFactor":  0.8,
+                         "spallFactor":  0.0015
+                     },
+                     {
+                         "materialId":  "duMesh",
+                         "recipeId":  "duMesh",
+                         "density":  18600,
+                         "rhaFactor":  1.6,
+                         "spallFactor":  0.00035
+                     },
+                         {
+                           "materialId": "aluminaCeramic",
+                           "recipeId": "aluminaCeramic",
+                           "density": 3500,
+                           "rhaFactor": 0.95,
+                           "spallFactor": 0.0015
+                         },
+                         {
+                           "materialId": "siliconCarbide",
+                           "recipeId": "siliconCarbide",
+                           "density": 3200,
+                           "rhaFactor": 1.0,
+                           "spallFactor": 0.0015
+                         }
+                       ]
+}

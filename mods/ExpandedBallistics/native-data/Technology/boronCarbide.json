@@ -1,0 +1,12 @@
+{
+    "v":  "0.0",
+    "id":  "",
+    "type":  "boronCarbide",
+    "date":  "1990.01.01",
+    "properties":  {
+                       "rhaFactor":  0.8,
+                       "costMultiplier":  45.6177,
+                       "spallFactor":  0.0015,
+                       "density":  2520
+                   }
+}

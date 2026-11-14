@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "ebCassette_t64k",
+  "date": "1964.01.01",
+  "properties": {
+    "rhaFactor": 0.825,
+    "costMultiplier": 4.430819381443299,
+    "spallFactor": 0.0005,
+    "density": 4850
+  }
+}

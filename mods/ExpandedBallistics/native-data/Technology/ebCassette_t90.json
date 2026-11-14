@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "ebCassette_t90",
+  "date": "1992.01.01",
+  "properties": {
+    "rhaFactor": 0.3921950613038793,
+    "costMultiplier": 13.606694106891135,
+    "spallFactor": 0.0005,
+    "density": 3407.460994297232
+  }
+}

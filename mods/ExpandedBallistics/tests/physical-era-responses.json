@@ -1,0 +1,1168 @@
+{
+  "schemaVersion": 1,
+  "enabled": true,
+  "maximumAdditionalKineticLoss": 0.35,
+  "maximumAdditionalHeatLoss": 0.6,
+  "preconditioning": {
+    "steelMaterialIds": [
+      "rha",
+      "sheetMetal"
+    ],
+    "minSteelThicknessMm": 3,
+    "minObliquityDegrees": 20,
+    "maxObliquityDegrees": 70,
+    "angleFullDegrees": 50,
+    "thicknessFullMm": 20,
+    "disturbancePerLayerCap": 0.35,
+    "cumulativeDisturbanceCap": 0.6
+  },
+  "responses": [
+    {
+      "responseId": "glassTextolite",
+      "kind": "glassTextolite",
+      "compatibleMaterialIds": [
+        "cwepGlassTextolite"
+      ],
+      "minimumDate": "1964.01.01",
+      "historicalDate": "1964.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 1850,
+        "rhaFactor": 0.25,
+        "spallFactor": 0,
+        "requestedCostMultiplier": 6.5
+      },
+      "calibration": {
+        "heatRetention": 1,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 0.8,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "resolvedLayers",
+        "minNormalThicknessMm": 10,
+        "maxNormalThicknessMm": 200,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 89.9,
+            "weight": 1
+          }
+        ],
+        "measuredGapCurve": [
+          {
+            "distanceMm": 0,
+            "weight": 0
+          },
+          {
+            "distanceMm": 20,
+            "weight": 1
+          },
+          {
+            "distanceMm": 150,
+            "weight": 1
+          },
+          {
+            "distanceMm": 300,
+            "weight": 0
+          }
+        ],
+        "minMeasuredGapMm": 5,
+        "maxMeasuredGapMm": 300
+      },
+      "era": {
+        "cellPitchM": 0
+      }
+    },
+    {
+      "responseId": "neraCassette",
+      "kind": "nera",
+      "compatibleMaterialIds": [
+        "cwepNeraCassette"
+      ],
+      "minimumDate": "1979.01.01",
+      "historicalDate": "1979.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 5633.333333,
+        "rhaFactor": 0.55,
+        "spallFactor": 0.2,
+        "requestedCostMultiplier": 9
+      },
+      "calibration": {
+        "heatRetention": 0.75,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 0.95,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 20,
+        "maxNormalThicknessMm": 100,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0
+      }
+    },
+    {
+      "responseId": "lightEraCassette",
+      "kind": "lightEra",
+      "compatibleMaterialIds": [
+        "cwepLightEraCassette"
+      ],
+      "minimumDate": "1983.01.01",
+      "historicalDate": "1983.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4300,
+        "rhaFactor": 0.35,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 8.25
+      },
+      "calibration": {
+        "heatRetention": 0.62,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 15,
+        "maxNormalThicknessMm": 60,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0.25
+      }
+    },
+    {
+      "responseId": "passiveComposite",
+      "kind": "passiveComposite",
+      "compatibleMaterialIds": [
+        "cwepPassiveComposite"
+      ],
+      "minimumDate": "1964.01.01",
+      "historicalDate": "1964.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 3800,
+        "rhaFactor": 0.55,
+        "spallFactor": 0.1,
+        "requestedCostMultiplier": 6
+      },
+      "calibration": {
+        "heatRetention": 0.85,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 0.75,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 30,
+        "maxNormalThicknessMm": 300,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0
+      }
+    },
+    {
+      "responseId": "kontakt1Active",
+      "kind": "lightEra",
+      "compatibleMaterialIds": [
+        "kontakt1Active"
+      ],
+      "minimumDate": "1983.01.01",
+      "historicalDate": "1983.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 3169.907016060862,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 8.25
+      },
+      "calibration": {
+        "heatRetention": 0.5,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 25.5,
+        "maxNormalThicknessMm": 26.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0.252
+      }
+    },
+    {
+      "responseId": "kontakt5Active",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "kontakt5Active"
+      ],
+      "minimumDate": "1985.01.01",
+      "historicalDate": "1985.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 3171.788731181019,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 10
+      },
+      "calibration": {
+        "heatRetention": 0.5,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 12.5,
+        "maxNormalThicknessMm": 13.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.2519
+      }
+    },
+    {
+      "responseId": "reliktActive",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "reliktActive"
+      ],
+      "minimumDate": "2006.01.01",
+      "historicalDate": "2006.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 3313.6094674556207,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 10
+      },
+      "calibration": {
+        "heatRetention": 0.4,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 12.5,
+        "maxNormalThicknessMm": 13.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.25
+      }
+    },
+    {
+      "responseId": "reliktTurretActive",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "reliktTurretActive"
+      ],
+      "minimumDate": "2006.01.01",
+      "historicalDate": "2006.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 3313.6094674556207,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 10
+      },
+      "calibration": {
+        "heatRetention": 0.4,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 12.5,
+        "maxNormalThicknessMm": 13.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.25
+      }
+    },
+    {
+      "responseId": "nizhLegacyActive",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "nizhLegacyActive"
+      ],
+      "minimumDate": "2003.01.01",
+      "historicalDate": "2003.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4300.0,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "calibration": {
+        "heatRetention": 0.44999999999999996,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 11.5,
+        "maxNormalThicknessMm": 12.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.4
+      }
+    },
+    {
+      "responseId": "dupletLegacySingleActive",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "dupletLegacySingleActive"
+      ],
+      "minimumDate": "2009.01.01",
+      "historicalDate": "2009.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4300.0,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "calibration": {
+        "heatRetention": 0.4,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 11.5,
+        "maxNormalThicknessMm": 12.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.4
+      }
+    },
+    {
+      "responseId": "dupletLegacyIntegratedActive",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "dupletLegacyIntegratedActive"
+      ],
+      "minimumDate": "2009.01.01",
+      "historicalDate": "2009.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4300.0,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "calibration": {
+        "heatRetention": 0.5477225575051661,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 11.5,
+        "maxNormalThicknessMm": 12.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.4
+      }
+    },
+    {
+      "responseId": "dupletHullActive",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "dupletHullActive"
+      ],
+      "minimumDate": "2009.01.01",
+      "historicalDate": "2009.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4299.999999999999,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "calibration": {
+        "heatRetention": 0.5477225575051661,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 11.5,
+        "maxNormalThicknessMm": 12.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.96
+      }
+    },
+    {
+      "responseId": "dupletHullZonesActive",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "dupletHullZonesActive"
+      ],
+      "minimumDate": "2009.01.01",
+      "historicalDate": "2009.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4300.0,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "calibration": {
+        "heatRetention": 0.5477225575051661,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 11.5,
+        "maxNormalThicknessMm": 12.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.42
+      }
+    },
+    {
+      "responseId": "nizh34Active",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "nizh34Active"
+      ],
+      "minimumDate": "2003.01.01",
+      "historicalDate": "2003.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 2488.8888888888882,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "calibration": {
+        "heatRetention": 0.44999999999999996,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 35.5,
+        "maxNormalThicknessMm": 36.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.25
+      }
+    },
+    {
+      "responseId": "nizh19Active",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "nizh19Active"
+      ],
+      "minimumDate": "2003.01.01",
+      "historicalDate": "2003.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 2584.6153846153843,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "calibration": {
+        "heatRetention": 0.55,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 25.5,
+        "maxNormalThicknessMm": 26.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.25
+      }
+    },
+    {
+      "responseId": "nizh1MActive",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "nizh1MActive"
+      ],
+      "minimumDate": "2003.01.01",
+      "historicalDate": "2003.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4300.0,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "calibration": {
+        "heatRetention": 0.35,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 11.5,
+        "maxNormalThicknessMm": 12.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.26
+      }
+    },
+    {
+      "responseId": "duplet2MActive",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "duplet2MActive"
+      ],
+      "minimumDate": "2009.01.01",
+      "historicalDate": "2009.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4300.0,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "calibration": {
+        "heatRetention": 0.44721359549995787,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 11.5,
+        "maxNormalThicknessMm": 12.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.26
+      }
+    },
+    {
+      "responseId": "duplet2MHullActive",
+      "kind": "heavyEra",
+      "compatibleMaterialIds": [
+        "duplet2MHullActive"
+      ],
+      "minimumDate": "2009.01.01",
+      "historicalDate": "2009.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4300.0,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "calibration": {
+        "heatRetention": 0.44721359549995787,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 11.5,
+        "maxNormalThicknessMm": 12.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0,
+        "kineticAngularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 0
+          },
+          {
+            "angleDegrees": 30,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ]
+      },
+      "era": {
+        "cellPitchM": 0.43
+      }
+    },
+    {
+      "responseId": "nizhLmInsert",
+      "kind": "lightEra",
+      "compatibleMaterialIds": [
+        "nizhLmInsert"
+      ],
+      "minimumDate": "2003.01.01",
+      "historicalDate": "2003.01.01",
+      "status": "candidate",
+      "passiveMaterial": {
+        "density": 4300.0,
+        "rhaFactor": 0.15,
+        "spallFactor": 0.25,
+        "requestedCostMultiplier": 32
+      },
+      "calibration": {
+        "heatRetention": 0.19999999999999996,
+        "intactRodRetention": 1,
+        "disturbedRodRetention": 1,
+        "disturbanceContribution": 0
+      },
+      "geometry": {
+        "mode": "declaredCassette",
+        "minNormalThicknessMm": 11.5,
+        "maxNormalThicknessMm": 12.5,
+        "angularCurve": [
+          {
+            "angleDegrees": 0,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 60,
+            "weight": 1
+          },
+          {
+            "angleDegrees": 80,
+            "weight": 0
+          }
+        ],
+        "measuredGapCurve": [],
+        "minMeasuredGapMm": 0,
+        "maxMeasuredGapMm": 0
+      },
+      "era": {
+        "cellPitchM": 0.26
+      },
+      "eligibleThreatClasses": [
+        "unitaryAntitankGrenade"
+      ]
+    }
+  ]
+}

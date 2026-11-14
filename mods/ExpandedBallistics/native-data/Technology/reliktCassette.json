@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "reliktCassette",
+  "date": "2006.01.01",
+  "properties": {
+    "density": 4000,
+    "rhaFactor": 0.55,
+    "spallFactor": 0.25,
+    "costMultiplier": 10.5
+  }
+}

@@ -1,0 +1,2 @@
+// HingeMesh.CreateBase / HingeMath: pin r=.02, length=.54, height=.025; leaf width=.50; strap depth=.07 thickness=.02; lug height=.045; lug z=-.03.. .025; pin overhang=.006 m, 48 segments.
+$fn=48; color("#8E9296") { translate([-.27,-.10,0]) cube([.54,.07,.02]); translate([-.27,-.03,0]) cube([.02,.055,.045]); translate([.25,-.03,0]) cube([.02,.055,.045]); translate([-.27,0,.025]) rotate([0,90,0]) cylinder(r=.02,h=.54); } color("#DC9E33") { translate([-.276,0,.025]) rotate([0,90,0]) cylinder(r=.02,h=.006); translate([.27,0,.025]) rotate([0,90,0]) cylinder(r=.02,h=.006); }

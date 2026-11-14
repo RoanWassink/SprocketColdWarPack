@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<Part><name>Duplet side module</name><description>Duplet - modular side module (game proxy)
+Resize X to add whole cells along the length (1 to 8, 125 mm each); the height is fixed at two rows (500 mm).
+250 mm per row, 48 mm deep, slotted mounting lip on the top edge and a hinge strip. Each cell has a 10 mm formed front plate and two 12 mm Nozh layers with a 10 mm steel plate between them; both layers spend independently, front layer first.
+Plates: 2 | Layers: 2
+Effective angles: 30-70° (best APFSDS)
+Kinetic (APFSDS) at 60°: 30% less pen.
+Chemical (HEAT) at 60°: 70% less pen.
+Tandem: no guaranteed protection
+Extra loss, reference L/D 30; all layers intact
+Mass and cost scale with paid cell area only, never depth</description></Part>

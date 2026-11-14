@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "aluminaCeramic",
+  "date": "1965.01.01",
+  "properties": {
+    "rhaFactor": 0.95,
+    "costMultiplier": 14.1866,
+    "spallFactor": 0.0015,
+    "density": 3500
+  }
+}
