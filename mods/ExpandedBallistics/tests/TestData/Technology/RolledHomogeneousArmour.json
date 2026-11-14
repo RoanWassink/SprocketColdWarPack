@@ -1,0 +1,12 @@
+{
+  "v": "0.0",
+  "id": "",
+  "type": "rha",
+  "date": "1920.01.01",
+  "properties": {
+    "rhaFactor": 1,
+    "costMultiplier": 2,
+    "spallFactor": 0.0005,
+    "density": 7850
+  }
+}

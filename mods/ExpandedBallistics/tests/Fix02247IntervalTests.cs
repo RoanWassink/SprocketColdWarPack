@@ -62,7 +62,7 @@ internal static class Fix02247IntervalTests
             check(Bits(plan.Factor)==Bits(factor),"ungrouped confirmed single-member factor bit-exact");
             foreach(double e in new[]{0d,1,1.33,2})check(BitConverter.SingleToInt32Bits((float)ProtectionFactorTable.NativeRhaFactor(plan.Factor,65,e,.3,.75))==BitConverter.SingleToInt32Bits((float)ProtectionFactorTable.NativeRhaFactor(factor,65,e,.3,.75)),"ungrouped native write bit-exact");
         }
-        var mats=CassetteTechnology.ReadDirectory(Path.Combine(root,"native-data/Technology"));
+        var mats=CassetteTechnology.ReadDirectory(TestTechnologyDirectory.Merged(root));
         var reactions=MaterialReactionCatalogue.Parse(File.ReadAllText(Path.Combine(root,"Material/defaults",MaterialReactionCatalogue.FileName)));
         var catalogue=CassetteCatalogue.Parse(File.ReadAllText(Path.Combine(root,"Material/defaults",CassetteCatalogue.FileName)));
         var models=catalogue.Presets.ToDictionary(preset=>preset.MaterialId,preset=>new CassetteModel(preset,mats,reactions));

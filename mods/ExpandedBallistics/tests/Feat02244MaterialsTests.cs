@@ -20,7 +20,7 @@ internal static class Feat02244MaterialsTests
         var count=0;var callback=check;check=(ok,text)=>{count++;callback(ok,"feat02244: "+text);};
         var root=Fix02228Tests.SourceRoot();
         var output=Fix02228Tests.OutputRoot();Directory.CreateDirectory(output);
-        var technology=Path.Combine(root,"native-data/Technology");
+        var technology=TestTechnologyDirectory.Merged(root);
         var materials=CassetteTechnology.ReadDirectory(technology);
         var dates=CassetteTechnology.ReadDates(technology);
         var presets=CassetteCatalogue.Parse(File.ReadAllText(Path.Combine(root,"Material/defaults",CassetteCatalogue.FileName))).Presets;

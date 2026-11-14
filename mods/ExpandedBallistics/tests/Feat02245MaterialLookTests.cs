@@ -82,7 +82,7 @@ internal static class Feat02245MaterialLookTests
         check(adapter.Contains("RuntimeMaterialLooks.Tick(Designer);")&&adapter.Contains("RuntimeMaterialLooks.Release(__instance);")&&adapter.Contains("RuntimeMaterialLooks.Note(plate,geometryChanged);"),"existing tick/build/release dispatch to production runtime");
         check(runtime.Contains("look.Glass?3:2")&&runtime.Contains("diagnosticOverlay")&&runtime.Contains("hidden.Restore(key)"),"opaque shadow proxy retained; glass hidden; native overlays restore");
 
-        var material=CassetteTechnology.ReadDirectory(Path.Combine(root,"native-data/Technology"));
+        var material=CassetteTechnology.ReadDirectory(TestTechnologyDirectory.Merged(root));
         var catalogue=CassetteCatalogue.Parse(File.ReadAllText(Path.Combine(root,"Material/defaults",CassetteCatalogue.FileName)));
         var reaction=MaterialReactionCatalogue.Parse(File.ReadAllText(Path.Combine(root,"Material/defaults",MaterialReactionCatalogue.FileName)));
         var models=catalogue.Presets.ToDictionary(p=>p.MaterialId,p=>new CassetteModel(p,material,reaction));
