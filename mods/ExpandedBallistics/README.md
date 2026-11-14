@@ -2,7 +2,7 @@
 
 Ammunition and armour for Sprocket in one plugin: dated shell profiles and guided ATGMs, an armour material and reactive-armour (ERA) system, a layered cassette composer, and a combat report that shows how each hit was resolved.
 
-- Version: 0.22.74
+- Version: 0.22.76
 - Plugin GUID: `sprocket.expandedballistics`
 - Author: Nero. MIT licence (see `LICENSE`).
 - Requires: Sprocket JSON Editor (`sprocket.jsoneditor`, 0.1.5 or later 0.1.x) and Sprocket UI Kit (`sprocket.uikit`, 0.1.7 or later 0.1.x)
@@ -48,11 +48,11 @@ JSON files next to it (shell profiles, armour responses, cassette presets, ERA b
 
 Keys (group "Sprocket Expanded Ballistics" in the Sprocket Keybinds settings): W, S, A, D steer an MCLOS missile (up, down, left, right; they stay hard-wired if Keybinds is absent). Unbound by default: Combat report, Next and Previous shell type, Shell type slot 1 to 8, Lock top-attack target, Toggle damage feed in Play, Cycle damage feed corner, Show cassette layers, Cassette composer.
 
-Shipping data: part, Technology and localization JSON in `Sprocket_Data\StreamingAssets\` (source in `native-data\` and `Material\files\`; `native-data\Eras\` also holds Coldwar, Coldwar2 and Coldwar3), ERA meshes and icons in `era-assets\`, texture folders in `material-looks\`. The plugin folder is `BepInEx\plugins\SprocketExpandedBallistics\`.
+Shipping data: part, Technology and localization JSON in `Sprocket_Data\StreamingAssets\` (source in `native-data\` and `Material\files\`; `native-data\Eras\` holds Coldwar1, Coldwar2 and Coldwar3 as test data only; the Cold War Expansion Pack ships these eras. The shell editor's era list skips an era file marked `"playable": false`, such as the game's own one-day Coldwar), ERA meshes and icons in `era-assets\`, texture folders in `material-looks\`. The plugin folder is `BepInEx\plugins\SprocketExpandedBallistics\`.
 
 ## Status
 
-Tested in the game in earlier 0.22.x builds: shell editor and ammunition HUD, the gimbal ATGM sight, player guidance and computer-controlled aiming (reported as accepted), material textures with save and load, and the combat report with Forensic. The composer fill tools were tested on several tanks in November with fixes still following. 0.22.72 to 0.22.74 (Forensic module icons, four Kontakt-5 size variants, choose-then-Apply in the composer) are installed but not yet tested in game. The renamed pack has not been re-tested.
+Tested in the game in earlier 0.22.x builds: shell editor and ammunition HUD, the gimbal ATGM sight, player guidance and computer-controlled aiming (reported as accepted), material textures with save and load, and the combat report with Forensic. The composer fill tools were tested on several tanks in November with fixes still following. 0.22.72 to 0.22.76 (Forensic module icons, four Kontakt-5 size variants, choose-then-Apply in the composer, selected fronts that follow the wall) are installed but not yet tested in game. The renamed pack has not been re-tested.
 
 ## Building
 

@@ -50,7 +50,7 @@ Tested with Sprocket 0.2.56.2 and BepInEx 6.0.0-be.788 (installed through the Sp
 - **AI Orders.** Quick orders (F9) and a tactical map (M) for your AI allies.
 - **Sandbox Targets** adds target tanks at set distances to the flat-map sandbox, and **Reference Images** puts a reference picture on a board part in the designer.
 - **Keybinds, UI Kit and JSON Editor** are shared libraries: a keybind menu inside the Settings screen, a common window style with charts, and an editor for JSON entry lists.
-- **Cold War Expansion Pack** (the core) adds the Coldwar era and its engine and cannon technology data. Expanded Ballistics adds the Coldwar2 (1960) and Coldwar3 (1975) eras.
+- **Cold War Expansion Pack** (the core) adds the three Cold War eras (Coldwar1 from 1945.09.04, Coldwar2 from 1960 and Coldwar3 from 1975) and its engine and cannon technology data. The game's own Coldwar placeholder is left as it is.
 
 ## Mods in this pack
 
@@ -58,7 +58,7 @@ Every mod has its own folder under [`mods/`](mods) with a README (features, sett
 
 | Mod | Version | What it does | Needs |
 |---|---|---|---|
-| [Expanded Ballistics](mods/ExpandedBallistics) | 0.22.74 | Dated shell profiles, guided ATGMs, armour materials with placeable ERA, cassette composer, combat report | JSON Editor, UI Kit |
+| [Expanded Ballistics](mods/ExpandedBallistics) | 0.22.76 | Dated shell profiles, guided ATGMs, armour materials with placeable ERA, cassette composer, combat report | JSON Editor, UI Kit |
 | [Thermal Sight](mods/ThermalSight) | 0.4.0 | Thermal, image intensifier and active IR sights, IR searchlight, laser rangefinders | Keybinds |
 | [Gun Sights](mods/GunSights) | 0.2.4 | 33 period gunner's sights with true optics and reticles | |
 | [Carousel Autoloader](mods/CarouselAutoloader) | 0.2.34 | Bustle, semi and revolver autoloaders, carousel basket | |
@@ -75,7 +75,7 @@ Every mod has its own folder under [`mods/`](mods) with a README (features, sett
 | [AI Orders](mods/AIOrders) | 0.5.2 | Quick orders and a tactical map for AI allies | UI Kit, Keybinds |
 | [Sandbox Targets](mods/SandboxTargets) | 0.3.2 | Extra target tanks in the flat-map sandbox | |
 | [Reference Images](mods/ReferenceImages) | 0.1.2 | Reference picture board part for the designer | UI Kit, Keybinds |
-| [Cold War Expansion Pack](mods/ColdWarExpansionPack) | 0.2.0 | Coldwar era, engine and cannon technology data | |
+| [Cold War Expansion Pack](mods/ColdWarExpansionPack) | 0.2.0 | Coldwar1, Coldwar2 and Coldwar3 eras, engine and cannon technology data | |
 | [Keybinds](mods/Keybinds) | 0.1.9 | Shared keybind menu in the Settings screen | |
 | [UI Kit](mods/UiKit) | 0.1.12 | Shared panel library | Keybinds |
 | [JSON Editor](mods/JsonEditor) | 0.1.5 | Shared in-game JSON list editor | |

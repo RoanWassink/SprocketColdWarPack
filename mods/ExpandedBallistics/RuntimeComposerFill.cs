@@ -13,7 +13,15 @@ internal sealed record PreparedComposerFill(IntPtr Plate,IntPtr Mesh,string Befo
 internal static class RuntimeComposerFill
 {
     internal static bool Designer=>RuntimeCassettePlateVisual.ComposerDesignerActive;
-    internal static PreparedComposerFill Prepare(PlateStructureEditor editor,ComposerMeshAction action,double? offsetMm=null,CheekShellRequest? shell=null,string? newMaterial=null,bool convert=false)
+    internal static void ReportFollowWall(PlateStructure plate,FollowWallAttempt? attempt,bool refused,bool applying=true)
+    {
+        if(attempt==null||!FollowWallDump.ShouldWrite(Designer,applying,refused,attempt.Warning))return;
+        var summary=refused?"Convert to layers refused: "+attempt.Summary:attempt.Summary;
+        Plugin.ModLog.LogWarning("[Follow wall] Plate #"+plate.VUID.Value+": "+summary);
+        FollowWallDump.TryWrite(Path.Combine(BepInEx.Paths.ConfigPath,"sprocket.expandedballistics.layer-overlay"),plate.VUID.Value,attempt,m=>Plugin.ModLog.LogWarning(m));
+    }
+
+    internal static PreparedComposerFill Prepare(PlateStructureEditor editor,ComposerMeshAction action,double? offsetMm=null,CheekShellRequest? shell=null,string? newMaterial=null,bool convert=false,bool diagnosticApply=false)
     {
         if(!Designer||editor==null||!editor.IsValid())throw new InvalidOperationException("Composer mesh actions are available in the designer only.");
         var plate=editor.Component;
@@ -28,7 +36,9 @@ internal static class RuntimeComposerFill
         var before=PlateMeshAccess.Read(plate,"composer fill",SnapshotUse.Fresh);
         if(unreadable||before==null)throw new InvalidOperationException(PlateMeshAccess.Busy);
         var json=plate.Mesh.ToJson(true);var beforeJson=json;var settings=RuntimeCompositePlate.FillLimits;
-        var oldMode=CompositePlate.ModeFromName(plate.Mesh.ToMeshBlueprint(false)?.Name);
+        var meshName=RuntimeLayerFaces.MeshName(plate,true);
+        var savedFront=RuntimeLayerFaces.ReadSavedFront(plate,meshName);
+        var oldMode=CompositePlate.ModeFromName(meshName);
         if(action==ComposerMeshAction.Flip)
         {
             var flip=ComposerFill.Plan(json,before,selected,action,NVector.Zero,Array.Empty<FillTriangle>(),settings);
@@ -41,10 +51,10 @@ internal static class RuntimeComposerFill
         if(action==ComposerMeshAction.BackToBox)
         {
             // 0.22.71: a plate in layers back to its outer faces (front, sides, back where the box needs it); the mesh gets its plain name again.
-            if(CompositePlate.LayoutFromName(plate.Mesh.ToMeshBlueprint(false)?.Name) is not {} oldKind)throw new InvalidOperationException("Back to box: this plate is not in layers.");
+            if(CompositePlate.LayoutFromName(meshName) is not {} oldKind)throw new InvalidOperationException("Back to box: this plate is not in layers.");
             if(RuntimeArmourResponses.Snapshot.Cassettes?.TryGetValue(plate.armourTechID,out var oldRecipe)!=true||oldRecipe==null)throw new InvalidOperationException("Back to box: the plate's cassette is not loaded, so its layers cannot be told apart. Nothing changed. "+LayerFaces.BackToBoxAdvice);
-            var box=LayerFaces.ToBox(json,LayerLayout.Build(oldRecipe.Preset,oldKind,RuntimeLayerFaces.MaterialLabel),RuntimeLayerFaces.Forward(plate),LayerFaces.BoxCheck(json,oldRecipe,id=>{var d=RuntimeLayerFaces.Density(id);return double.IsFinite(d)?d:oldRecipe.Passive.Density;},RuntimeLayerFaces.Forward(plate),RuntimeCompositePlate.LayerWallMm,RuntimeLayerFaces.Centre(plate)));
-            var boxPlan=new ComposerMeshPlan(box.Json,ComposerFill.Read(box.Json,true),0,0,0,box.Summary,true){Action=ComposerMeshAction.BackToBox,Total=box.Points,MaximumMm=short.MaxValue};
+            var box=savedFront!=null?LayerFaces.RestoreFront(meshName!,json):LayerFaces.ToBox(json,LayerLayout.Build(oldRecipe.Preset,oldKind,RuntimeLayerFaces.MaterialLabel),RuntimeLayerFaces.Forward(plate),LayerFaces.BoxCheck(json,oldRecipe,id=>{var d=RuntimeLayerFaces.Density(id);return double.IsFinite(d)?d:oldRecipe.Passive.Density;},RuntimeLayerFaces.Forward(plate),RuntimeCompositePlate.LayerWallMm,RuntimeLayerFaces.Centre(plate)));
+            var boxPlan=new ComposerMeshPlan(box.Json,ComposerFill.Read(box.Json,true),0,0,0,box.Summary,true){Action=ComposerMeshAction.BackToBox,Total=box.Points,MaximumMm=short.MaxValue,MeshName=savedFront is {} restored?LayerFaces.SaveFront(ThicknessMode.Uniform,box.Json,restored.Front):null};
             return new(plate.Pointer,plate.Mesh.Pointer,json,plate.armourTechID,ThicknessMode.Uniform,boxPlan,box.Summary);
         }
         if(action==ComposerMeshAction.LayerConvert)
@@ -54,18 +64,36 @@ internal static class RuntimeComposerFill
             if(RuntimeArmourResponses.Snapshot.Cassettes?.TryGetValue(recipeId,out var layerRecipe)!=true||layerRecipe==null)throw new InvalidOperationException("Apply a cassette to the plate first: Convert to layers splits the plate by the cassette's layers.");
             // 0.22.71: a plate that is already in layers goes back to its box first (with the recipe it was made with) and is then split again by this recipe: one step for Undo.
             string rebuilt="";
-            if(CompositePlate.LayoutFromName(plate.Mesh.ToMeshBlueprint(false)?.Name) is {} oldKind)
+            if(CompositePlate.LayoutFromName(meshName) is {} oldKind)
             {
                 if(RuntimeArmourResponses.Snapshot.Cassettes?.TryGetValue(plate.armourTechID,out var oldRecipe)!=true||oldRecipe==null)throw new InvalidOperationException("Convert to layers: the cassette the plate was made with is not loaded, so its layers cannot be told apart. Nothing changed. "+LayerFaces.BackToBoxAdvice);
-                var back=LayerFaces.ToBox(json,LayerLayout.Build(oldRecipe.Preset,oldKind,RuntimeLayerFaces.MaterialLabel),RuntimeLayerFaces.Forward(plate),LayerFaces.BoxCheck(json,oldRecipe,id=>{var d=RuntimeLayerFaces.Density(id);return double.IsFinite(d)?d:oldRecipe.Passive.Density;},RuntimeLayerFaces.Forward(plate),RuntimeCompositePlate.LayerWallMm,RuntimeLayerFaces.Centre(plate)));
-                json=back.Json;rebuilt="This plate is already in layers: it is rebuilt. It goes back to its box ("+back.FrontFaces+" front faces, "+back.SideWalls+" side walls"+(back.BackFaces>0?", "+back.BackFaces+" back faces":"")+") and is then split again by the cassette's layers.\n";
+                var back=savedFront!=null?LayerFaces.RestoreFront(meshName!,json):LayerFaces.ToBox(json,LayerLayout.Build(oldRecipe.Preset,oldKind,RuntimeLayerFaces.MaterialLabel),RuntimeLayerFaces.Forward(plate),LayerFaces.BoxCheck(json,oldRecipe,id=>{var d=RuntimeLayerFaces.Density(id);return double.IsFinite(d)?d:oldRecipe.Passive.Density;},RuntimeLayerFaces.Forward(plate),RuntimeCompositePlate.LayerWallMm,RuntimeLayerFaces.Centre(plate)));
+                json=back.Json;selected=savedFront?.Front;rebuilt="This plate is already in layers: it is rebuilt. It goes back to its box ("+back.FrontFaces+" front faces, "+back.SideWalls+" side walls"+(back.BackFaces>0?", "+back.BackFaces+" back faces":"")+") and is then split again by the cassette's layers.\n";
             }
             // 0.22.61: a kneaded box is layered from the front of the vehicle to the back; a loose plate or a filling as 0.22.60.
             LayerConversion layers;
             // 0.22.65: a message of the planner is plain words; anything unexpected (a plate that cannot be read) is shown as one sentence and the technical text goes to the game log.
-            try{layers=LayerFaces.Convert(json,layerRecipe,RuntimeLayerFaces.MaterialLabel,id=>{var d=RuntimeLayerFaces.Density(id);return double.IsFinite(d)?d:layerRecipe.Passive.Density;},RuntimeLayerFaces.Forward(plate),RuntimeCompositePlate.LayerWallMm,RuntimeLayerFaces.Centre(plate));}
+            if(selected==null&&savedFront is {} stored&&stored.Front.Length==ComposerFill.Read(json,true).FaceCount)selected=stored.Front;
+            try
+            {
+            try{layers=LayerFaces.Convert(json,layerRecipe,RuntimeLayerFaces.MaterialLabel,id=>{var d=RuntimeLayerFaces.Density(id);return double.IsFinite(d)?d:layerRecipe.Passive.Density;},RuntimeLayerFaces.Forward(plate),RuntimeCompositePlate.LayerWallMm,RuntimeLayerFaces.Centre(plate),selected);}
             catch(InvalidOperationException){throw;}
             catch(Exception unexpected){Plugin.ModLog.LogWarning("[Layer faces] Convert to layers could not read the plate: "+unexpected);throw new InvalidOperationException("Convert to layers could not read this plate. Nothing changed.");}
+            }
+            catch(InvalidOperationException ex)
+            {
+                if(selected?.Any(x=>x)==true)
+                {
+                    var outcomes=ex is FollowWallFailure failure?failure.Faces:Enumerable.Range(0,selected.Length).Where(i=>selected[i]).Select(i=>new FollowWallFaceOutcome(i+1,false,ex.Message)).ToArray();
+                    ReportFollowWall(plate,new(json,selected.ToArray(),layerRecipe.Preset,outcomes,"Convert to layers: "+ex.Message,true),true,diagnosticApply);
+                }
+                throw;
+            }
+            if(layers.SelectedWalls>0)
+            {
+                var reasons=$"[Layer faces] {layers.SelectedWalls} selected faces kept as steel wall: {layers.SelectedWallReasons}";
+                if(layers.Plan.FollowWall?.Warning==true)Plugin.ModLog.LogWarning(reasons);else Plugin.ModLog.LogInfo(reasons);
+            }
             if(layers.Box is {SideWallsDropped:>0} dropped)Plugin.ModLog.LogWarning($"[Layer faces] Convert to layers: {dropped.SideWallsDropped} side walls could not be kept: {layers.DropReason}");
             if(!RuntimeCassetteComposer.CanApply(plate,recipeId,out var blocked))throw new InvalidOperationException(blocked);
             return new(plate.Pointer,plate.Mesh.Pointer,beforeJson,recipeId,layers.Mode,layers.Plan,rebuilt+layers.Inspection);
@@ -345,7 +373,7 @@ internal static class RuntimeLayerFaces
             if(CompositePlate.LayoutFromName(MeshName(plate)) is not {} kind)return null;
             if(RuntimeArmourResponses.Snapshot.Cassettes?.TryGetValue(plate.armourTechID,out var model)!=true||model==null)return null;
             var snapshot=PlateMeshAccess.Read(plate,"layer overlay",SnapshotUse.Fresh);if(snapshot==null)return null;
-            var json=plate.Mesh.ToJson(true);var mesh=LayerMesh.Read(json);if(mesh.Polygons.Length!=snapshot.Faces.Length)return null;
+            var json=plate.Mesh.ToJson(true);var mesh=LayerMesh.Read(json) with{FollowWall=plate.Mesh.ToMeshBlueprint(false)?.Name?.Contains(CompositePlate.FrontMarker,StringComparison.Ordinal)==true};if(mesh.Polygons.Length!=snapshot.Faces.Length)return null;
             var ranks=LayerHitIndex.RanksOf(snapshot,json);var layout=Recipe(model,kind).Layout;bool painted=RuntimeCassettePlateVisual.LayerBoxPainted;
             var report=painted?new LayerOverlay.OverlayReport():null;
             var result=painted?LayerOverlay.RemapPainted(data,mesh,ranks,layout,report):LayerOverlay.Remap(data,mesh,ranks,layout);
@@ -490,17 +518,29 @@ internal static class RuntimeLayerFaces
     private static (string Signature,string Material,string? Name,string Text)? last;
     // The inspector draws every frame and the composer reads 4x/s: the mesh name is read at most once a second per mesh.
     private static readonly Dictionary<IntPtr,(string? Name,float Until)> names=new();
-    private static string? MeshName(PlateStructure plate)
+    internal static string? MeshName(PlateStructure plate,bool fresh=false)
     {
         try
         {
             if(!plate.HasMesh)return null;
             var mesh=plate.Mesh;var pointer=mesh.Pointer;var now=UnityEngine.Time.unscaledTime;
-            if(names.TryGetValue(pointer,out var known)&&now<known.Until)return known.Name;
+            if(names.TryGetValue(pointer,out var known)&&!fresh&&now<known.Until)return known.Name;
+            if(PlateMeshAccess.Gate.Busy)return names.TryGetValue(pointer,out known)?known.Name:null;
             if(names.Count>256)names.Clear();
             var name=mesh.ToMeshBlueprint(false)?.Name;names[pointer]=(name,now+1f);return name;
         }
         catch(Exception){return null;}
+    }
+    private static readonly Dictionary<string,((string Json,bool[] Front,string Fingerprint)? Value,bool Broken)> fronts=new(StringComparer.Ordinal);
+    internal static (string Json,bool[] Front,string Fingerprint)? ReadSavedFront(PlateStructure plate,string? name=null)
+    {
+        name??=MeshName(plate);if(name==null)return null;
+        if(!fronts.TryGetValue(name,out var known))
+        {
+            var value=LayerFaces.ReadFront(name,out var broken);known=(value,broken);if(fronts.Count>256)fronts.Clear();fronts[name]=known;
+        }
+        if(known.Broken&&FrontWarningOnce.First(plate.Pointer.ToString()))Plugin.ModLog.LogWarning($"[Layer faces] Plate 0x{plate.Pointer.ToInt64():x}: saved front is unreadable; using legacy layered-mesh recovery.");
+        return known.Value;
     }
     /// <summary>The composer and inspector lines of a plate in layers ("Layers: N faces assigned, M not assigned." and the estimate); null for every other plate. Cached on the snapshot.</summary>
     internal static string? Line(PlateStructure plate,PlateMeshSnapshot snapshot)

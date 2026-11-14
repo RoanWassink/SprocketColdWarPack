@@ -36,6 +36,8 @@ internal sealed record CheekSettings(double MaximumMm=450,double RearBoundaryM=.
 internal sealed record ComposerMeshPlan(string Json,PlateMeshSnapshot After,int Flipped,int Misses,int Limited,string Summary,bool NewTopology=false,int Tight=0,int EdgeCorners=0)
 {
     internal ComposerMeshAction Action {get;init;}
+    internal string? MeshName {get;init;}
+    internal FollowWallAttempt? FollowWall {get;init;}
     internal int Total {get;init;}
     internal bool[][] Missing {get;init;}=Array.Empty<bool[]>();
     internal double MaximumMm {get;init;}=500;
@@ -358,6 +360,10 @@ internal sealed record LayerConversion(ComposerMeshPlan Plan,LayerLayout Layout,
 {
     /// <summary>0.22.61: the result of a box conversion (null for a loose plate or a filling, which keep the 0.22.60 planner).</summary>
     internal LayerBoxInfo? Box {get;init;}
+    internal int SelectedWalls {get;init;}
+    internal int ReducedSelectedWalls {get;init;}
+    internal int[] ReducedSelectedWallFaces {get;init;}=Array.Empty<int>();
+    internal string? SelectedWallReasons {get;init;}
     /// <summary>0.22.68: what the clean-up of the output removed (points and edges before and after, helper points left).</summary>
     internal LayerCleanup? Cleanup {get;init;}
     /// <summary>0.22.64: why side walls could not be kept (plain words, for the window and the log); null when none was left out.</summary>
@@ -376,7 +382,7 @@ internal sealed record LayerConversion(ComposerMeshPlan Plan,LayerLayout Layout,
 internal static partial class LayerFaces
 {
     internal const string Title="Convert to layers - inspect before applying";
-    internal const string Tooltip="Splits each face into one face per armour layer. Air layers become real gaps.";
+    internal const string Tooltip="Splits each face into one face per armour layer. Air layers become real gaps. With faces selected, those are the front and the layers follow them inward.";
     internal const int MinimumMm=3;
     /// <summary>A normal-stacked corner whose layer face is tilted so much that the native back point would leave the corner's line by more than this (mm) gets a rib instead.</summary>
     internal const double ParallelDriftMm=.25;
@@ -384,14 +390,19 @@ internal static partial class LayerFaces
     private sealed record SourceFace(int[] V,ushort[] T,byte[] Tm,int[] Te,string Raw,bool Packed);
     private sealed record Line(Vector3 Origin,Vector3 U,double LengthMm,bool Rib,int OriginalEdge,string Key,bool Changed);
 
-    internal static LayerConversion Convert(string json,CassetteModel recipe,Func<string,string>? label=null,Func<string,double>? density=null,Vector3? forward=null,double wallMm=5,Vector3? centre=null)
+    internal static LayerConversion Convert(string json,CassetteModel recipe,Func<string,string>? label=null,Func<string,double>? density=null,Vector3? forward=null,double wallMm=5,Vector3? centre=null,bool[]? selected=null)
     {
         var parsed=Parse(json);
+        if(selected!=null&&selected.Any(x=>x))return ConvertSelected(json,OrientClosed(parsed,true),recipe,selected,label,density,wallMm,forward,centre);
         // 0.22.61: a kneaded box (front faces with side or back faces around them) is layered from front to back; everything else as 0.22.60.
         if(forward is {} axis)
         {
             var oriented=OrientClosed(parsed);
-            if(BoxGate(oriented,axis,centre) is {} box)return ConvertBox(json,oriented,recipe,box,label,density,wallMm);
+            if(BoxGate(oriented,axis,centre) is {} box)
+            {
+                var conversion=ConvertBox(json,oriented,recipe,box,label,density,wallMm);var note=SelectionNote(json,null);
+                return note.Length==0?conversion:conversion with{Inspection=note+"\n"+conversion.Inspection};
+            }
         }
         LayerConversion? result=null;
         foreach(var kind in new[]{LayerLayoutKind.PerLayer,LayerLayoutKind.PerBlock})
@@ -1008,7 +1019,12 @@ internal readonly record struct LayerStrip(int Face,double From,double To,bool A
 /// <summary>What a box conversion did (for the window, the tests and the report).</summary>
 internal sealed record LayerBoxInfo(Vector3 Forward,int FrontFaces,int BackFaces,int SideFaces,int SideWallsKept,int SideWallsWhole,int SideWallsDropped,double DepthMm,double RecipeDepthMm,
     double OuterDeviationMm,int RibLines,int RayLines,int ThicknessLines,LayerStrip[] Strips,int Components);
-internal sealed record LayerBoxGate(Vector3 Forward,BoxFaceKind[] Kinds,Vector3[] Normals);
+internal sealed record LayerBoxGate(Vector3 Forward,BoxFaceKind[] Kinds,Vector3[] Normals)
+{
+    internal bool[]? Selected {get;init;}
+    internal int[]? Pieces {get;init;}
+    internal int[]? LineRetries {get;init;}
+}
 
 internal static partial class LayerFaces
 {
@@ -1033,7 +1049,7 @@ internal static partial class LayerFaces
     /// that wind against their neighbour are reversed (corner order, thicknesses, modes and edge references together), and the whole mesh when its volume is negative.
     /// A mesh that is open, or already wound the same way outward, comes back unchanged.
     /// </summary>
-    private static (float[] Vertices,int[] Edges,int[] Flags,bool HasFlags,SourceFace[] Faces) OrientClosed((float[] Vertices,int[] Edges,int[] Flags,bool HasFlags,SourceFace[] Faces) mesh)
+    private static (float[] Vertices,int[] Edges,int[] Flags,bool HasFlags,SourceFace[] Faces) OrientClosed((float[] Vertices,int[] Edges,int[] Flags,bool HasFlags,SourceFace[] Faces) mesh,bool perPiece=false)
     {
         var faces=mesh.Faces;int n=faces.Length;var p0=mesh.Vertices;
         if(n<4||faces.Any(f=>f.V.Length<3||f.V.Length>4||f.V.Distinct().Count()!=f.V.Length||f.V.Any(v=>v<0||3*v+2>=p0.Length)))return mesh;
@@ -1072,7 +1088,21 @@ internal static partial class LayerFaces
                 var ids=flip[i]==true?faces[i].V.Reverse().ToArray():faces[i].V;
                 for(int j=1;j+1<ids.Length;j++)volume+=Vector3.Dot(P(ids[0]),Vector3.Cross(P(ids[j]),P(ids[j+1])))/6.0;
             }
-            bool all=volume<0;if(all)for(int i=0;i<n;i++)flip[i]=!flip[i];
+            if(perPiece)
+            {
+                // A whole-mesh signed volume cannot orient two separate shells: their volumes
+                // can cancel. Selection uses the outside of each closed piece independently.
+                for(int c=0;c<components;c++)
+                {
+                    double part=0;for(int i=0;i<n;i++)if(component[i]==c)
+                    {
+                        var ids=flip[i]==true?faces[i].V.Reverse().ToArray():faces[i].V;
+                        for(int j=1;j+1<ids.Length;j++)part+=Vector3.Dot(P(ids[0]),Vector3.Cross(P(ids[j]),P(ids[j+1])))/6.0;
+                    }
+                    if(part<0)for(int i=0;i<n;i++)if(component[i]==c)flip[i]=!flip[i];
+                }
+            }
+            else{bool all=volume<0;if(all)for(int i=0;i<n;i++)flip[i]=!flip[i];}
         }
         else
         {
@@ -1095,7 +1125,10 @@ internal static partial class LayerFaces
         for(int i=0;i<n;i++)
         {
             var f=faces[i];
-            result[i]=flip[i]==true?new SourceFace(f.V.Reverse().ToArray(),f.T.Reverse().ToArray(),f.Tm.Reverse().ToArray(),f.Te.Reverse().ToArray(),f.Raw,f.Packed):f;
+            // Keep the original fan diagonal of a warped quad in selection mode.
+            // Reversing all four slots would move its anchor and change the outer surface.
+            var order=perPiece?new[]{0}.Concat(Enumerable.Range(1,f.V.Length-1).Reverse()).ToArray():Enumerable.Range(0,f.V.Length).Reverse().ToArray();
+            result[i]=flip[i]==true?new SourceFace(order.Select(j=>f.V[j]).ToArray(),order.Select(j=>f.T[j]).ToArray(),order.Select(j=>f.Tm[j]).ToArray(),order.Select(j=>f.Te[j]).ToArray(),f.Raw,f.Packed):f;
         }
         return (mesh.Vertices,mesh.Edges,mesh.Flags,mesh.HasFlags,result);
     }
@@ -1264,7 +1297,7 @@ internal static partial class LayerFaces
 
     private static LayerConversion? AttemptBox(string json,(float[] Vertices,int[] Edges,int[] Flags,bool HasFlags,SourceFace[] Faces) mesh,CassetteModel recipe,LayerLayout layout,LayerBoxGate gate,Func<string,double>? density,double wallMm,bool guide,BoxDiag diag,out double thinnest,out string? problem)
     {
-        thinnest=double.PositiveInfinity;problem=null;
+        thinnest=double.PositiveInfinity;problem=null;diag.SourceFace=null;
         var p0=mesh.Vertices;int v0=p0.Length/3;Vector3 P(int i)=>new(p0[3*i],p0[3*i+1],p0[3*i+2]);
         var groups=layout.Groups;int G=groups.Length;var kinds=gate.Kinds;var normals=gate.Normals;var f=gate.Forward;
         // Every boundary of the recipe (front and end of every group): strips need the points of the air layers too.
@@ -1274,39 +1307,116 @@ internal static partial class LayerFaces
         var start=groups.Select(g=>B(g.StartFraction)).ToArray();var end=groups.Select(g=>B(g.EndFraction)).ToArray();
         bool AirSpan(int k){double mid=(bounds[k]+bounds[k+1])/2;return !groups.Any(g=>mid>g.StartFraction&&mid<g.EndFraction);}
         var frontVertices=new HashSet<int>();var frontAt=new Dictionary<int,List<int>>();
-        for(int i=0;i<mesh.Faces.Length;i++)if(kinds[i]==BoxFaceKind.Front)foreach(var v in mesh.Faces[i].V){frontVertices.Add(v);if(!frontAt.TryGetValue(v,out var list))frontAt[v]=list=new();list.Add(i);}
+        for(int i=0;i<mesh.Faces.Length;i++)if(gate.Selected?[i]??(kinds[i]==BoxFaceKind.Front))foreach(var v in mesh.Faces[i].V){frontVertices.Add(v);if(!frontAt.TryGetValue(v,out var list))frontAt[v]=list=new();list.Add(i);}
         var edgeAt=new Dictionary<int,List<int>>();int origEdges=mesh.Edges.Length/2;
         for(int e=0;e<origEdges;e++)foreach(var v in new[]{mesh.Edges[2*e],mesh.Edges[2*e+1]}){if(!edgeAt.TryGetValue(v,out var list))edgeAt[v]=list=new();list.Add(e);}
         // 1. One line per front vertex: an edge of the box from that vertex to a point that is not on the front (the rib), or else straight back to
         // the first face the line meets; the rib must lie at least 10 degrees behind every front face at the vertex.
         var lines=new Dictionary<int,BoxLine>();int ribLines=0,rayLines=0;
-        bool Behind(int v,Vector3 u)=>frontAt[v].All(i=>Vector3.Dot(normals[i],u)< -SinTenDegrees);
+        bool Behind(int v,Vector3 u)=>frontAt[v].All(i=>Vector3.Dot(normals[i],u)< (gate.Selected!=null?SinOneDegree:-SinTenDegrees));
         foreach(var v in frontVertices.OrderBy(x=>x))
         {
             var origin=P(v);BoxLine? best=null;double score=double.NegativeInfinity;
+            var inward=-f;
+            if(gate.Selected!=null){var sum=frontAt[v].Aggregate(Vector3.Zero,(a,i)=>a+CheekShellFill.Newell(mesh.Faces[i].V.Select(P).ToArray()));if(sum.LengthSquared()>1e-14f)inward=-Vector3.Normalize(sum);}
             if(edgeAt.TryGetValue(v,out var incident))
                 foreach(var e in incident)
                 {
                     int w=mesh.Edges[2*e]==v?mesh.Edges[2*e+1]:mesh.Edges[2*e];if(w<0||w>=v0||frontVertices.Contains(w))continue;
                     var dir=P(w)-origin;var length=dir.Length();if(!(length>1e-5f))continue;var u=dir/length;
-                    if(Vector3.Dot(u,-f)<SinTenDegrees||!Behind(v,u))continue;
-                    var s=Vector3.Dot(u,-f);if(s>score){score=s;best=new($"b:{v}",v,origin,u,length*1000,w,P(w),true,false,-1);}
+                    if(Vector3.Dot(u,gate.Selected!=null?inward:-f)<SinTenDegrees||!Behind(v,u))continue;
+                    var s=Vector3.Dot(u,gate.Selected!=null?inward:-f);if(s>score){score=s;best=new($"b:{v}",v,origin,u,length*1000,w,P(w),true,false,-1);}
                 }
-            if(best==null&&Behind(v,-f))
+            if(best==null&&Behind(v,inward))
             {
                 double nearest=double.PositiveInfinity;
                 for(int i=0;i<mesh.Faces.Length;i++)
                 {
-                    var face=mesh.Faces[i];if(kinds[i]==BoxFaceKind.Other||face.V.Contains(v))continue;
+                    var face=mesh.Faces[i];if(kinds[i]==BoxFaceKind.Other||face.V.Contains(v)||gate.Selected!=null&&(gate.Selected[i]||gate.Pieces![i]!=gate.Pieces![frontAt[v][0]]))continue;
                     for(int k=1;k+1<face.V.Length;k++)
                     {
-                        var hit=ComposerFill.Ray(origin,-f,new[]{new FillTriangle(P(face.V[0]),P(face.V[k]),P(face.V[k+1]))},50);
+                        var hit=ComposerFill.Ray(origin,inward,new[]{new FillTriangle(P(face.V[0]),P(face.V[k]),P(face.V[k+1]))},50);
                         if(hit is {} t&&t>.001&&t<nearest)nearest=t;
                     }
                 }
-                if(double.IsFinite(nearest))best=new($"b:{v}",v,origin,-f,nearest*1000,-1,origin-f*(float)nearest,true,true,-1);
+                if(double.IsFinite(nearest))best=new($"b:{v}",v,origin,inward,nearest*1000,-1,origin+inward*(float)nearest,true,true,-1);
             }
             if(best!=null){lines[v]=best;if(best.Ray)rayLines++;else ribLines++;}
+        }
+        var initialLines=new Dictionary<int,BoxLine>(lines);
+        if(gate.Selected!=null)
+        {
+            // The existing boundary ribs anchor the front/back correspondence. Relax interior
+            // endpoints on the selected surface graph before intersecting the same piece again;
+            // adjacent corners then approach the same back region instead of crossing at a bend.
+            var adjacent=frontVertices.ToDictionary(v=>v,v=>new HashSet<int>());
+            for(int i=0;i<mesh.Faces.Length;i++)if(gate.Selected[i])
+            {
+                var vs=mesh.Faces[i].V;for(int j=0;j<vs.Length;j++){int a=vs[j],b=vs[(j+1)%vs.Length];adjacent[a].Add(b);adjacent[b].Add(a);}
+            }
+            bool flatFront=Enumerable.Range(0,mesh.Faces.Length).Where(i=>gate.Selected[i]).All(i=>Vector3.Dot(normals[i],f)>.99999f);
+            var fixedEnds=lines.Where(x=>!x.Value.Ray).ToDictionary(x=>x.Key,x=>x.Value.EndPoint);
+            var ends=frontVertices.ToDictionary(v=>v,v=>lines.TryGetValue(v,out var l)?l.EndPoint:P(v));
+            for(int iteration=0;iteration<120;iteration++)
+            {
+                var next=new Dictionary<int,Vector3>(ends);
+                foreach(var v in frontVertices)
+                {
+                    if(fixedEnds.ContainsKey(v)||adjacent[v].Count==0)continue;var sum=Vector3.Zero;float weight=0;
+                    foreach(var w in adjacent[v]){float q=1/Math.Max(.001f,Vector3.Distance(P(v),P(w)));sum+=ends[w]*q;weight+=q;}
+                    next[v]=sum/weight;
+                }
+                ends=next;
+            }
+            foreach(var v in frontVertices)
+            {
+                if(flatFront||fixedEnds.ContainsKey(v))continue;var d=ends[v]-P(v);if(d.LengthSquared()<1e-10f)continue;var u=Vector3.Normalize(d);if(!Behind(v,u))continue;
+                double nearest=double.PositiveInfinity;
+                for(int i=0;i<mesh.Faces.Length;i++)
+                {
+                    var face=mesh.Faces[i];if(gate.Selected[i]||face.V.Contains(v)||gate.Pieces![i]!=gate.Pieces![frontAt[v][0]])continue;
+                    for(int k=1;k+1<face.V.Length;k++)if(ComposerFill.Ray(P(v),u,new[]{new FillTriangle(P(face.V[0]),P(face.V[k]),P(face.V[k+1]))},50) is {} t&&t>.001&&t<nearest)nearest=t;
+                }
+                if(double.IsFinite(nearest))lines[v]=new($"b:{v}",v,P(v),u,nearest*1000,-1,P(v)+u*(float)nearest,true,true,-1);
+            }
+            // A normal-ray miss is only the first search. Try neighboring lines and
+            // same-piece directions, always intersecting the actual non-selected skin.
+            foreach(var v in frontVertices.OrderBy(v=>v))
+            {
+                int retry=frontAt[v].Max(i=>gate.LineRetries?[i]??0);
+                if(lines.ContainsKey(v)&&retry==0)continue;
+                if(retry==1&&initialLines.TryGetValue(v,out var initial)){lines[v]=initial;continue;}
+                int piece=gate.Pieces![frontAt[v][0]];
+                var member=Enumerable.Range(0,mesh.Faces.Length).Where(i=>gate.Pieces[i]==piece).ToArray();
+                var targets=member.Where(i=>!gate.Selected[i]).Select(i=>mesh.Faces[i].V.Select(P).Aggregate(Vector3.Zero,(a,b)=>a+b)/mesh.Faces[i].V.Length).OrderBy(q=>Vector3.DistanceSquared(q,P(v))).ToArray();
+                var centrePoint=member.SelectMany(i=>mesh.Faces[i].V).Distinct().Select(P).Aggregate(Vector3.Zero,(a,b)=>a+b)/member.SelectMany(i=>mesh.Faces[i].V).Distinct().Count();
+                var mean=member.Where(i=>gate.Selected[i]).Aggregate(Vector3.Zero,(a,i)=>a-CheekShellFill.Newell(mesh.Faces[i].V.Select(P).ToArray()));
+                var neighbours=adjacent[v].Where(lines.ContainsKey).Select(w=>lines[w].U).ToArray();
+                var directions=(retry==3?neighbours: new[]{centrePoint-P(v),mean}).Concat(targets.Select(q=>q-P(v))).Concat(neighbours);
+                foreach(var direction in directions)
+                {
+                    if(direction.LengthSquared()<1e-12f)continue;var u=Vector3.Normalize(direction);if(!Behind(v,u))continue;
+                    double nearest=double.PositiveInfinity;
+                    foreach(var i in member)
+                    {
+                        var face=mesh.Faces[i];if(gate.Selected[i]||face.V.Contains(v))continue;
+                        for(int k=1;k+1<face.V.Length;k++)if(ComposerFill.Ray(P(v),u,new[]{new FillTriangle(P(face.V[0]),P(face.V[k]),P(face.V[k+1]))},50) is {} t&&t>.001&&t<nearest)nearest=t;
+                    }
+                    if(!double.IsFinite(nearest))continue;
+                    var shell=member.Select(i=>mesh.Faces[i].V.Select(P).ToArray()).ToArray();
+                    if(new[]{.25f,.5f,.75f}.Any(t=>LayerShape.OutsideDistance(P(v)+u*(float)nearest*t,shell)>.001))continue;
+                    lines[v]=new($"b:{v}",v,P(v),u,nearest*1000,-1,P(v)+u*(float)nearest,true,true,-1);break;
+                }
+            }
+            foreach(var i in Enumerable.Range(0,mesh.Faces.Length).Where(i=>kinds[i]==BoxFaceKind.Front))
+                if(mesh.Faces[i].V.Any(v=>!lines.ContainsKey(v))){problem=$"Convert to layers: face {i+1} has no inward line to the opposite wall; nothing changed.";diag.SourceFace=i;return null;}
+            // A ray's first non-selected hit and the faces at existing rib ends are the back.
+            foreach(var l in lines.Values)
+                for(int i=0;i<mesh.Faces.Length;i++)
+                {
+                    if(gate.Selected[i]||gate.Pieces![i]!=gate.Pieces![frontAt[l.Origin][0]])continue;
+                    if((l.End>=0&&mesh.Faces[i].V.Contains(l.End)||LayerOverlay.Distance(l.EndPoint,mesh.Faces[i].V.Select(P).ToArray())<.0001)&&Vector3.Dot(normals[i],l.U)>.05)kinds[i]=BoxFaceKind.Back;
+                }
         }
         // Corners without a box line keep the 0.22.60 rule of their face (its own thickness along its normal or its own rib).
         // 0.22.66: no edge and no line runs back from the front: the own thickness of the face is the only depth.
@@ -1360,7 +1470,7 @@ internal static partial class LayerFaces
         // 0.22.63: a back corner that no edge from the front reaches is no reason to refuse: the front corners then run straight back to the first face they meet (a ray line); the check below measures the result.
         double rho=recipe.Passive.Density;double Rho(string id)=>density?.Invoke(id)??rho;
         double GroupDensity(LayerGroup g){double mass=0;foreach(var i in g.Layers){var l=recipe.Preset.Layers[i];mass+=Rho(l.Material)*LayerLayout.LayerDepth(l);}return mass/g.DepthMm;}
-        var rawKept=new List<int>();var dropReasons=new List<string>();var helperAt=new Dictionary<int,List<(Vector3 U,int Vertex)>>();
+        var thinnerSelected=new HashSet<int>();var rawKept=new List<int>();var dropReasons=new List<string>();var helperAt=new Dictionary<int,List<(Vector3 U,int Vertex)>>();
         var sources=new List<LayerSourceInfo>();var faceTexts=new List<string>();var faces=new List<LayerFaceInfo>();var backCorners=new List<Vector3[]>();var strips=new List<LayerStrip>();
         // 0.22.62: the old outer shape (the old faces as a closed surface); a wall point the game builds must not lie outside it (limit 0.5 mm here, 1 mm in the final check).
         var oldShape=Enumerable.Range(0,mesh.Faces.Length).Where(i=>mesh.Faces[i].V.Length>=3&&mesh.Faces[i].V.All(v=>v>=0&&3*v+2<p0.Length)).Select(i=>mesh.Faces[i].V.Select(P).ToArray()).ToArray();
@@ -1394,9 +1504,9 @@ internal static partial class LayerFaces
                     for(int g=0;g<G;g++)
                     {
                         var ids=fl.Select(l=>Point(l,start[g])).ToArray();var c=ids.Select(At).ToArray();var nn=CheekShellFill.Newell(c);
-                        if(nn.LengthSquared()<1e-14f){problem=$"Convert to layers: face {i+1} would get a degenerate layer; nothing changed.";return null;}
+                        if(nn.LengthSquared()<1e-14f){problem=$"Convert to layers: face {i+1} would get a degenerate layer; nothing changed.";diag.SourceFace=i;return null;}
                         var ng=Vector3.Normalize(nn);
-                        if(Vector3.Dot(ng,normals[i])<=0){problem=$"Convert to layers: a layer of face {i+1} would face the wrong way; nothing changed.";return null;}
+                        if(Vector3.Dot(ng,normals[i])<=0){problem=$"Convert to layers: a layer of face {i+1} would face the wrong way; nothing changed.";diag.SourceFace=i;return null;}
                         var t=new ushort[n];var modes=new byte[n];var ribs=new int[n];var back=new Vector3[n];
                         for(int j=0;j<n;j++)
                         {
@@ -1408,17 +1518,22 @@ internal static partial class LayerFaces
                                 double depth=Vector3.Dot(p-target,ng)*1000;double drift=Math.Max(0,depth)*Vector3.Cross(ng,-l.U).Length();
                                 if(drift<=ParallelDriftMm)
                                 {
-                                    int tt=(int)Math.Round(depth,MidpointRounding.AwayFromZero);thinnest=Math.Min(thinnest,tt);if(tt<MinimumMm)return null;
+                                    int tt=(int)Math.Round(depth,MidpointRounding.AwayFromZero);thinnest=Math.Min(thinnest,tt);if(tt<MinimumMm){if(gate.Selected!=null&&layout.Kind==LayerLayoutKind.PerBlock)problem=$"Convert to layers: face {i+1} has a block thinner than 3 mm; nothing changed.";diag.SourceFace=i;return null;}
                                     t[j]=(ushort)tt;back[j]=p-ng*(tt*.001f);continue;
                                 }
                             }
                             double d=Vector3.Dot(ng,l.U);
-                            if(d>SinOneDegree){problem=$"Convert to layers: a layer of face {i+1} would lie along its rib (corner {j+1}); nothing changed.";return null;}
+                            if(d>SinOneDegree){problem=$"Convert to layers: a layer of face {i+1} would lie along its rib (corner {j+1}); nothing changed.";diag.SourceFace=i;return null;}
                             double offsetDepth=Vector3.Dot(CheekShellFill.Offset(p,next,prev),ng)*1000;
                             int value=(int)Math.Round(len*-d+offsetDepth,MidpointRounding.AwayFromZero);
                             if(g==G-1)while(value>MinimumMm&&Vector3.Dot(CheekShellFill.NativeBack(p,next,prev,l.U,(ushort)value,ng)-target,l.U)>.0001f)value--;
-                            thinnest=Math.Min(thinnest,value);if(value<MinimumMm)return null;
+                            thinnest=Math.Min(thinnest,value);if(value<MinimumMm){if(gate.Selected!=null&&layout.Kind==LayerLayoutKind.PerBlock)problem=$"Convert to layers: face {i+1} has a block thinner than 3 mm; nothing changed.";diag.SourceFace=i;return null;}
                             if(value>short.MaxValue){problem="Convert to layers: a layer would be thicker than the game allows; nothing changed.";return null;}
+                            if(gate.Selected!=null)
+                            {
+                                while(value>=MinimumMm&&LayerShape.OutsideDistance(CheekShellFill.NativeBack(p,next,prev,l.U,(ushort)value,ng),oldShape)>.001)value--;
+                                if(value<MinimumMm){if(layout.Kind==LayerLayoutKind.PerBlock)problem=$"Convert to layers: face {i+1} cannot hold a 3 mm block within its outer shape; nothing changed.";diag.SourceFace=i;return null;}
+                            }
                             t[j]=(ushort)value;modes[j]=CheekShellFill.AlongEdgeManual;
                             // Its own piece of rib: from the front of this layer to its end (the strips of a side wall use the same edges).
                             ribs[j]=Edge(ids[j],Point(l,end[g]),0);
@@ -1426,7 +1541,7 @@ internal static partial class LayerFaces
                             if(g==G-1)deviation=Math.Max(deviation,Math.Abs(Vector3.Dot(back[j]-target,BackNormalAt(l)))*1000);
                         }
                         var nb=CheekShellFill.Newell(back);
-                        if(nb.LengthSquared()<1e-16f||Vector3.Dot(nb,ng)<=0){problem=$"Convert to layers: the back of a layer of face {i+1} would turn over; nothing changed.";return null;}
+                        if(nb.LengthSquared()<1e-16f||Vector3.Dot(nb,ng)<=0){problem=$"Convert to layers: the back of a layer of face {i+1} would turn over; nothing changed.";diag.SourceFace=i;return null;}
                         for(int j=0;j<n;j++)Edge(ids[j],ids[(j+1)%n],FlagOf(face.V[j],face.V[(j+1)%n]));
                         ulong tm=0,te=0;for(int j=0;j<n;j++){tm|=(ulong)modes[j]<<(8*j);te|=(ulong)(uint)ribs[j]<<(16*j);}
                         faceTexts.Add(FaceText(ids,t,tm,te));faces.Add(new(i,g,ids,c,back,t,modes,ribs,ng));backCorners.Add(back);
@@ -1438,6 +1553,51 @@ internal static partial class LayerFaces
                     sources.Add(new(i,false,"back face",corners,OwnBack(i),normals[i],false,false,Array.Empty<Vector3>(),Array.Empty<double>()));break;
                 case BoxFaceKind.Side:
                 {
+                    if(gate.Selected!=null)
+                    {
+                        sources.Add(new(i,false,"steel wall",corners,OwnBack(i),normals[i],false,false,Array.Empty<Vector3>(),Array.Empty<double>()));
+                        // Warped old quads have no single inward normal. Keep their existing fan surface as planar triangles.
+                        for(int tri=1;tri+1<face.V.Length;tri++)
+                        {
+                            var originalCorners=new[]{0,tri,tri+1};
+                            var wi=originalCorners.Select(j=>face.V[j]).ToArray();var wc=wi.Select(P).ToArray();
+                            // A concave authored quad can have a reversed fan triangle. Its
+                            // steel still grows inward from the source face, not into free space.
+                            if(Vector3.Dot(CheekShellFill.Newell(wc),normals[i])<0){(wi[1],wi[2])=(wi[2],wi[1]);(originalCorners[1],originalCorners[2])=(originalCorners[2],originalCorners[1]);wc=wi.Select(P).ToArray();}
+                            var wn=Vector3.Normalize(CheekShellFill.Newell(wc));
+                            var wt=originalCorners.Select(j=>(ushort)(gate.Selected[i]?Math.Min((int)face.T[j],short.MaxValue):Math.Clamp((int)Math.Round(wallMm),MinimumMm,100))).ToArray();
+                            var wb=new Vector3[3];var wm=new byte[3];var wr=new int[3];ulong wtm=0,wte=0;
+                            var pieceVertices=Enumerable.Range(0,mesh.Faces.Length).Where(k=>gate.Pieces![k]==gate.Pieces![i]).SelectMany(k=>mesh.Faces[k].V).Distinct().ToArray();
+                            for(int j=0;j<3;j++)
+                            {
+                                var mean=Enumerable.Range(0,mesh.Faces.Length).Where(k=>mesh.Faces[k].V.Contains(wi[j])).Aggregate(Vector3.Zero,(v,k)=>v-normals[k]);
+                                var directions=new[]{mean}.Concat(pieceVertices.Select(v=>P(v)-wc[j])).Concat(Enumerable.Range(0,256).Select(k=>{float z=1-2f*(k+.5f)/256;float r=MathF.Sqrt(1-z*z);float a=k*2.39996323f;return new Vector3(r*MathF.Cos(a),r*MathF.Sin(a),z);}));
+                                int wanted=wt[j];bool found=false;
+                                // Keep the authored corner when it fits; otherwise try the configured
+                                // steel wall thickness down to 3 mm, never exceeding that old corner.
+                                foreach(int trial in new[]{wanted}.Concat(Enumerable.Range(Math.Min(MinimumMm,wanted),Math.Max(0,Math.Min(wanted,Math.Clamp((int)Math.Round(wallMm),MinimumMm,100))-Math.Min(MinimumMm,wanted)+1)).Reverse()).Distinct())
+                                {
+                                    if(found)break;wt[j]=(ushort)trial;wb[j]=wc[j]-wn*(wt[j]*.001f);
+                                    if(LayerShape.OutsideDistance(wb[j],oldShape)<=.001){found=true;break;}
+                                    foreach(var dir in directions)
+                                    {
+                                        if(dir.LengthSquared()<1e-12f)continue;var u=Vector3.Normalize(dir);if(Vector3.Dot(wn,u)>SinOneDegree)continue;
+                                        var back=CheekShellFill.NativeBack(wc[j],wc[(j+1)%3],wc[(j+2)%3],u,wt[j],wn);
+                                        if(LayerShape.OutsideDistance(back,oldShape)>.0005)continue;
+                                        var helper=wc[j]+u*.002f;if(LayerShape.OutsideDistance(helper,oldShape)>.001)helper=wc[j]+u*.0005f;
+                                        int hv=v0+newVertices.Count;newVertices.Add(helper);wr[j]=Edge(wi[j],hv,0);wm[j]=CheekShellFill.AlongEdgeManual;wb[j]=back;found=true;break;
+                                    }
+                                }
+                                if(!found){problem=$"Steel wall face {i+1} cannot fit its original thickness or a 3 mm wall within the original shape. Nothing changed.";diag.SourceFace=i;return null;}
+                                if(gate.Selected[i]&&wt[j]<face.T[originalCorners[j]])thinnerSelected.Add(i);
+                                wtm|=(ulong)wm[j]<<(8*j);wte|=(ulong)(uint)wr[j]<<(16*j);
+                            }
+                            for(int j=0;j<3;j++)Edge(wi[j],wi[(j+1)%3],0);
+                            faceTexts.Add(FaceText(wi,wt,wtm,wte));faces.Add(new(i,-1,wi,wc,wb,wt,wm,wr,wn));backCorners.Add(wb);
+                            var vol=ComposerFill.PrismVolume(wc,wb);volumeAfter+=vol;trueMass+=vol*Rho("rha");
+                        }
+                        whole++;break;
+                    }
                     sources.Add(new(i,false,"side face",corners,OwnBack(i),normals[i],false,false,Array.Empty<Vector3>(),Array.Empty<double>()));
                     // Corner -> (line, end of that line): a front vertex is the start of its line, a back vertex the end of the one line that reaches it.
                     var n=face.V.Length;var map=new (BoxLine Line,bool AtEnd)?[n];
@@ -1458,7 +1618,7 @@ internal static partial class LayerFaces
                         return true;
                     }
                     bool OnLine(int a,int b)=>lines.Values.Any(l=>l.End>=0&&(l.Origin==a&&l.End==b||l.Origin==b&&l.End==a));
-                    if(Strippable())
+                    if(gate.Selected==null&&Strippable())
                     {
                         // 0.22.63: all strips of the face are made first; when one corner cannot be placed within the wall's own thickness of the old shape, the whole wall is left out and counted.
                         var pendTexts=new List<string>();var pendFaces=new List<LayerFaceInfo>();var pendBack=new List<Vector3[]>();var pendStrips=new List<LayerStrip>();double pendVol=0;var pendHelpers=new List<(int Slot,Vector3 Point,int From,Vector3 U,int Vertex)>();bool failed=false;
@@ -1559,15 +1719,15 @@ internal static partial class LayerFaces
         // 0.22.62: measure what the game builds (native back points per tm value), not the plan: nothing may lie more than 1 mm outside the old outer shape.
         {
             // Layers keep 1 mm; a side wall (5 mm steel on the inside of a face) may stick out of the old shape by its own thickness at an acute edge.
-            var rankOf=faces.Select(f=>f.Rank).ToArray();double wallLimit=Math.Clamp((int)Math.Round(wallMm,MidpointRounding.AwayFromZero),MinimumMm,100)+.5;
-            var (worst,where)=LayerShape.Deviation(oldShape,payload,fi=>fi<rankOf.Length&&rankOf[fi]>=0?1.0:fi<rankOf.Length&&rankOf[fi]==-2?wallLimit:wallLimit);
-            if(worst>0){problem=$"This shape cannot be turned into layers yet: the layers would stick out of the box by {(worst+1).ToString("0.#",CultureInfo.InvariantCulture)} mm ({where}). Make the corners of the box meet at the back, or make the box deeper. Nothing changed.";return null;}
+            var rankOf=faces.Select(f=>f.Rank).ToArray();double wallLimit=gate.Selected!=null?1:Math.Clamp((int)Math.Round(wallMm,MidpointRounding.AwayFromZero),MinimumMm,100)+.5;
+            var detail=LayerShape.DeviationDetails(oldShape,payload,fi=>gate.Selected!=null&&kinds[faces[fi].Source]==BoxFaceKind.Other?double.PositiveInfinity:fi<rankOf.Length&&rankOf[fi]>=0?1.0:wallLimit);
+            if(detail.Mm>0){var failure=OutsideFailure(detail,faces);diag.SourceFace=failure.SourceFace;problem=failure.Message;return null;}
         }
         {
             // What the saved mesh will say: every layer face is assigned to its layer and every wall strip is read as a wall.
             var read=LayerRanks.FromJson(payload);
             for(int fi=0;fi<faces.Count&&fi<read.Length;fi++)
-                if(faces[fi].Rank>=0&&read[fi]<0||faces[fi].Rank==-2&&read[fi]!=-2){problem=RecognitionProblem;return null;}
+                if(faces[fi].Rank>=0&&(gate.Selected!=null?read[fi]!=faces[fi].Rank:read[fi]<0)||faces[fi].Rank==-2&&read[fi]!=-2){problem=gate.Selected!=null?"Convert to layers: the saved layer order of face "+(faces[fi].Source+1)+" cannot be recognised. Nothing changed.":RecognitionProblem;diag.SourceFace=gate.Selected!=null?faces[fi].Source:null;return null;}
         }
         var after=ComposerFill.Read(payload,true);
         if(after.FaceCount!=faces.Count)throw new InvalidOperationException("Convert to layers: payload face count mismatch.");
@@ -1596,13 +1756,13 @@ internal static partial class LayerFaces
         text.Add($"Weight {(volumeBefore*rho).ToString("0.#",CultureInfo.InvariantCulture)} kg now, {(trueMass).ToString("0.#",CultureInfo.InvariantCulture)} kg as layers.");
         var summary=$"{converted} faces became {converted*G} faces ({(layout.Kind==LayerLayoutKind.PerLayer?"one face per layer":"touching layers share one face")}), front to back{(kept>0?$", {kept} side walls as steel":"")}. Undo removes this change in one step.";
         var plan=new ComposerMeshPlan(payload,after,0,0,0,summary,true){Action=ComposerMeshAction.LayerConvert,Total=after.Faces.Sum(x=>x.VertexCount),MaximumMm=short.MaxValue,BackCorners=backCorners.ToArray(),CopyCheck=copy=>VerifyCopy(payload,copy)};
-        return new LayerConversion(plan,layout,mode,sources.ToArray(),faces.ToArray(),converted,skipped,changed,0,thinnest,volumeBefore,volumeAfter,volumeBefore*rho,volumeAfter*rho,density==null?null:trueMass,string.Join("\n",text)){Box=info,DropReason=dropped>0?string.Join("; ",dropReasons):null,Cleanup=cleanup};
+        return new LayerConversion(plan,layout,mode,sources.ToArray(),faces.ToArray(),converted,skipped,changed,0,thinnest,volumeBefore,volumeAfter,volumeBefore*rho,volumeAfter*rho,density==null?null:trueMass,string.Join("\n",text)){Box=info,DropReason=dropped>0?string.Join("; ",dropReasons):null,Cleanup=cleanup,ReducedSelectedWalls=thinnerSelected.Count,ReducedSelectedWallFaces=thinnerSelected.OrderBy(i=>i).ToArray()};
     }
     /// <summary>
     /// 0.22.62: a direction in the plane of an old face that passes through the point (so the back point stays on the old surface), as close as possible to straight inward
     /// from the wall, turned a few degrees so that no edge of a layer is parallel to it. Null when no such direction keeps the back point inside the old shape.
     /// </summary>
-    private sealed class BoxDiag{internal bool NoBack;internal double OwnMm;}
+    private sealed class BoxDiag{internal bool NoBack;internal double OwnMm;internal int? SourceFace;}
     private const string RecognitionProblem="__recognition";
     private static (Vector3 U,Vector3 Back,int Vertex)? SurfaceRib(Vector3 point,Vector3 wallNormal,int t,Vector3 next,Vector3 prev,IReadOnlyList<Vector3[]> oldShape,IReadOnlyList<(int Id,Vector3 P)> existing)
     {
@@ -1645,6 +1805,8 @@ internal static partial class LayerFaces
 /// </summary>
 internal sealed record LayerMesh(Vector3[][] Polygons,int[][] Ids,Vector3[][] Backs,Vector3[][] Directions,int[][] RibEnds,bool[] SideWalls,Vector3[] Normals)
 {
+    // Overlay-only hint, supplied from the persisted mesh name; never read by hit or mass code.
+    internal bool FollowWall {get;init;}
     internal static readonly double ParallelCos=Math.Cos(Math.PI/180);
     internal static LayerMesh Read(string json)
     {
@@ -1805,7 +1967,13 @@ internal static class LayerOverlay
             foreach(var (j,t) in tris)
             {
                 if(j==self||Vector3.Dot(mesh.Normals[j],mesh.Normals[self])<.9f)continue;
-                foreach(var tr in t)if(ComposerFill.Ray(origin,dir,new[]{tr},50) is {} h&&h>.00005)return true;
+                bool Hit(FillTriangle tr)=>ComposerFill.Ray(origin,dir,new[]{tr},50) is {} h&&h>(mesh.FollowWall?.0005:.00005);
+                if(mesh.FollowWall&&t.Length==4)
+                {
+                    // A warped quad may use either native diagonal. Cull only when both cover the sample.
+                    if((Hit(t[0])||Hit(t[1]))&&(Hit(t[2])||Hit(t[3])))return true;
+                }
+                else if(t.Any(Hit))return true;
             }
             return false;
         }
@@ -1833,6 +2001,18 @@ internal static class LayerOverlay
             bool Sure((string Kind,int Face) r)
             {
                 if(!IsLayer(r.Face))return false;
+                if(mesh.FollowWall)
+                {
+                    // Paired curved stacks can overlap at their rear rims. A centroid hit is
+                    // insufficient to hide the exposed tips of the whole triangle. Keep the
+                    // first/last skins and require all triangle samples to be covered inside.
+                    if(r.Kind=="front"&&ranks[r.Face]==0||r.Kind=="back"&&ranks[r.Face]==G-1)return false;
+                    var normal=mesh.Normals[r.Face];
+                    if(r.Kind=="front"&&!Shadowed(mesh.Polygons[r.Face].Aggregate(Vector3.Zero,(a,b)=>a+b)/mesh.Polygons[r.Face].Length,normal,r.Face))return false;
+                    if(r.Kind=="back"&&!Shadowed(mesh.Backs[r.Face].Aggregate(Vector3.Zero,(a,b)=>a+b)/mesh.Backs[r.Face].Length,-normal,r.Face))return false;
+                    if(r.Kind=="front")return FrontShadowed(r.Face)&&new[]{pa,pb,pc}.All(p=>Shadowed(p,normal,r.Face));
+                    if(r.Kind=="back")return BackShadowed(r.Face)&&new[]{pa,pb,pc}.All(p=>Shadowed(p+normal*.001f,-normal,r.Face));
+                }
                 return r.Kind=="front"?FrontShadowed(r.Face):r.Kind=="back"?BackShadowed(r.Face):WallCovers(pa,pb,pc);
             }
             bool WallCovers(Vector3 x,Vector3 y,Vector3 z)
@@ -1858,10 +2038,10 @@ internal static class LayerOverlay
             Func<Vector3,float,float?>? map=null;
             // several roles can share one place (the back of one layer touches the front of the next): the outermost front, then the innermost back, then the first
             var layerRoles=roles.Where(r=>IsLayer(r.Face)).ToList();
-            (string Kind,int Face)? layerRole=layerRoles.Cast<(string Kind,int Face)?>().FirstOrDefault(r=>r!.Value.Kind=="front"&&!FrontShadowed(r.Value.Face))
-                ??layerRoles.Cast<(string Kind,int Face)?>().FirstOrDefault(r=>r!.Value.Kind=="back"&&!BackShadowed(r.Value.Face))
-                ??layerRoles.Cast<(string Kind,int Face)?>().FirstOrDefault();
-            var wallRole=roles.Cast<(string Kind,int Face)?>().FirstOrDefault(r=>IsWall(r!.Value.Face)&&r.Value.Kind=="front");
+            (string Kind,int Face)? layerRole=layerRoles.Select(r=>((string Kind,int Face)?)r).FirstOrDefault(r=>r!.Value.Kind=="front"&&!FrontShadowed(r.Value.Face))
+                ??layerRoles.Select(r=>((string Kind,int Face)?)r).FirstOrDefault(r=>r!.Value.Kind=="back"&&!BackShadowed(r.Value.Face))
+                ??layerRoles.Select(r=>((string Kind,int Face)?)r).FirstOrDefault();
+            var wallRole=roles.Select(r=>((string Kind,int Face)?)r).FirstOrDefault(r=>IsWall(r!.Value.Face)&&r.Value.Kind=="front");
             if(layerRole is {} lr&&lr.Kind=="front"){var g=layout.Groups[FrontShadowed(lr.Face)?ranks[lr.Face]:0];map=(p,d)=>(float)(g.StartFraction+d*(g.EndFraction-g.StartFraction));kind="front";owner=lr.Face;}
             else if(layerRole is {} lb&&lb.Kind=="back"){var g=layout.Groups[BackShadowed(lb.Face)?ranks[lb.Face]:G-1];map=(p,d)=>(float)(g.StartFraction+d*(g.EndFraction-g.StartFraction));kind="back";owner=lb.Face;}
             else if(wallRole is {} wr&&Along(mesh,wr.Face,fractions) is {} along){map=(p,d)=>(float)along.Map(p);kind="wall";owner=wr.Face;}
@@ -2045,12 +2225,15 @@ internal static class LayerShape
         return votes>=2?0:best;
     }
     /// <summary>Largest distance (mm) of any front or native back point of the mesh outside the old shape, and where. tm 0 or an invalid tm 4: along the normal; tm 4: along the stored edge; other tm (Auto): along the normal (the game decides at run time).</summary>
+    internal sealed record DeviationDetail(double Mm,string Where,int? OutputFace);
     internal static (double Mm,string Where) Deviation(IReadOnlyList<Vector3[]> oldShape,string json,Func<int,double>? limitMm=null)
+    {var d=DeviationDetails(oldShape,json,limitMm);return(d.Mm,d.Where);}
+    internal static DeviationDetail DeviationDetails(IReadOnlyList<Vector3[]> oldShape,string json,Func<int,double>? limitMm=null)
     {
         using var doc=JsonDocument.Parse(json);var root=doc.RootElement;
         var v=root.GetProperty("vertices").EnumerateArray().Select(x=>x.GetSingle()).ToArray();Vector3 P(int i)=>new(v[3*i],v[3*i+1],v[3*i+2]);
         var edges=root.TryGetProperty("edges",out var e)?e.EnumerateArray().Select(x=>x.GetInt32()).ToArray():Array.Empty<int>();
-        double worst=0;string where="";int index=0;
+        double worst=0;string where="";int index=0;int? outputFace=null;
         foreach(var f in root.GetProperty("faces").EnumerateArray())
         {
             var id=f.GetProperty("v").EnumerateArray().Select(x=>x.GetInt32()).ToArray();var t=f.TryGetProperty("t",out var tv)?tv.EnumerateArray().Select(x=>(int)x.GetUInt16()).ToArray():new int[id.Length];
@@ -2065,11 +2248,11 @@ internal static class LayerShape
                     if(2*edge+1<edges.Length&&(edges[2*edge]==id[j]||edges[2*edge+1]==id[j]))
                     {int w=edges[2*edge]==id[j]?edges[2*edge+1]:edges[2*edge];if((P(w)-p[j]).LengthSquared()>1e-14f)back=CheekShellFill.NativeBack(p[j],p[(j+1)%p.Length],p[(j+p.Length-1)%p.Length],Vector3.Normalize(P(w)-p[j]),(ushort)t[j],n);}
                 }
-                foreach(var (kind,pt) in new[]{("front",p[j]),("back",back)}){var d=OutsideDistance(pt,oldShape)*1000-(limitMm?.Invoke(index)??0);if(d>worst){worst=d;where=$"face {index+1}, corner {j+1}, {kind} point";}}
+                foreach(var (kind,pt) in new[]{("front",p[j]),("back",back)}){var d=OutsideDistance(pt,oldShape)*1000-(limitMm?.Invoke(index)??0);if(d>worst){worst=d;outputFace=index;where=$"face {index+1}, corner {j+1}, {kind} point";}}
             }
             index++;
         }
-        return (worst,where);
+        return new(worst,where,outputFace);
     }
 }
 
@@ -2458,5 +2641,193 @@ internal static partial class LayerFaces
     {
         using var doc=JsonDocument.Parse(json);var v=doc.RootElement.GetProperty("vertices").EnumerateArray().Select(x=>x.GetSingle()).ToArray();
         return Enumerable.Range(0,v.Length/3).Select(i=>new Vector3(v[3*i],v[3*i+1],v[3*i+2])).ToArray();
+    }
+}
+
+// 0.22.75: selection is the front. The existing box line, native-thickness and compacting
+// builder is reused; no hit calculations or native state are changed.
+internal static partial class LayerFaces
+{
+    internal static Vector3[][] ClosedSurface(string json)
+    {
+        var m=OrientClosed(Parse(json),true);return m.Faces.Select(f=>f.V.Select(i=>new Vector3(m.Vertices[3*i],m.Vertices[3*i+1],m.Vertices[3*i+2])).ToArray()).ToArray();
+    }
+    internal static int[] ClosedPieces(string json)=>Pieces(Parse(json));
+    private static int[] Pieces((float[] Vertices,int[] Edges,int[] Flags,bool HasFlags,SourceFace[] Faces) mesh)
+    {
+        var parent=Enumerable.Range(0,mesh.Faces.Length).ToArray();
+        int Find(int i){while(parent[i]!=i)i=parent[i]=parent[parent[i]];return i;}
+        var owner=new Dictionary<int,int>();
+        for(int i=0;i<mesh.Faces.Length;i++)foreach(var v in mesh.Faces[i].V)
+            if(owner.TryGetValue(v,out var other))parent[Find(i)]=Find(other);else owner[v]=i;
+        var ids=new Dictionary<int,int>();return Enumerable.Range(0,parent.Length).Select(i=>{var r=Find(i);if(!ids.ContainsKey(r))ids[r]=ids.Count;return ids[r];}).ToArray();
+    }
+    internal static string SelectionNote(string json,bool[]? selected)
+    {
+        var pieces=ClosedPieces(json);int n=selected?.Count(x=>x)??0;
+        return n>0?$"Front: {n} selected faces in {pieces.Where((_,i)=>i<selected!.Length&&selected[i]).Distinct().Count()} closed pieces":pieces.Distinct().Count()>1?$"This plate has {pieces.Distinct().Count()} closed pieces: select the outer faces to choose the front.":"";
+    }
+    internal static string SelectionNote(PlateMeshSnapshot snapshot,bool[]? selected)
+    {
+        var parent=Enumerable.Range(0,snapshot.FaceCount).ToArray();int Find(int i){while(parent[i]!=i)i=parent[i]=parent[parent[i]];return i;}
+        var owner=new Dictionary<int,int>();for(int i=0;i<snapshot.FaceCount;i++)foreach(var v in snapshot.Faces[i].VertexIds)if(owner.TryGetValue(v,out var k))parent[Find(i)]=Find(k);else owner[v]=i;
+        var ids=Enumerable.Range(0,parent.Length).Select(Find).ToArray();int n=selected?.Count(x=>x)??0;
+        return n>0?$"Front: {n} selected faces in {ids.Where((_,i)=>i<selected!.Length&&selected[i]).Distinct().Count()} closed pieces":ids.Distinct().Count()>1?$"This plate has {ids.Distinct().Count()} closed pieces: select the outer faces to choose the front.":"";
+    }
+    internal sealed record LayerFailure(string Message,int? SourceFace);
+    internal static LayerFailure OutsideFailure(LayerShape.DeviationDetail detail,IReadOnlyList<LayerFaceInfo> faces)
+    {
+        int? source=detail.OutputFace is {} output&&output>=0&&output<faces.Count&&faces[output].Source>=0?faces[output].Source:null;
+        return new($"This shape cannot be turned into layers yet: the layers would stick out of the box by {(detail.Mm+1).ToString("0.#",CultureInfo.InvariantCulture)} mm ({detail.Where}). Make the corners of the box meet at the back, or make the box deeper. Nothing changed.",source);
+    }
+    private static LayerConversion ConvertSelected(string json,(float[] Vertices,int[] Edges,int[] Flags,bool HasFlags,SourceFace[] Faces) mesh,CassetteModel recipe,bool[] selected,Func<string,string>? label,Func<string,double>? density,double wallMm,Vector3? forward,Vector3? centre)
+    {
+        if(selected.Length!=mesh.Faces.Length)throw new InvalidOperationException("The face selection changed. Select the front again. Nothing changed.");
+        var pieces=Pieces(mesh);var active=pieces.Where((_,i)=>selected[i]).ToHashSet();
+        var edgeUse=active.ToDictionary(piece=>piece,_=>new Dictionary<(int,int),int>());
+        for(int i=0;i<mesh.Faces.Length;i++)if(active.Contains(pieces[i]))
+        {
+            var v=mesh.Faces[i].V;var edges=edgeUse[pieces[i]];
+            for(int j=0;j<v.Length;j++){var k=(Math.Min(v[j],v[(j+1)%v.Length]),Math.Max(v[j],v[(j+1)%v.Length]));edges[k]=edges.GetValueOrDefault(k)+1;}
+        }
+        int closed=edgeUse.Count(p=>p.Value.Count>0&&p.Value.Values.All(n=>n>=2));
+        if(closed==0)
+        {
+            const string ignored="The selection is ignored: this plate is not a closed shape.";
+            var legacy=Convert(json,recipe,label,density,forward,wallMm,centre);
+            return legacy with{Inspection=ignored+"\n"+legacy.Inspection,Plan=legacy.Plan with{Summary=ignored+" "+legacy.Plan.Summary}};
+        }
+        if(closed!=active.Count)throw new InvalidOperationException("With selected faces, each selected piece must be closed. Nothing changed.");
+        // Refuse storage that cannot fit before any geometry planning or native write.
+        _=SaveFront(ThicknessMode.Uniform,json,selected,json);
+        Vector3 P(int v)=>new(mesh.Vertices[3*v],mesh.Vertices[3*v+1],mesh.Vertices[3*v+2]);
+        var area=mesh.Faces.Select(f=>CheekShellFill.Newell(f.V.Select(P).ToArray()).Length()*.5).ToArray();
+        var normals=mesh.Faces.Select(f=>{var n=CheekShellFill.Newell(f.V.Select(P).ToArray());return n.LengthSquared()>1e-14f?Vector3.Normalize(n):Vector3.Zero;}).ToArray();
+        var axis=normals.Where((_,i)=>selected[i]).Aggregate(Vector3.Zero,(a,b)=>a+b);if(axis.LengthSquared()<1e-12f)axis=normals[Array.FindIndex(selected,x=>x)];
+        if(axis.LengthSquared()<1e-12f)throw new InvalidOperationException("The selected front has no area. Nothing changed.");axis=Vector3.Normalize(axis);
+        double total=area.Where((_,i)=>selected[i]).Sum();
+        foreach(var kind in new[]{LayerLayoutKind.PerLayer,LayerLayoutKind.PerBlock})
+        {
+            var layout=LayerLayout.Build(recipe.Preset,kind,label);var rejected=new Dictionary<int,string>();var retries=new int[selected.Length];int retryFace=-1;string? retryReason=null;
+            FollowWallFailure Failure(string why)=>new(why,Enumerable.Range(0,selected.Length).Where(j=>selected[j]).Select(j=>new FollowWallFaceOutcome(j+1,false,rejected.GetValueOrDefault(j)??why)).ToArray());
+            while(true)
+            {
+                var kinds=Enumerable.Range(0,selected.Length).Select(i=>!active.Contains(pieces[i])?BoxFaceKind.Other:selected[i]&&!rejected.ContainsKey(i)?BoxFaceKind.Front:BoxFaceKind.Side).ToArray();
+                var gate=new LayerBoxGate(axis,kinds,normals){Selected=selected,Pieces=pieces,LineRetries=retries};
+                var diag=new BoxDiag();var result=AttemptBox(json,mesh,recipe,layout,gate,density,wallMm,false,diag,out var thinnest,out var problem);
+                if(result!=null)
+                {
+                    var note=SelectionNote(json,selected);int untouched=pieces.Distinct().Count()-active.Count;
+                    if(untouched>0)note+=$"\n{untouched} closed piece{(untouched==1?" has":"s have")} no selected faces and stays as it is";
+                    var reason=string.Join("; ",rejected.OrderBy(x=>x.Key).Select(x=>$"face {x.Key+1}: {x.Value}"));
+                    if(result.ReducedSelectedWalls>0){note+=$"\n{result.ReducedSelectedWalls} selected wall faces have thinner corners because their original thickness does not fit inside the shape.";reason+="; thinner wall corners forced by shape on source faces "+string.Join(",",result.ReducedSelectedWallFaces.Select(i=>i+1));}
+                    var count=rejected.Count>0?$"{rejected.Count} selected faces kept as steel wall":"";
+                    var weight=LayerWeight.Of(LayerMesh.Read(result.Plan.Json),LayerRanks.FromJson(result.Plan.Json),layout,recipe.Preset,density??(_=>recipe.Passive.Density),recipe.Passive.Density);
+                    var inspection=Regex.Replace(result.Inspection,@"Weight [^\n]+",$"Weight {result.MassBeforeKg:0.#} kg now, {weight.MassKg:0.#} kg as layers.");
+                    double layeredArea=area.Where((_,j)=>selected[j]&&!rejected.ContainsKey(j)).Sum()/total;
+                    int got=selected.Count(x=>x)-rejected.Count;bool warning=layeredArea<2.0/3;
+                    string summary=$"Convert to layers: {got} of {selected.Count(x=>x)} selected faces got layers ({(100*layeredArea).ToString("0",CultureInfo.InvariantCulture)} % of the selected area); {rejected.Count} kept as steel wall. Undo removes this change in one step.";
+                    var outcomes=Enumerable.Range(0,selected.Length).Where(j=>selected[j]).Select(j=>new FollowWallFaceOutcome(j+1,!rejected.ContainsKey(j),rejected.GetValueOrDefault(j)??"Layers passed all geometry checks.")).ToArray();
+                    var diagnostic=new FollowWallAttempt(json,selected.ToArray(),recipe.Preset,outcomes,summary,warning);
+                    return result with{TrueMassKg=weight.MassKg,MassAfterKg=weight.MassKg,VolumeAfterM3=weight.VolumeM3,Inspection=note+"\n"+inspection+(count.Length>0?"\n"+count:""),Plan=result.Plan with{MeshName=SaveFront(result.Mode,json,selected,result.Plan.Json),Summary=summary,FollowWall=diagnostic},SelectedWalls=rejected.Count,SelectedWallReasons=reason};
+                }
+                if(problem!=null&&retryFace>=0)
+                {
+                    if(retries[retryFace]<3){retries[retryFace]++;continue;}
+                    rejected[retryFace]=retryReason!;retries[retryFace]=0;retryFace=-1;retryReason=null;
+                    if(rejected.Count==selected.Count(x=>x))throw Failure("None of the selected faces can hold layers: "+string.Join("; ",rejected.OrderBy(x=>x.Key).Select(x=>$"face {x.Key+1}: {x.Value}"))+" Nothing changed.");
+                    continue;
+                }
+                if(problem!=null&&diag.SourceFace is {} i&&i>=0&&i<selected.Length&&selected[i]&&!rejected.ContainsKey(i))
+                {
+                    // Alternate lines are a transaction: if they spoil another face, retry
+                    // this culprit and then restore the original correspondence before downgrade.
+                    retryFace=i;retryReason=problem;retries[i]=1;continue;
+                }
+                if(problem!=null)throw Failure(problem);
+                if(kind==LayerLayoutKind.PerBlock)throw Failure($"The selected front is too thin even for blocks ({thinnest:0.#} mm). Nothing changed.");
+                break;
+            }
+        }
+        throw new InvalidOperationException("No selected-face layout. Nothing changed.");
+    }
+}
+
+internal static partial class LayerFaces
+{
+    // The native mesh blueprint already persists its name. A self-contained compressed
+    // outer mesh and face mask avoid a sidecar and restore unselected closed pieces exactly.
+    internal const int MaximumSavedNameCharacters=32000;
+    internal const string EditedLayers="This plate was edited after it was turned into layers. Undo the edit, or shape a new box.";
+    internal static string MeshFingerprint(string json)
+    {
+        var mesh=Parse(json);using var memory=new MemoryStream();using(var writer=new BinaryWriter(memory,Encoding.UTF8,true))
+        {
+            writer.Write(mesh.Vertices.Length);foreach(var x in mesh.Vertices){if(!float.IsFinite(x))throw new FormatException("Non-finite mesh point.");writer.Write((long)Math.Round(x*1e6,MidpointRounding.AwayFromZero));}
+            writer.Write(mesh.Edges.Length);foreach(var x in mesh.Edges)writer.Write(x);foreach(var x in mesh.Flags)writer.Write(x);
+            writer.Write(mesh.Faces.Length);foreach(var f in mesh.Faces){writer.Write(f.V.Length);foreach(var x in f.V)writer.Write(x);foreach(var x in f.T)writer.Write(x);foreach(var x in f.Tm)writer.Write(x);foreach(var x in f.Te)writer.Write(x);}
+        }
+        return System.Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(memory.ToArray()));
+    }
+    internal static string SaveFront(ThicknessMode mode,string json,bool[] front,string? layeredJson=null)
+    {
+        var data=JsonSerializer.SerializeToUtf8Bytes(new SavedFront(json,front,MeshFingerprint(layeredJson??json)));
+        using var memory=new MemoryStream();
+        using(var zip=new System.IO.Compression.DeflateStream(memory,System.IO.Compression.CompressionLevel.Optimal,true))zip.Write(data,0,data.Length);
+        var name=CompositePlate.NameForMode(mode)+CompositePlate.FrontMarker+System.Convert.ToBase64String(memory.ToArray())+"]";
+        if(name.Length>MaximumSavedNameCharacters)throw new InvalidOperationException("The saved front would need more than 32,000 characters. Select a smaller or simpler closed shape. Nothing changed.");
+        return name;
+    }
+    private sealed record SavedFront(string Shape,bool[] Front,string? Fingerprint=null);
+    internal static (string Json,bool[] Front,string Fingerprint)? LoadFront(string? name)=>ReadFront(name,out _);
+    internal static (string Json,bool[] Front,string Fingerprint)? ReadFront(string? name,out bool unreadable)
+    {
+        unreadable=false;if(name==null)return null;int marker=name.IndexOf(CompositePlate.FrontMarker,StringComparison.Ordinal);if(marker<0)return null;
+        try
+        {
+            if(name.Length>MaximumSavedNameCharacters||!name.EndsWith("]",StringComparison.Ordinal))throw new FormatException();
+            var data=System.Convert.FromBase64String(name.Substring(marker+CompositePlate.FrontMarker.Length,name.Length-marker-CompositePlate.FrontMarker.Length-1));
+            using var memory=new MemoryStream(data);using var zip=new System.IO.Compression.DeflateStream(memory,System.IO.Compression.CompressionMode.Decompress);
+            using var plain=new MemoryStream();var buffer=new byte[4096];int n;
+            while((n=zip.Read(buffer,0,buffer.Length))>0){if(plain.Length+n>8*1024*1024)throw new FormatException();plain.Write(buffer,0,n);}
+            var saved=JsonSerializer.Deserialize<SavedFront>(plain.ToArray())??throw new FormatException();
+            if(saved.Front.Length!=Parse(saved.Shape).Faces.Length||!saved.Front.Any(x=>x)||saved.Fingerprint==null||saved.Fingerprint.Length!=64||!saved.Fingerprint.All(Uri.IsHexDigit))throw new FormatException();
+            return(saved.Shape,saved.Front,saved.Fingerprint);
+        }
+        catch(Exception){unreadable=true;return null;}
+    }
+    internal static LayerBoxBack RestoreFront(string name,string currentJson)
+    {
+        var saved=LoadFront(name)??throw new InvalidOperationException("This mesh has no readable saved front.");
+        if(MeshFingerprint(currentJson)!=saved.Fingerprint)throw new InvalidOperationException(EditedLayers);
+        var snapshot=ComposerFill.Read(saved.Json,true);
+        return new(saved.Json,saved.Front.Count(x=>x),snapshot.FaceCount-saved.Front.Count(x=>x),0,false,RawVertices(saved.Json).Length,Parse(saved.Json).Edges.Length/2,"Restores the saved outer shape and front selection. Undo removes this change in one step.");
+    }
+}
+internal static class FrontWarningOnce
+{
+    private static readonly HashSet<string> seen=new(StringComparer.Ordinal);
+    internal static bool First(string plate)=>seen.Add(plate);
+}
+
+internal sealed record FollowWallFaceOutcome(int Face,bool Layered,string Reason);
+internal sealed record FollowWallAttempt(string MeshJson,bool[] Selected,CassettePreset Recipe,FollowWallFaceOutcome[] Faces,string Summary,bool Warning);
+internal sealed class FollowWallFailure:InvalidOperationException
+{
+    internal readonly FollowWallFaceOutcome[] Faces;
+    internal FollowWallFailure(string message,FollowWallFaceOutcome[] faces):base(message){Faces=faces;}
+}
+internal static class FollowWallDump
+{
+    internal static bool ShouldWrite(bool designer,bool applying,bool refused,bool warning)=>designer&&applying&&(refused||warning);
+    internal static string Build(FollowWallAttempt attempt)
+    {
+        using var mesh=JsonDocument.Parse(attempt.MeshJson);
+        return JsonSerializer.Serialize(new{mesh=mesh.RootElement,selection=attempt.Selected,recipe=attempt.Recipe,faces=attempt.Faces,summary=attempt.Summary,warning=attempt.Warning},new JsonSerializerOptions{WriteIndented=true});
+    }
+    internal static void TryWrite(string directory,int plate,FollowWallAttempt attempt,Action<string> log)
+    {
+        try{Directory.CreateDirectory(directory);File.WriteAllText(Path.Combine(directory,$"follow-wall-plate-{plate}.json"),Build(attempt));}
+        catch(Exception ex){log("[Follow wall] Diagnostic dump unavailable: "+ex.Message);}
     }
 }

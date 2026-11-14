@@ -14,9 +14,10 @@ internal static class ShellEraListTests
         if(!condition)throw new Exception(message);
     }
     private sealed record TechRecord(string Type,ShellNativeDate Date,bool Enabled,double? Factor);
+    // "Coldwar" is the game's own one-day era (not playable); Coldwar1 starts the day after it. The starts stay strictly ascending.
     private static readonly (ShellNativeDate Start,string Name)[] Timeline =
     {
-        (new ShellNativeDate(1900,1,1),"Early"),(new ShellNativeDate(1945,9,3),"Coldwar"),
+        (new ShellNativeDate(1900,1,1),"Early"),(new ShellNativeDate(1945,9,3),"Coldwar"),(new ShellNativeDate(1945,9,4),"Coldwar1"),
         (new ShellNativeDate(1960,1,1),"Coldwar2"),(new ShellNativeDate(1975,1,1),"Coldwar3")
     };
 

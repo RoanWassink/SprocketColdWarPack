@@ -33,7 +33,7 @@ The native `type` must equal the response's `compatibleMaterialIds` entry. Each 
 | Field | Units / supported values | Use |
 |---|---|---|
 | Technology `type` | Unique material ID | Save identity and recipe binding. |
-| Technology `date` | yyyy.MM.dd | Native availability; Cold War core is needed for the new era. |
+| Technology `date` | yyyy.MM.dd | Native availability; the Cold War pack supplies the playable eras Coldwar1 (from 1945.09.04), Coldwar2 and Coldwar3. |
 | `density` | kg/m³; response parser 100–25000 | Physical weight; 4000 for the heavy example. |
 | `rhaFactor` | Dimensionless; 0.001–5 | Passive resistance per thickness; 0.55 for heavy. |
 | `spallFactor` | 0–1 | Native spall scaling; 0.25 for heavy. |

@@ -61,7 +61,7 @@ internal static class Feat02274OverlayApplyTests
 
     /// <summary>The production files 0.22.74 changes on top of 0.22.73 (older golden-source tests list them as planned).</summary>
     internal static readonly string[] Planned={"Plugin.cs","SprocketExpandedBallistics.csproj","RELEASE-NOTES.md","OverlayMaterialPlan.cs","RuntimeCassettePlateVisual.cs","CassetteComposerModel.cs","CassetteComposerPanel.cs","RuntimeComposerFill.cs","RuntimeCompositePlateEdit.cs"};
-    internal static bool IsPlanned(string rel)=>Planned.Contains(rel);
+    internal static bool IsPlanned(string rel)=>Planned.Contains(rel)||Feat02275FollowWallTests.IsPlanned(rel);
 
     internal static void Run(Action<bool,string> sink)
     {

@@ -36,7 +36,7 @@ Shipped data: one part definition (`hydropneumaticSuspensionPart.json`), its Eng
 
 ## Status
 
-Earlier builds were tried in the game by the author. For 0.4.4 the date gate (part present from the Coldwar2 era, absent in Coldwar) is listed as not yet tested in the game, and the guide lists rebinding, key migration, reset and both control modes of the Keybinds integration as still needing in-game tests. The whole pack was just renamed and has not been re-tested in the game yet.
+Earlier builds were tried in the game by the author. For 0.4.4 the date gate (part present from the Coldwar2 era, absent in Coldwar1) is listed as not yet tested in the game, and the guide lists rebinding, key migration, reset and both control modes of the Keybinds integration as still needing in-game tests. The whole pack was just renamed and has not been re-tested in the game yet.
 
 ## Building
 

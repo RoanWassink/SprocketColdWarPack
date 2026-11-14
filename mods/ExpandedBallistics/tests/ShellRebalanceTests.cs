@@ -126,7 +126,7 @@ internal static class ShellRebalanceTests
         var tech=ReadTech();
         var timeline=new[]
         {
-            (new ShellNativeDate(1900,1,1),"Early"),(new ShellNativeDate(1945,9,3),"Coldwar"),
+            (new ShellNativeDate(1900,1,1),"Early"),(new ShellNativeDate(1945,9,4),"Coldwar1"),
             (new ShellNativeDate(1960,1,1),"Coldwar2"),(new ShellNativeDate(1975,1,1),"Coldwar3")
         };
         string[] Visible(int year)

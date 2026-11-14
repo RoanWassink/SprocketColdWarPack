@@ -146,7 +146,7 @@ internal static class Wave1Tests
             var computed=MaterialWorkMath.Calculate(cooperative,reactions.Work,isRod,cooperative.ReferenceThicknessMm,60,1,true,.02);
             check(Math.Abs((isRod?computed.Joules:computed.JetMm)-oldCapacity)<1e-9,"reference work unchanged by cap: "+cooperative.Id+(isRod?" rod":" jet"));
         }
-        var timeline=new[]{new VehicleEraBoundary("Coldwar",new(1945,9,3)),new("Coldwar2",new(1960,1,1)),new("Coldwar3",new(1975,1,1))};
+        var timeline=new[]{new VehicleEraBoundary("Coldwar1",new(1945,9,4)),new("Coldwar2",new(1960,1,1)),new("Coldwar3",new(1975,1,1))};
         check(VehicleEraAvailability.AllowsMaterial(DateTime.MaxValue,timeline,new DateTime(2009,1,1),true,true)&&!VehicleEraAvailability.AllowsMaterial(new DateTime(2008,12,31),timeline,new DateTime(2009,1,1),true,true),"final Coldwar3 sentinel allows Duplet 2009 while 2008.12.31 does not");
         var names=timeline.Select(e=>e.Name).ToArray();var starts=timeline.Select(e=>new ShellNativeDate(e.Start.Year,e.Start.Month,e.Start.Day)).ToArray();
         var context=new ShellEraContext(ShellNativeDate.Maximum,names,starts,2,new HashSet<string>());

@@ -10,13 +10,15 @@ internal static class CompositePlate
     internal const string BackplaneName=Name+" [To back plane]";
     internal const string FillName=Name+" [Fill to wall]";
     // 0.22.60: a plate in layers (one face per solid layer, or per block of touching layers). The material id stays the recipe.
+    internal const string FrontMarker=" [FW75:";
+    private static string? PlainName(string? name){if(name==null)return null;int i=name.IndexOf(FrontMarker,StringComparison.Ordinal);return i>=0?name[..i]:name;}
     internal const string LayersName=Name+" [Layers]";
     internal const string LayerBlocksName=Name+" [Layer blocks]";
     internal static string NameForMode(ThicknessMode mode)=>mode==ThicknessMode.FillToWall?FillName:mode==ThicknessMode.ToBackPlane?BackplaneName:mode==ThicknessMode.Layers?LayersName:mode==ThicknessMode.LayerBlocks?LayerBlocksName:Name;
-    internal static ThicknessMode ModeFromName(string? name)=>string.Equals(name,FillName,StringComparison.Ordinal)?ThicknessMode.FillToWall:string.Equals(name,BackplaneName,StringComparison.Ordinal)?ThicknessMode.ToBackPlane:
-        string.Equals(name,LayersName,StringComparison.Ordinal)?ThicknessMode.Layers:string.Equals(name,LayerBlocksName,StringComparison.Ordinal)?ThicknessMode.LayerBlocks:ThicknessMode.Uniform;
+    internal static ThicknessMode ModeFromName(string? name)=>string.Equals(PlainName(name),FillName,StringComparison.Ordinal)?ThicknessMode.FillToWall:string.Equals(PlainName(name),BackplaneName,StringComparison.Ordinal)?ThicknessMode.ToBackPlane:
+        string.Equals(PlainName(name),LayersName,StringComparison.Ordinal)?ThicknessMode.Layers:string.Equals(PlainName(name),LayerBlocksName,StringComparison.Ordinal)?ThicknessMode.LayerBlocks:ThicknessMode.Uniform;
     /// <summary>0.22.60: the layout of a plate in layers, from its mesh name; null for every other plate.</summary>
-    internal static LayerLayoutKind? LayoutFromName(string? name)=>string.Equals(name,LayersName,StringComparison.Ordinal)?LayerLayoutKind.PerLayer:string.Equals(name,LayerBlocksName,StringComparison.Ordinal)?LayerLayoutKind.PerBlock:null;
+    internal static LayerLayoutKind? LayoutFromName(string? name)=>string.Equals(PlainName(name),LayersName,StringComparison.Ordinal)?LayerLayoutKind.PerLayer:string.Equals(PlainName(name),LayerBlocksName,StringComparison.Ordinal)?LayerLayoutKind.PerBlock:null;
     internal const string PrefabGuid="e229025a-a35f-47df-a018-f0eabc220001";
     internal const string IconFile="compositeArmourPlate-icon.png";
     /// <summary>The native cube add-on prefab, the only prefab the game lists itself.</summary>
@@ -36,8 +38,8 @@ internal static class CompositePlate
     /// <summary>Prefab GUID to card icon file under BepInEx/plugins/SprocketExpandedBallistics/era-assets.</summary>
     internal static readonly IReadOnlyDictionary<string,string> IconMap=
         new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase){[PrefabGuid]=IconFile};
-    internal static bool IsName(string? name)=>string.Equals(name,Name,StringComparison.Ordinal)||string.Equals(name,BackplaneName,StringComparison.Ordinal)||string.Equals(name,FillName,StringComparison.Ordinal)||
-        string.Equals(name,LayersName,StringComparison.Ordinal)||string.Equals(name,LayerBlocksName,StringComparison.Ordinal);
+    internal static bool IsName(string? name)=>string.Equals(PlainName(name),Name,StringComparison.Ordinal)||string.Equals(PlainName(name),BackplaneName,StringComparison.Ordinal)||string.Equals(PlainName(name),FillName,StringComparison.Ordinal)||
+        string.Equals(PlainName(name),LayersName,StringComparison.Ordinal)||string.Equals(PlainName(name),LayerBlocksName,StringComparison.Ordinal);
     internal static bool IsCassette(string? id)=>id?.StartsWith("ebCassette_",StringComparison.Ordinal)==true;
     /// <summary>
     /// 0.22.7 identity: the native mesh name OR a cassette material. A cassette can only ever be set on a

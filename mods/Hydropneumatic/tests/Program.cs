@@ -11,6 +11,12 @@ Check(!HydroEraPolicy.Allows(new DateTime(1945, 9, 2), eras), "pre-floor date st
 Check(!HydroEraPolicy.Allows(new DateTime(9999, 12, 31), new[] { new DateTime(1945, 9, 3), DateTime.MaxValue }), "malformed MaxValue era start is rejected");
 Check(!HydroEraPolicy.Allows(new DateTime(1967, 1, 1), new[] { new DateTime(1960, 1, 1), new DateTime(1950, 1, 1) }), "unsorted timeline is rejected");
 Check(HydroEraPolicy.MinimumDate == new DateTime(1967, 1, 1), "HPS production floor is 1967.01.01");
+// The real timeline of the Cold War pack: stock eras (including the game's own non-playable Coldwar from 1945.09.03) plus Coldwar1/2/3.
+var packEras = new[] { new DateTime(1914, 7, 28), new DateTime(1918, 11, 12), new DateTime(1939, 9, 2), new DateTime(1942, 1, 1), new DateTime(1944, 1, 1), new DateTime(1945, 9, 3), new DateTime(1945, 9, 4), new DateTime(1960, 1, 1), new DateTime(1975, 1, 1) };
+Check(HydroEraPolicy.Allows(new DateTime(1967, 1, 1), packEras), "HPS accepts the pack timeline with Coldwar1 on 1945.09.04");
+Check(!HydroEraPolicy.Allows(new DateTime(1966, 12, 31), packEras), "HPS still unavailable one day before 1967.01.01 on the pack timeline");
+Check(HydroEraPolicy.Allows(new DateTime(9999, 12, 31), packEras), "final-era sentinel on the pack timeline");
+Check(!HydroEraPolicy.Allows(new DateTime(1967, 1, 1), new[] { new DateTime(1944, 1, 1), new DateTime(1945, 9, 3), new DateTime(1945, 9, 3), new DateTime(1960, 1, 1) }), "two eras on the same start fail closed (why Coldwar1 starts on 1945.09.04)");
 var savedHydroPart = "hydropneumaticSuspension";
 Check(!HydroEraPolicy.Allows(new DateTime(1950, 1, 1), eras) && savedHydroPart == "hydropneumaticSuspension",
     "too-early saved HPS part keeps its identity and stays inactive");

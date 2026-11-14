@@ -14,7 +14,7 @@ internal sealed record ComposerIssue(string Text,bool Error,int Layer,string? Fi
 /// 0.22.14: <paramref name="ConvertBlocker"/> is null when an ordinary plate can be converted (<see cref="CompositeConversion.Blocker"/>; the default means "not read");
 /// <paramref name="LinkedCopies"/> counts Alt duplicates sharing its mesh; <paramref name="SelectedFaces"/> counts the faces selected in the designer (0: none).</remarks>
 internal sealed record ComposerTarget(string Name,int Faces,string MaterialId,string MaterialLabel,bool Composite,double MinFaceMm,double MaxFaceMm,int? VehicleDateKey=null,bool? MaterialKnown=null,
-    string? ConvertBlocker=CompositeConversion.NotRead,int LinkedCopies=0,int SelectedFaces=0,string? LayerLine=null);
+    string? ConvertBlocker=CompositeConversion.NotRead,int LinkedCopies=0,int SelectedFaces=0,string? LayerLine=null,string? FrontNote=null);
 internal sealed record ComposerSaveResult(CassettePreset Preset,bool RestartRequired,string Status);
 /// <summary>0.22.71: what the button Apply does on the plate besides the recipe: one choice at a time (Thickness only = what Apply did before).</summary>
 internal enum ComposerApplyChoice{ThicknessOnly,Flip,Inward,FillToWall,CheekPreset,ConformCheek,CheekShell,ConvertToLayers,BackToBox}
@@ -922,6 +922,7 @@ internal sealed class CassetteComposerModel
             if(ApplyPreset==null)note=ApplyBlocker??note;
         }
         var button=applyChoice!=ComposerApplyChoice.ThicknessOnly?"Apply: "+ApplyChoiceLabels[(int)applyChoice]+(applyChoice!=ComposerApplyChoice.BackToBox&&Converts?" (converts the plate first)":""):t==null?"Apply to plate":Converts?"Convert to composite plate":"Apply to "+t.Name;
+        if(applyChoice==ComposerApplyChoice.ConvertToLayers&&t?.FrontNote is {Length:>0} frontNote)note=frontNote+". "+note;
         if(choiceNote.Length>0)note=choiceNote+(note.Length>0?" "+note:"");
         apply=(Version,TargetVersion,stamp,chip,note,button,warning,scope,confirm);
     }

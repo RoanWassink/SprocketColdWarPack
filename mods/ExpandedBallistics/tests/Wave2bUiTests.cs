@@ -108,18 +108,22 @@ internal static class Wave2bUiTests
         var files=new[]
         {
             "{\n  \"v\": \"0.0\",\n  \"name\": \"Coldwar3\",\n  \"start\": \"1975.01.01\",\n  \"playable\": true,\n}",
-            "{\"name\":\"WWI\",\"start\":\"1914.07.28\",}","{\"name\":\"Coldwar2\",\"start\":\"1960.01.01\"}","{\"name\":\"Coldwar\",\"start\":\"1945.09.03\"}",
+            "{\"name\":\"WWI\",\"start\":\"1914.07.28\",}","{\"name\":\"Coldwar2\",\"start\":\"1960.01.01\"}","{\n  \"v\": \"0.0\",\n  \"name\": \"Coldwar\",\n  \"start\": \"1945.09.03\",\n  \"playable\": false,\n}","{\"name\":\"Coldwar1\",\"start\":\"1945.09.04\",\"playable\":true}",
             "not json","{\"name\":\"NoDate\"}","{\"name\":\"coldwar2\",\"start\":\"1961.01.01\"}"
         };
         var eras=ShellEraCatalogue.Parse(files);
-        check(eras.Select(e=>e.Name).SequenceEqual(new[]{"WWI","Coldwar","Coldwar2","Coldwar3"}),"game era files parse with trailing commas, sorted by date, invalid and duplicate skipped");
+        check(eras.Select(e=>e.Name).SequenceEqual(new[]{"WWI","Coldwar1","Coldwar2","Coldwar3"}),"game era files parse with trailing commas, sorted by date, invalid, duplicate and \"playable\": false skipped; a missing playable counts as playable");
+        check(ShellEraCatalogue.Parse(new[]{"{\"name\":\"Coldwar\",\"start\":\"1945.09.03\",\"playable\":false}"}).Count==0&&ShellEraCatalogue.Parse(new[]{"{\"name\":\"Coldwar1\",\"start\":\"1945.09.04\",\"playable\":true}","{\"name\":\"Coldwar2\",\"start\":\"1960.01.01\"}"}).Select(e=>e.Name).SequenceEqual(new[]{"Coldwar1","Coldwar2"}),"Parse skips exactly the files with playable false (the game's one-day Coldwar) and keeps playable true or missing");
+        var shipped=ShellEraCatalogue.Load(Path.Combine(SprocketExpandedBallistics.Fix02228Tests.SourceRoot(),"native-data","Eras"));
+        check(shipped.Select(e=>e.Name).SequenceEqual(new[]{"Coldwar1","Coldwar2","Coldwar3"})&&shipped[0].StartText=="1945-09-04"&&shipped[1].StartText=="1960-01-01"&&shipped[2].StartText=="1975-01-01","the era folder of the source lists exactly Coldwar1, Coldwar2, Coldwar3 in order of date");
+        check(ShellEraCatalogue.Friendly("Coldwar1")=="Cold War I"&&shipped[0].Friendly=="Cold War I"&&shipped[0].Group=="Cold War"&&ShellEraCatalogue.BuiltIn.Select(e=>e.Name).Contains("Coldwar1")&&!ShellEraCatalogue.BuiltIn.Any(e=>e.Name=="Coldwar")&&ShellEraCatalogue.BuiltIn.Single(e=>e.Name=="Coldwar1").Start==new DateTime(1945,9,4),"Coldwar1: friendly name Cold War I, group Cold War, in the built-in list from 1945.09.04");
         check(eras[3].Friendly=="Cold War III"&&eras[0].Group=="World wars"&&eras[3].Group=="Cold War","friendly names and groups");
         check(ShellEraCatalogue.Load(Path.Combine(SprocketExpandedBallistics.Fix02228Tests.FixtureRoot(),"missing-"+Guid.NewGuid())).Count==8&&ShellEraCatalogue.BuiltIn.Any(e=>e.Name=="Coldwar3"),"fallback list includes Coldwar2/3");
         check(ShellEraCatalogue.Find(eras,"COLDWAR3")==3&&ShellEraCatalogue.Find(eras,"ww1")==0&&ShellEraCatalogue.Find(eras," ")==ShellEraCatalogue.None&&ShellEraCatalogue.Find(eras,"coldwar3x")==ShellEraCatalogue.UnknownEra,"matching follows ShellEraPolicy");
         var options=ShellEraCatalogue.Options(eras,"coldwar3x");
         check(options.Count==6&&options[0].Value==""&&options[^1].Value=="coldwar3x"&&ShellEraCatalogue.OptionIndex(eras,"coldwar3x")==5&&ShellEraCatalogue.OptionIndex(eras,"1960.01.01")==3,"options: always, era start dates, then the custom date");
         check(ShellEraCatalogue.Error(eras,"coldwar3x")!.Contains("real date")&&ShellEraCatalogue.Error(eras,"1945.09.03")==null,"invalid date is an error, a real date is not");
-        check(ShellEraCatalogue.Availability(eras,"1975.01.01","Coldwar").EndsWith("✓",StringComparison.Ordinal)&&ShellEraCatalogue.Availability(eras,"1960.01.01","Coldwar3").EndsWith("✗",StringComparison.Ordinal),"availability date against the vehicle era");
+        check(ShellEraCatalogue.Availability(eras,"1975.01.01","Coldwar1").EndsWith("✓",StringComparison.Ordinal)&&ShellEraCatalogue.Availability(eras,"1960.01.01","Coldwar3").EndsWith("✗",StringComparison.Ordinal),"availability date against the vehicle era");
     }
     private static (string Runtime,string Authoring,string Import) Files(string root,string name)
     {
@@ -281,7 +285,7 @@ internal static class Wave2bUiTests
         var (runtime,authoring,import)=Files(root,"live");
         double now=100;
         var m=ShellEditorModel.Open(runtime,authoring,import,false,null,()=>now);
-        m.Cannon=new(120,1700,1800,600,d=>123.4,p=>456,"Coldwar");
+        m.Cannon=new(120,1700,1800,600,d=>123.4,p=>456,"Coldwar1");
         m.Select(Find(m,"apfsds"));
         check(m.LiveValue(6)=="123 mm RHA"&&m.LiveValue(5).EndsWith(" m/s",StringComparison.Ordinal)&&m.LiveValue(4).Contains(" = "),"live numbers from the cannon (immediate on selection)");
         var length=m.LiveValue(3);

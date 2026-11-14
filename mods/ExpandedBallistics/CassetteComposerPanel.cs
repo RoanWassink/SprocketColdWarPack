@@ -172,11 +172,15 @@ internal static class CassetteComposerPanel
                 :SprocketExpandedBallistics.Materials.MaterialDatabase.Materials.FirstOrDefault(m=>m.Id==id)?.Label??id;
             // 0.22.14: eligibility for "Convert to composite plate", linked Alt copies and the face selection (read 4x/s, cheap).
             var composite=RuntimeCompositePlate.Is(plate);
-            var selected=CompositeThicknessPlan.SelectedCount(RuntimeCompositePlateEdit.SelectedFaces(tracked!),faces);
+            var faceSelection=RuntimeCompositePlateEdit.SelectedFaces(tracked!);
+            var selected=CompositeThicknessPlan.SelectedCount(faceSelection,faces);
             string? layerLine=null;
             try{if(composite&&layerSnapshot!=null)layerLine=RuntimeLayerFaces.Line(plate,layerSnapshot);}catch(Exception ex){Warn("Layer line unavailable: "+ex.Message);}
+            var frontNote=layerSnapshot==null?null:LayerFaces.SelectionNote(layerSnapshot,faceSelection);
+            var storedFront=RuntimeLayerFaces.ReadSavedFront(plate);
+            if(layerLine!=null&&storedFront is {} saved)frontNote=LayerFaces.SelectionNote(saved.Json,saved.Front);
             var target=new ComposerTarget(name,faces,id,label,composite,faces>0?min:0,max,VehicleDateKey(plate),KnownMaterial(plate,id),
-                RuntimeCompositePlateEdit.Eligibility(plate),composite?0:RuntimeCompositePlateEdit.LinkedCopies(plate),selected,layerLine);
+                RuntimeCompositePlateEdit.Eligibility(plate),composite?0:RuntimeCompositePlateEdit.LinkedCopies(plate),selected,layerLine,frontNote);
             lastTarget=(plate.Pointer,target);
             return target;
         }
@@ -488,12 +492,12 @@ internal static class CassetteComposerPanel
         if(action==ComposerMeshAction.CheekShell){CheekShellDialog();return;}
         try
         {
-            var prepared=RuntimeComposerFill.Prepare(tracked!,action,newMaterial:material,convert:convert);
+            var prepared=RuntimeComposerFill.Prepare(tracked!,action,newMaterial:material,convert:convert,diagnosticApply:true);
             if(material!=null)prepared=prepared with{Material=material};
             void Commit()
             {
                 var ok=RuntimeCompositePlateEdit.TryPrepared(tracked!,prepared,out var message);
-                panel?.SetStatus(message.StartsWith(prepared.Plan.Label+":",StringComparison.Ordinal)?message:prepared.Plan.Label+": "+message,ok?StatusKind.Success:StatusKind.Warning);
+                panel?.SetStatus(message.StartsWith(prepared.Plan.Label+":",StringComparison.Ordinal)?message:prepared.Plan.Label+": "+message,ok&&prepared.Plan.FollowWall?.Warning!=true?StatusKind.Success:StatusKind.Warning);
                 if(ok){model?.Invalidate();nextTarget=0;tracked?.RequestRedraw();}
             }
             if(prepared.Plan.NeedsConfirmation)

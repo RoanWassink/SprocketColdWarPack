@@ -86,6 +86,13 @@ var custom = new[] { new DateTime(1900,1,1), new DateTime(1945,9,3), new DateTim
 foreach (var date in new[] { new DateTime(1945,9,3), new DateTime(1992,1,1), new DateTime(2050,1,1), new DateTime(2400,1,1), new DateTime(9999,12,30) })
     Check(ThermalEraPolicy.Allows(date, custom, new DateTime(1945,9,3)), "custom postwar/modern/future has no arbitrary upper horizon");
 Check(ThermalEraPolicy.Allows(DateTime.MaxValue, custom, new DateTime(1945,9,3)), "custom future final-era sentinel, no name lookup");
+// The real timeline of the Cold War pack: stock eras (including the game's own non-playable Coldwar from 1945.09.03) plus Coldwar1/2/3.
+var packEras = new[] { new DateTime(1914,7,28), new DateTime(1918,11,12), new DateTime(1939,9,2), new DateTime(1942,1,1), new DateTime(1944,1,1), new DateTime(1945,9,3), new DateTime(1945,9,4), new DateTime(1960,1,1), new DateTime(1975,1,1) };
+Check(ThermalEraPolicy.Allows(new DateTime(1945,9,4), packEras, new DateTime(1945,9,3)), "Coldwar1 first day on the pack timeline");
+Check(ThermalEraPolicy.Allows(new DateTime(1959,12,31), packEras, new DateTime(1945,9,3)), "Coldwar1 last day on the pack timeline");
+Check(ThermalEraPolicy.Allows(new DateTime(1975,1,1), packEras, new DateTime(1945,9,3)) && ThermalEraPolicy.Allows(DateTime.MaxValue, packEras, new DateTime(1945,9,3)), "Coldwar3 and the final-era sentinel on the pack timeline");
+Check(!ThermalEraPolicy.Allows(new DateTime(1945,9,2), packEras, new DateTime(1945,9,3)), "WWII final day still excluded on the pack timeline");
+Check(!ThermalEraPolicy.Allows(new DateTime(1950,1,1), new[] { new DateTime(1944,1,1), new DateTime(1945,9,3), new DateTime(1945,9,3), new DateTime(1960,1,1) }, new DateTime(1945,9,3)), "two eras on the same start fail closed (why Coldwar1 starts on 1945.09.04)");
 var earlyOnly = new[] { new DateTime(1900,1,1), new DateTime(1939,9,1) };
 Check(ThermalEraPolicy.Allows(DateTime.MaxValue, earlyOnly, new DateTime(1945,9,3)), "native final era is open-ended regardless its start");
 Check(!ThermalEraPolicy.Allows(new DateTime(1944,6,1), custom, new DateTime(1945,9,3)), "date excludes earlier custom era regardless label");

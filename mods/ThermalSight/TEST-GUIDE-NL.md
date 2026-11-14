@@ -51,9 +51,9 @@ ontwikkelaar; installeer eerst de uitlevering `dist\thermal-sight\` (zet bestand
 - Een "sight" is de combinatie van een thermal-sight-part en de losse lens.
   De IR-searchlight is een aparte part met tag `irSearchlight`.
 
-## 1. Coldwar 1955 — active IR met searchlight
+## 1. Coldwar1, voertuigdatum 1955 — active IR met searchlight
 
-1. Bouw een voertuig in de Coldwar-start (1955) met een gunner-sight,
+1. Bouw een voertuig in Coldwar1 (vanaf 1945.09.04, voertuigdatum rond 1955) met een gunner-sight,
    `thermalSight` of `thermalSightVertical`, de lens en een
    `irSearchlight`.
 2. Kies in het rechtsklikmenu op de sight het profiel
@@ -72,7 +72,7 @@ Logregels:
 - `[IR searchlight] Model ready: 2573 unique vertices, 2992 triangles, vn/vt retained; ...`
 - `[Exterior paint] Housing linked to native exterior paint; component=irSearchlight; ... flags=None; slot=Exterior; ...`
 
-## 2. Coldwar 1955 — camo en lens van dichtbij
+## 2. Coldwar1, voertuigdatum 1955 — camo en lens van dichtbij
 
 1. Verf het voertuig in een andere camo (editor of spuit/verfoptie).
 2. Bekijk de IR-searchlight van buiten, met de camera dichtbij.

@@ -9,9 +9,12 @@ internal static class VehicleEraAvailabilityTests
     private static readonly VehicleEraBoundary[] Timeline =
     {
         new("WWI", new DateTime(1914, 7, 28)),
-        new("Interwar", new DateTime(1918, 11, 11)),
-        new("WWII", new DateTime(1939, 9, 1)),
-        new("ColdWar", new DateTime(1945, 9, 3)),
+        new("Interwar", new DateTime(1918, 11, 12)),
+        new("Earlywar", new DateTime(1939, 9, 2)),
+        new("Midwar", new DateTime(1942, 1, 1)),
+        new("Latewar", new DateTime(1944, 1, 1)),
+        new("Coldwar", new DateTime(1945, 9, 3)),   // the game's own one-day era, not playable
+        new("Coldwar1", new DateTime(1945, 9, 4)),
         new("Coldwar2", new DateTime(1960, 1, 1)),
         new("Coldwar3", new DateTime(1975, 1, 1))
     };
@@ -50,6 +53,17 @@ internal static class VehicleEraAvailabilityTests
             VehicleEraAvailability.AllowsMaterial(new DateTime(1945, 9, 3), Timeline, modern, true, true));
         Check(failures, "one day after 1945.09.03", true,
             VehicleEraAvailability.AllowsMaterial(new DateTime(1945, 9, 4), Timeline, modern, true, true));
+
+        // Variant B of the era split: the not playable Coldwar (1945.09.03) and Coldwar1 (1945.09.04) are strictly ascending, so the
+        // timeline stays valid on both days; two eras with the same start would fail closed (that is why Coldwar1 starts a day later).
+        Check(failures, "Coldwar1 first day with the one-day Coldwar before it", true,
+            VehicleEraAvailability.AllowsMaterial(new DateTime(1945, 9, 4), Timeline, modern, true, true));
+        Check(failures, "Coldwar on its only day", true,
+            VehicleEraAvailability.AllowsMaterial(new DateTime(1945, 9, 3), Timeline, modern, true, true));
+        Check(failures, "two eras with the same start fail closed", false,
+            VehicleEraAvailability.AllowsMaterial(new DateTime(1960, 1, 1),
+                new[] { new VehicleEraBoundary("Coldwar", new DateTime(1945, 9, 3)), new VehicleEraBoundary("Coldwar1", new DateTime(1945, 9, 3)) },
+                modern, true, true));
 
         // Coldwar2 on 1974.12.31 must not use a part introduced in 1975.
         Check(failures, "Coldwar2 day before 1975", false,

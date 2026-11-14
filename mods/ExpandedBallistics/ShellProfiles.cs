@@ -169,6 +169,8 @@ internal static class ShellProfiles
 
     internal static ShellNativeDate? LegacyEraStart(string? era)
     {
+        // The game's own era "Coldwar" (one day from 1945.09.03, not playable) is no longer in the list, but old profile files may still name it.
+        if(string.Equals(era?.Trim(),"Coldwar",StringComparison.OrdinalIgnoreCase))return new ShellNativeDate(1945,9,3);
         var index=ShellEraCatalogue.Find(ShellEraCatalogue.BuiltIn,era);
         if(index<0)return null;
         var start=ShellEraCatalogue.BuiltIn[index].Start;

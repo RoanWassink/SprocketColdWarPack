@@ -1,3 +1,25 @@
+# Expanded Ballistics
+
+## 0.22.76 (robust selected fronts on edited closed pieces)
+
+- Convert to layers orients each selected closed piece independently and preserves warped-face fan diagonals. Missing normal rays try neighboring lines and same-piece interior/back-skin directions; failed layouts try alternate correspondences before retaining a selected face as wall.
+- Existing thickness and thicken modes do not define selected layer depth: the authored outside skin does. Non-selected walls use the wall setting; selected fallback walls never exceed their old thickness and must fit the shape.
+- A wall share above one third is a visible yellow warning, with face/area counts, rather than a refusal. A result with no layered selected face still refuses atomically.
+- Designer Apply writes one overwritten follow-wall diagnostic per plate only on warning/refusal, with original mesh, mask, recipe and per-selected-face reasons. Write failures log once without blocking the action. No Play/shot diagnostics, new hook or hit calculation change.
+- Cold War eras in this edition: the game's own `Coldwar` (1945.09.03, not playable) stays as it is; the playable eras are `Coldwar1` (from 1945.09.04), `Coldwar2` and `Coldwar3`, supplied by the Cold War pack. The shell editor's era list skips an era file with `"playable": false`, its built-in fallback list names `Coldwar1` (Cold War I), and a profile file that still says `minimumEra: "Coldwar"` is read as 1945.09.03 as before. No new hook.
+
+## 0.22.75 (selected fronts follow the wall; reviewed persistence and fallbacks)
+
+With designer faces selected, Convert to layers uses those faces as the front, handles closed pieces separately, and pairs the interior corner lines across bends. Unselected pieces retain their faces. Invalid selected faces become steel wall; more than one third of selected area refuses without committing. No-selection mesh payloads retain the 0.22.74 planner.
+
+The native mesh name stores a compressed outer mesh, front mask and 1-micrometre geometry fingerprint (32,000-character limit). Corrupt metadata falls back to legacy recovery with one warning per plate per session; a later geometry edit refuses stored-shape restoration. Open selected plates use the legacy planner and say the selection was ignored. Downgraded selected faces preserve their authored corner thickness, reducing only when the shape requires it and reporting the affected count.
+
+The native mesh name stores a compressed outer mesh and front mask for Back to box and applying another recipe after reload. This is self-contained in the mesh blueprint; no sidecar or new Harmony hook. Combat calculations and the protected material/render files are unchanged.
+
+Painted overlays use conservative triangle coverage on FW75 meshes, retaining exposed skins at curved overlaps. The no-selection overlay path stays unchanged.
+
+Object 292: the outer T-80U selection clears the 60% union coverage threshold including air; the 15% wall-area target is narrowly missed. Per-case metrics, limitations and the contact sheet are in out-0.22.75. Native undo/redo, actual clean game reload and visual/collider acceptance require game testing; nothing is installed by this delivery.
+
 ## 0.22.74 (overlay survives a triangle without area; the option of Apply comes first)
 A plate whose mesh holds a triangle without area (a point with a normal of length zero) no longer loses the whole overlay: that point gets the normal of another point of its triangle, or no displacement at all, and one log line per plate says how many were skipped. In the composer, the option under "Apply also does" is chosen first and Apply does it: the choice stays while the window is open, a plate that is not composite yet is converted in the same undo step (the button then reads "Apply: ... (converts the plate first)"), and a composite plate with no preset open keeps its own cassette. Only a plate that cannot be converted still refuses, with the reason. No new hook; the calculation paths are unchanged.
 

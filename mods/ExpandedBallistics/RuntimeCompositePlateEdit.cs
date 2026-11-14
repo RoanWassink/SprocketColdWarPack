@@ -132,8 +132,8 @@ internal static class RuntimeCompositePlateEdit
             if(!pending.Applied){message=pending.Error??"Composite material edit could not be applied.";pending.Release();return false;}
             // The operation ran inside CreateOp: name the mesh again and drop the cached identity.
             pending.Finish();
-            if(pending.SizeNote!=null)Plugin.ModLog.LogInfo("[Composite plate] "+pending.LogPrefix+pending.SizeNote+".");
-            message=prepared!=null?prepared.Plan.Label+": "+prepared.Plan.Summary:done+(pending.SizeNote is {} note?$" {note}.":pending.SelectedFaces>0?$" ({pending.SelectedFaces} selected face{(pending.SelectedFaces==1?"":"s")})":"");
+            if(pending.SizeNote!=null&&prepared?.Plan.FollowWall?.Warning!=true)Plugin.ModLog.LogInfo("[Composite plate] "+pending.LogPrefix+pending.SizeNote+".");
+            message=prepared!=null?(prepared.Plan.Summary.StartsWith(prepared.Plan.Label+":",StringComparison.Ordinal)?prepared.Plan.Summary:prepared.Plan.Label+": "+prepared.Plan.Summary):done+(pending.SizeNote is {} note?$" {note}.":pending.SelectedFaces>0?$" ({pending.SelectedFaces} selected face{(pending.SelectedFaces==1?"":"s")})":"");
             return true;
         }
         catch(Exception ex)
@@ -142,6 +142,10 @@ internal static class RuntimeCompositePlateEdit
             change?.Release();
             message="Could not apply cassette: "+ex.Message;
             return false;
+        }
+        finally
+        {
+            if(prepared?.Plan.FollowWall is {} attempt)RuntimeComposerFill.ReportFollowWall(editor.Component,attempt,change?.Applied!=true);
         }
     }
     private sealed class Change
@@ -162,6 +166,8 @@ internal static class RuntimeCompositePlateEdit
         // 0.22.14: material, thicknesses and the naming rule of both ends of the step (OldWasComposite false: a conversion).
         private readonly CompositeUndoSnapshot snapshot;
         private ThicknessMode mode;
+        private readonly string? originalName;
+        private readonly string? preparedName;
         private readonly bool designerOnly;
         private readonly string? actionLabel;
         internal readonly int SelectedFaces;
@@ -171,6 +177,7 @@ internal static class RuntimeCompositePlateEdit
         internal string? Error;
         internal Change(PlateStructure component,PlateStructureEditor editor,string materialId,double? depthMm,ThicknessMode mode,bool oldWasComposite,bool[]? selected,PlateMeshSnapshot before,PreparedComposerFill? prepared=null)
         {
+            originalName=component.Mesh.ToMeshBlueprint(false)?.Name;preparedName=prepared?.Plan.MeshName??(CompositePlate.ModeFromName(originalName)==mode?originalName:null);
             actionLabel=prepared?.Plan.Label;this.component=component;this.mode=mode;designerOnly=prepared!=null;applicationEditor=editor.Gateway.Editor;register=component.Vehicle.Meshes;
             reference=component.VehicleObject.GetReference();componentId=component.ComponentID;vehiclePointer=component.Vehicle.Pointer;
             // Native references hold both meshes while undo history can revisit them.
@@ -209,6 +216,11 @@ internal static class RuntimeCompositePlateEdit
                 var copy=PlateMeshAccess.ReadOwn(fresh,out var copyReason)??throw new InvalidOperationException("Native mesh copy unreadable: "+copyReason);
                 // 0.22.57: only a plan with ribs (Cheek fill (shell)) sets CopyCheck; it compares the copy's saved helper points, rib edges and tm/te with the plan before anything is replaced.
                 if(prepared?.Plan.CopyCheck is {} copyCheck&&copyCheck(fresh.ToJson(true)) is {} copyProblem)throw new InvalidOperationException(copyProblem);
+                // Pin an explicitly authored saved-front packet to the real native copy, after
+                // serializer/rebuild normalization. Inherited names on later edits keep their old
+                // fingerprint so those edits cannot be silently restored away.
+                if(prepared?.Plan.MeshName!=null&&LayerFaces.LoadFront(preparedName) is {} savedFront)
+                    preparedName=LayerFaces.SaveFront(mode,savedFront.Json,savedFront.Front,fresh.ToJson(true));
                 if(copy.FaceCount!=expected.FaceCount||copy.LoopCount!=expected.LoopCount)throw new InvalidOperationException("Native mesh copy did not preserve topology.");
                 for(int f=0;f<expected.FaceCount;f++)
                 {
@@ -338,7 +350,7 @@ internal static class RuntimeCompositePlateEdit
             component.RequestMeshRefresh();component.RequestRebuild();
             // The ToJson copy has no name. Execute and redo name the new mesh again (the route that works for the native prefab);
             // undo names the old mesh only if it was a composite plate before (0.22.14: undoing a conversion leaves a normal plate).
-            if(name&&!RuntimeCompositePlate.EnsureName(mesh,thicknessMode))
+            if(name&&!EnsureSavedName(mesh,thicknessMode))
                 throw new InvalidOperationException("Composite plate thickness mode could not be stored on the native mesh.");
             if(previous!=IntPtr.Zero)RuntimeCompositePlate.Invalidate(previous);
             RuntimeCompositePlate.Invalidate(mesh.Pointer);
@@ -346,6 +358,17 @@ internal static class RuntimeCompositePlateEdit
             // changing selection. 0.22.24: one frame later, never inside the native operation (CRASH-MAP.md D).
             var pointer=component.Pointer;var owner=applicationEditor;
             PlateMeshDeferred.NextFrame("editor refresh",()=>RefreshEditors(owner,pointer));
+        }
+        private bool EnsureSavedName(PlateStructureMesh mesh,ThicknessMode? thicknessMode)
+        {
+            var wanted=mesh.Pointer==oldMesh.Mesh.Pointer?originalName:preparedName;
+            if(wanted==null||!wanted.Contains(CompositePlate.FrontMarker,StringComparison.Ordinal))return RuntimeCompositePlate.EnsureName(mesh,thicknessMode);
+            if(mesh.ToMeshBlueprint(false)?.Name==wanted)return true;
+            var blueprint=mesh.ToMeshBlueprint(false)??throw new InvalidOperationException("Mesh blueprint unavailable.");
+            var beforeName=mesh.ToJson(true);
+            blueprint.Name=wanted;mesh.LoadBlueprint(blueprint);mesh.Rebuild();
+            if(LayerFaces.VerifyCopy(beforeName,mesh.ToJson(true)) is {} changed)throw new InvalidOperationException("Naming the saved front changed the mesh: "+changed);
+            return mesh.ToMeshBlueprint(false)?.Name==wanted;
         }
         private static void RefreshEditors(IVehicleEditor owner,IntPtr componentPointer)
         {
@@ -380,7 +403,7 @@ internal static class RuntimeCompositePlateEdit
             try
             {
                 if(released||!Resolve())return;
-                if(component.HasMesh&&Applied)RuntimeCompositePlate.EnsureName(component.Mesh,mode);
+                if(component.HasMesh&&Applied&&!EnsureSavedName(component.Mesh,mode))throw new InvalidOperationException("Saved front name was not retained.");
                 RuntimeCompositePlate.Invalidate(component);
             }
             catch(Exception ex){Plugin.ModLog.LogWarning("Composite plate identity refresh failed: "+ex.Message);}

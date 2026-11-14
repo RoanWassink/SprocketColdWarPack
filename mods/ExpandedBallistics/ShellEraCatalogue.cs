@@ -19,7 +19,7 @@ internal static class ShellEraCatalogue
     internal static readonly ShellEra[] BuiltIn=
     {
         new("WWI",new(1914,7,28),"WWI"),new("Interwar",new(1918,11,12),"Interwar"),new("Earlywar",new(1939,9,2),"Early war"),
-        new("Midwar",new(1942,1,1),"Mid war"),new("Latewar",new(1944,1,1),"Late war"),new("Coldwar",new(1945,9,3),"Cold War"),
+        new("Midwar",new(1942,1,1),"Mid war"),new("Latewar",new(1944,1,1),"Late war"),new("Coldwar1",new(1945,9,4),"Cold War I"),
         new("Coldwar2",new(1960,1,1),"Cold War II"),new("Coldwar3",new(1975,1,1),"Cold War III")
     };
     private static readonly JsonDocumentOptions Lenient=new(){AllowTrailingCommas=true,CommentHandling=JsonCommentHandling.Skip};
@@ -27,7 +27,7 @@ internal static class ShellEraCatalogue
 
     internal static string Friendly(string name)=>BuiltIn.FirstOrDefault(e=>string.Equals(e.Name,name,StringComparison.OrdinalIgnoreCase))?.Friendly??name;
 
-    /// <summary>Parse era files (name + "yyyy.MM.dd" start; the game's files have trailing commas). Invalid files are skipped.</summary>
+    /// <summary>Parse era files (name + "yyyy.MM.dd" start; the game's files have trailing commas). Invalid files are skipped, and so is a file with "playable": false (the game's own one-day era "Coldwar" is not offered); a missing "playable" counts as playable.</summary>
     internal static IReadOnlyList<ShellEra> Parse(IEnumerable<string> jsonFiles)
     {
         var result=new List<ShellEra>();
@@ -38,6 +38,7 @@ internal static class ShellEraCatalogue
                 using var doc=JsonDocument.Parse(json,Lenient);
                 var root=doc.RootElement;
                 if(root.ValueKind!=JsonValueKind.Object||!root.TryGetProperty("name",out var n)||!root.TryGetProperty("start",out var s))continue;
+                if(root.TryGetProperty("playable",out var playable)&&playable.ValueKind==JsonValueKind.False)continue;
                 var name=n.GetString()?.Trim()??"";
                 if(name.Length is <1 or >40||name.Any(char.IsControl))continue;
                 if(!DateTime.TryParseExact(s.GetString(),new[]{"yyyy.MM.dd","yyyy-MM-dd"},CultureInfo.InvariantCulture,DateTimeStyles.None,out var start))continue;

@@ -1,7 +1,7 @@
 {
   "v": "0.0",
-  "name": "Coldwar",
-  "start": "1945.09.03",
+  "name": "Coldwar1",
+  "start": "1945.09.04",
   "playable": true,
   "mediumVehicleMass": 18000,
   "heavyVehicleMass": 36000,

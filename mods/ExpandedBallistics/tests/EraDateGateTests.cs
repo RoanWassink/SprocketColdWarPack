@@ -9,7 +9,7 @@ internal static class EraDateGateTests
 {
     private static readonly VehicleEraBoundary[] Timeline =
     {
-        new("Coldwar", new DateTime(1945, 9, 3)),
+        new("Coldwar1", new DateTime(1945, 9, 4)),
         new("Coldwar2", new DateTime(1960, 1, 1)),
         new("Coldwar3", new DateTime(1975, 1, 1))
     };
