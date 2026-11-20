@@ -35,7 +35,7 @@ Other mods plug in by registering their own parts as outputs. That is why a lamp
 
 1. Open the part list in the designer and place a Telescopic Sight Mast, a Hinge Base with a Hinge Leaf, or a Rotator Base with a Rotator Plate. Build other parts on the leaf or the plate, and they move with it.
 2. Select a part and use the game's scale tool to change its size. The Rotator Plate stays round: the X value sets the diameter and the Y value sets the height.
-3. For a mast, set the keys for raising and lowering. Go to the game's Settings screen, then Controls, then the mod keybinds panel, and look for the "Mast / Raise" and "Mast / Lower" actions. The mod sets no keys itself.
+3. For a mast, set the keys for raising and lowering in **Settings → Controls → Mod keybinds → Telescopic Mast**: `Mast / Raise` and `Mast / Lower`. To trigger I/O flows with a key, also bind `I/O Flow / Action 1` to `I/O Flow / Action 4` there. The mod sets no keys itself.
 
 <!-- SCREENSHOT: mast-parts-in-designer.png (the mast, hinge and rotator parts in the designer part list) -->
 
@@ -44,7 +44,7 @@ Other mods plug in by registering their own parts as outputs. That is why a lamp
 This example opens a hinged flap on the turret when the main gun fires, and closes it again when the gun has reloaded. It uses the Hinge Mount as the flap, as a shell-ejection door.
 
 1. Place a Hinge Base on the turret and a Hinge Leaf on it, or a Hinge Mount if you want a flap with a part already on it. Set the closed angle, the open angle and the speed of the hinge.
-2. Open the I/O Flow editor. In Settings, under Controls, in the mod keybinds panel, set a key for the action "I/O Flow / Open panel", then press it in the designer.
+2. Open the I/O Flow editor. First make sure you have placed at least one I/O part on the tank (a Hinge, Mast, Rotator, Emitter, or Visual Effects lamp) so it appears under **Outputs** in the editor. Then bind a key in **Settings → Controls → Mod keybinds → Telescopic Mast → `I/O Flow / Open panel`**, and press it in the designer (or in Play).
 3. The hinge is listed as an output in the library. Click it to place its block on the canvas.
 4. From the Inputs group, click "Cannon fired" to place it. Choose your gun, or any gun in a fire group, in the inspector on the right.
 5. Wire "Cannon fired" to the hinge block, or click one of the ready-made templates ("Shell flap") to get a chain with the wires already drawn. A direct "Cannon fired" wire gives only a very short signal. If you want the flap to stay open after the shot, put a Pulse block between them. The Pulse block holds the signal for a time you set, for example 2 seconds. A Delay block in front of it waits first, for example 0.5 seconds.
