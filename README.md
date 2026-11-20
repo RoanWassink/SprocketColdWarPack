@@ -73,7 +73,7 @@ The cassette composer builds armour packages layer by layer and shows how well t
 
 <!-- SCREENSHOT: oscillating-turret.png (a tank with the oscillating turret) -->
 <!-- SCREENSHOT: hydropneumatic.png (a tank raised and lowered, or the settings in the designer) -->
-<!-- SCREENSHOT: engines.png (an engine from Engine Expansion in the designer) -->
+![Render of the V12 MTU-style engine and Renk-style gearbox powerpack with casing](docs/img/powerpack-v12-renk.png)
 <!-- SCREENSHOT: smoke-launchers.png (a tank with the smoke launcher bank) -->
 
 ### Mast, hinge and signals

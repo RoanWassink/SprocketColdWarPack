@@ -20,7 +20,8 @@ Version 0.7.3. It needs no other mod.
 2. Open the engine type dropdown and pick Diesel or Gas turbine. Types that are too early for the date of your tank are greyed out and labelled.
 <!-- SCREENSHOT: engine-type-dropdown.png (the engine inspector with the engine type dropdown open) -->
 3. To fit engine and gearbox as one block, tick Powerpack on the engine. The gearbox moves against the engine. One undo step takes the change back, and unticking the box restores a normal shaft.
-<!-- SCREENSHOT: powerpack-single.png (a Powerpack with a single gearbox, seen from the side) -->
+
+![Render of the V12 MTU-style engine and Renk-style gearbox powerpack with casing](../../docs/img/powerpack-v12-renk.png)
 <!-- SCREENSHOT: powerpack-twin.png (a Powerpack with the twin layout) -->
 4. Save the tank as usual. The choice is stored in the blueprint.
 
