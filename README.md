@@ -76,13 +76,20 @@ The cassette composer builds armour packages layer by layer and shows how well t
 ![Render of the V12 MTU-style engine and Renk-style gearbox powerpack with casing](docs/img/powerpack-v12-renk.png)
 <!-- SCREENSHOT: smoke-launchers.png (a tank with the smoke launcher bank) -->
 
+### Camo nets, mudflaps & hinged skirts: Floppy Parts
+
+Turn any plate structure into **camo nets, canvas tarps, rubber mudflaps, or hinged side skirts** that actually move when you drive and fight. Pick a material in the **Floppy Parts** section of the Plate Structure inspector, choose how it moves, and let the tank bring it to life:
+
+- **Cloth, rubber, and hinged motion.** Drape camo netting over a turret or barrel, flex thick rubber mudflaps and side skirts over bumps, or let hinged armour plates swing under gravity (carrying anything attached to them).
+- **Reacts to the world.** Plates respond to vehicle movement, wind, nearby muzzle blasts, and engine/vent airflow.
+- **Custom looks & pinning.** Choose from Canvas, Camo Net (with alpha cutout and shadows), Rubber, Wood, Glass, or your own PNG textures—with automatic anchor pinning to nearby hull/turret parts or manual edge pinning.
+
 ### Mast, hinge and signals
 
 - **Telescopic Mast.** A mast that slides out and back, a hinge (for openable hatches, or a flap that opens when the gun fires) and a turntable.
 - **I/O editor.** Connect events such as "gun fired", "brake pressed" or a key to parts on your tank with simple building blocks. Other mods in the pack plug into it.
 - **Emitter.** Throws things out of your tank on a signal, for example spent shell casings when the gun fires.
 - **Cupolas.** Detailed commander's cupolas (T-90A, T-80BVM, Abrams, Challenger, and Leopard) plus a T-90A driver's hatch.
-- **Floppy Parts.** Visual plate materials (canvas, camo net, rubber, wood, glass, custom textures) and live cloth, rubber, and hinged plate simulation that reacts to gravity, wind, muzzle blast, and engine airflow.
 - **Visual Effects.** Working lamps: lamp parts in any colour that really light up, and that you switch on and off from the I/O editor (for example a brake light). Also muzzle blast and smoke.
 
 ![Mast, hinge, turntable, emitter and cupola](docs/img/mast-hinge-rotator-emitter-cupola.png)
