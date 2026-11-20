@@ -2,6 +2,8 @@
 
 Plate Destruction lets armour plates and applique panels take visible and structural battle damage in Sprocket. Plates can dent, tear open, punch blast holes, or break off completely under heavy HE, HESH, HEAT, and blast hits.
 
+![Front hull armour torn open by blast damage, exposing the driver inside](../../docs/img/plate-destruction-hull-breach.jpg)
+
 - Version: 0.8.3
 - Plugin GUID: `nero.sprocket.platedestruction.p0`
 - Needs: no other mod
@@ -13,6 +15,12 @@ Plate Destruction lets armour plates and applique panels take visible and struct
 - **Visible dents, holes, and torn edges.** High-explosive, HESH, and blast impacts dent plates inward, punch holes through damaged cells, and build solid steel rim walls along torn edges.
 - **Per-side mirrored damage.** Mirrored plates (such as left and right side skirts) break independently on the side that was hit, and the broken side is excluded from armour calculations.
 - **Inter-plate occlusion and surface-normal blast direction.** Intact outer plates shield plates behind them, and contact blasts push inward along the surface normal.
+
+![Blast holes punched through an armour plate with glowing hot rims and fire](../../docs/img/plate-destruction-plate-holes.jpg)
+
+![Deep blast dents and penetration craters on a sloped hull plate](../../docs/img/plate-destruction-hull-dents.jpg)
+
+![Side skirt blown open on a burning tank, exposing the roadwheels](../../docs/img/plate-destruction-skirt-blown.jpg)
 
 ## How to use it
 

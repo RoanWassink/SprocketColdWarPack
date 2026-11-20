@@ -10,6 +10,18 @@ The mods work on their own, but they are made to be installed together as one pa
 
 ## What is in the pack
 
+### Destructible armour: Plate Destruction
+
+Armour plates, side skirts, and applique panels take real, visible battle damage instead of staying pristine. Heavy HE, HESH, HEAT, and blast hits dent thick steel inward, punch glowing holes clean through plates, and tear open hulls and side skirts — exposing the crew and internals underneath and letting follow-up shots pass straight through the breach.
+
+- **Local thickness & solid torn edges:** damage is calculated per cell from the plate's actual thickness, with solid steel rim walls along tears and holes.
+- **Mirrored sides break independently:** losing your right side skirt leaves the left side intact, and destroyed sections are removed from the armour calculation.
+- **Inter-plate shielding:** intact outer plates protect the hull or composite blocks behind them until they are breached.
+
+![Front hull armour torn open by blast damage, exposing the driver inside](docs/img/plate-destruction-hull-breach.jpg)
+
+![Blast holes punched through an armour plate with glowing hot rims and fire](docs/img/plate-destruction-plate-holes.jpg)
+
 ### Armour and ammunition: Expanded Ballistics
 
 The biggest mod in the pack. It changes how shells and armour work, so the way you build a tank starts to matter.
