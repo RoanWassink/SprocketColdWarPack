@@ -2,6 +2,7 @@ using System.Globalization;
 namespace SprocketUiKit;
 
 /// <summary>How a line series is drawn (0.1.7): a straight line, a staircase or separate points.</summary>
+/// <summary>Points UI data and behavior.</summary>
 public enum SeriesStyle { Line, Step, Points }
 
 /// <summary>One data point of a chart series, in the same units as the chart axes.</summary>

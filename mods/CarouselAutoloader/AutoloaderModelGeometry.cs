@@ -10,7 +10,8 @@ public enum ModelKind { Bustle, Revolver }
 // metres (bounds centre); NaN when unknown, then the arm keeps the 0.2.23 MirrorFeedArm outlet.
 public record Spec(string Name, ModelKind Kind, double X, double Y, double Z, double Caliber, double Projectile,
     double Charge, int Capacity, bool Mirror = false, bool TwoPiece = false,
-    double LoadX = double.NaN, double LoadY = double.NaN, double LoadZ = double.NaN);
+    double LoadX = double.NaN, double LoadY = double.NaN, double LoadZ = double.NaN,
+    Vector3 Spacing = default, Vector3 MinPadding = default, Vector3 MaxPadding = default);
 
 public enum PartRole { Round, Frame, Drum, Arm }
 
@@ -126,7 +127,7 @@ public static class AutoloaderModelGeometry
     static void Quad(MeshPart m, Vector3 a, Vector3 b, Vector3 c, Vector3 d, Vector3 outward, int material)
     { Tri(m, a, b, c, outward, material); Tri(m, a, c, d, outward, material); }
 
-    static void Box(MeshPart m, double x0, double y0, double z0, double x1, double y1, double z1, int material)
+    internal static void Box(MeshPart m, double x0, double y0, double z0, double x1, double y1, double z1, int material)
     {
         if (x1 < x0) (x0, x1) = (x1, x0);
         if (y1 < y0) (y0, y1) = (y1, y0);
@@ -166,7 +167,7 @@ public static class AutoloaderModelGeometry
 
     // OpenSCAD unit part, mapped into place. Normals are recomputed after the mapping from the
     // shared vertices (the converter keeps creases as separate vertices).
-    static void Place(MeshPart m, UnitMesh unit, Func<Vector3, Vector3> map, bool mirrored, Func<Vector3, int> material)
+    internal static void Place(MeshPart m, UnitMesh unit, Func<Vector3, Vector3> map, bool mirrored, Func<Vector3, int> material)
     {
         int count = unit.Positions.Length / 3, first = m.Vertices.Count / 3;
         var source = new Vector3[count];
@@ -212,7 +213,7 @@ public static class AutoloaderModelGeometry
     }
 
     // Complete round at true size: diameter d, overall length len, case (charge) length charge.
-    static void Round(LoaderModel m, UnitMesh unit, int slot, double x, double y, double zBase, double d, double charge, double len)
+    internal static void Round(LoaderModel m, UnitMesh unit, int slot, double x, double y, double zBase, double d, double charge, double len)
     {
         var part = New(m, "Granaat " + slot, PartRole.Round, slot);
         double c0 = CaseZone, top = CaseZone + ProjectileZone;
@@ -318,10 +319,9 @@ public static class AutoloaderModelGeometry
     {
         var s = m.Spec;
         int dMm = (int)Math.Ceiling(s.Caliber), cellMm = FeedArmGeometry.CellMm(s);
-        var g = BustleLayout.Of(s.X, s.Y, s.Z, dMm, cellMm);
-        int wMm = Mm(s.X), hMm = Mm(s.Y), lMm = Mm(s.Z);
+        var g = BustleLayout.Of(s.X, s.Y, s.Z, dMm, cellMm, s.Spacing, s.MinPadding, s.MaxPadding);
         m.Columns = g.Columns; m.Layers = g.Layers; m.Rows = g.Rows;
-        int places = RackPacking.NativeCapacity(wMm, hMm, lMm, dMm, cellMm);
+        int places = g.Places;
         m.Pieces = s.TwoPiece ? places : 0;
         m.LayoutSlots = s.TwoPiece ? TwoPiecePolicy.Shots(places) : places;
         double d = dMm / 1000.0, cell = cellMm / 1000.0, charge = Math.Min(s.Charge / 1000, cell);
@@ -341,7 +341,7 @@ public static class AutoloaderModelGeometry
                 for (int k = 0; k < cols; k++)
                 {
                     int col = fromRight ? cols - 1 - k : k;
-                    list.Add((g.ColumnX(col), g.LayerY(layer), z0 + (row + 1) * cell));
+                    list.Add((g.ColumnX(col), g.LayerY(layer), z0 + row * g.PitchZ + cell));
                 }
         m.Slots = Fill(m, detail, list, s.Capacity, d, cell, charge);
 

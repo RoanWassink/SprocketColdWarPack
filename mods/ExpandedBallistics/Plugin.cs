@@ -6,7 +6,7 @@ using Il2CppInterop.Runtime;
 using UnityEngine.Events;
 using SprocketUiKit;
 namespace SprocketExpandedBallistics;
-[BepInPlugin("sprocket.expandedballistics", "Sprocket Expanded Ballistics", "0.22.77")]
+[BepInPlugin("sprocket.expandedballistics", "Sprocket Expanded Ballistics", "0.22.99")]
 [BepInDependency("sprocket.jsoneditor", ">=0.1.5 <0.2.0")]
 [BepInDependency(UiKit.PluginGuid, ">=0.1.7 <0.2.0")]
 [BepInDependency("sprocket.keybinds", BepInDependency.DependencyFlags.SoftDependency)]
@@ -19,7 +19,7 @@ public sealed class Plugin : BasePlugin
     {
         var enabled=RuntimeArmourResponses.Configure();
         const string owner="sprocket.expandedballistics.armourresponses";
-        if(enabled&&!Harmony.HasAnyPatches(owner))new Harmony(owner).PatchAll(typeof(RuntimeArmourResponses));
+        if(enabled&&GameBuildGate.AllowHotPath&&!Harmony.HasAnyPatches(owner))new Harmony(owner).PatchAll(typeof(RuntimeArmourResponses));
         if(SprocketExpandedBallistics.Materials.MaterialFeature.Ready)SprocketExpandedBallistics.Materials.ResponseUi.Reload();
     }
     public override void Load()
@@ -28,8 +28,10 @@ public sealed class Plugin : BasePlugin
         // 0.22.23: the Kit table and charts exist from UI Kit 0.1.6/0.1.7; with an older Kit the plugin refuses to load, with a clear line.
         var kitVersion=typeof(UiKit).Assembly.GetName().Version?.ToString(3);
         if(!KitVersionGate.Supported(kitVersion)){Log.LogError(KitVersionGate.Message(kitVersion));return;}
+        GameBuildGate.Configure(Config,Log);
         RuntimeGroupedProtection.Configure(Config);
         RuntimeCompositePlate.Configure(Config);
+        RuntimeSolidCollider.Configure(Config);
         SprocketExpandedBallistics.Materials.MaterialEditorPanel.Configure(Config);
         RuntimeCassettePlateVisual.Configure(Config);
         CompositeModule.Load(BepInEx.Paths.ConfigPath);
@@ -37,8 +39,8 @@ public sealed class Plugin : BasePlugin
         var trajectoryOwner=new Harmony("sprocket.expandedballistics.original-trajectory");
         try
         {
-            RuntimeOriginalTrajectory.Install(trajectoryOwner);
-            Log.LogInfo("HEAT/APFSDS coherent perforation paths loaded; native ricochets and stops retained.");
+            if(RuntimeOriginalTrajectory.Install(trajectoryOwner))
+                Log.LogInfo("HEAT/APFSDS coherent perforation paths loaded; native ricochets and stops retained.");
         }
         catch(Exception ex)
         {
@@ -53,16 +55,18 @@ public sealed class Plugin : BasePlugin
         catch(Exception ex){Log.LogWarning("Plate stack editor unavailable: "+ex.Message);}
         try{new Harmony("sprocket.expandedballistics.cassette.missing-preset").PatchAll(typeof(RuntimeMissingCassette));}
         catch(Exception ex){new Harmony("sprocket.expandedballistics.cassette.missing-preset").UnpatchSelf();Log.LogWarning("Missing user cassette recovery unavailable: "+ex.Message);}
-        try{new Harmony("sprocket.expandedballistics.cassette.hit-geometry").PatchAll(typeof(NativeCassetteGeometry));}
+        if(GameBuildGate.AllowHotPath)try{new Harmony("sprocket.expandedballistics.cassette.hit-geometry").PatchAll(typeof(NativeCassetteGeometry));}
         catch(Exception ex){new Harmony("sprocket.expandedballistics.cassette.hit-geometry").UnpatchSelf();NativeCassetteGeometry.Clear();Log.LogWarning("Cassette face geometry unavailable: "+ex.Message);}
         try{new Harmony("sprocket.expandedballistics.cassette.live-technology").PatchAll(typeof(RuntimeLiveTechnology));RuntimeLiveTechnology.Patched=true;}
         catch(Exception ex){new Harmony("sprocket.expandedballistics.cassette.live-technology").UnpatchSelf();RuntimeLiveTechnology.Patched=false;Log.LogWarning("Live cassette technology for Play unavailable; a newly saved cassette needs a restart: "+ex.Message);}
-        try{new Harmony("sprocket.expandedballistics.designer.composite-plate").PatchAll(typeof(RuntimeCompositePlate));}
+        if(GameBuildGate.AllowHotPath)try{new Harmony("sprocket.expandedballistics.designer.composite-plate").PatchAll(typeof(RuntimeCompositePlate));}
         catch(Exception ex){new Harmony("sprocket.expandedballistics.designer.composite-plate").UnpatchSelf();Log.LogWarning("Composite plate inspector unavailable: "+ex.Message);}
-        try{new Harmony("sprocket.expandedballistics.designer.cassette-visual").PatchAll(typeof(RuntimeCassettePlateVisual));}
+        if(GameBuildGate.AllowHotPath)try{new Harmony("sprocket.expandedballistics.designer.cassette-visual").PatchAll(typeof(RuntimeCassettePlateVisual));}
         catch(Exception ex){new Harmony("sprocket.expandedballistics.designer.cassette-visual").UnpatchSelf();RuntimeCassettePlateVisual.Clear();Log.LogWarning("Cassette visual unavailable: "+ex.Message);}
+        if(GameBuildGate.AllowHotPath)try{new Harmony("sprocket.expandedballistics.solid-collider").PatchAll(typeof(RuntimeSolidCollider));}
+        catch(Exception ex){new Harmony("sprocket.expandedballistics.solid-collider").UnpatchSelf();RuntimeSolidCollider.Clear();Log.LogWarning("Solid block native collider unavailable; thin-shell cavity fallback retained: "+ex.Message);}
     }
-    public override bool Unload(){try{SprocketExpandedBallistics.Materials.MaterialEditorPanel.Clear();new Harmony("sprocket.expandedballistics.cassette.missing-preset").UnpatchSelf();RuntimeMissingCassette.Clear();new Harmony("sprocket.expandedballistics.cassette.hit-geometry").UnpatchSelf();NativeCassetteGeometry.Clear();new Harmony("sprocket.expandedballistics.designer.cassette-visual").UnpatchSelf();RuntimeCassettePlateVisual.Clear();new Harmony("sprocket.expandedballistics.designer.composite-plate").UnpatchSelf();RuntimeCompositePlate.Clear();new Harmony("sprocket.expandedballistics.cassette.live-technology").UnpatchSelf();RuntimeLiveTechnology.Clear();new Harmony("sprocket.expandedballistics.original-trajectory").UnpatchSelf();RuntimeOriginalTrajectory.Clear();new Harmony("sprocket.expandedballistics.designer.plate-stack").UnpatchSelf();RuntimePlateStackUi.Clear();new Harmony("sprocket.expandedballistics.designer.independent-structure").UnpatchSelf();RuntimeIndependentStructureUi.Clear();SprocketExpandedBallistics.Materials.MaterialFeature.Unload();}finally{try{RuntimeCassettePlateVisual.Clear();}finally{ShellFeature.Unload();}}return base.Unload();}
+    public override bool Unload(){try{new Harmony("sprocket.expandedballistics.solid-collider").UnpatchSelf();RuntimeSolidCollider.Clear();SprocketExpandedBallistics.Materials.MaterialEditorPanel.Clear();new Harmony("sprocket.expandedballistics.cassette.missing-preset").UnpatchSelf();RuntimeMissingCassette.Clear();new Harmony("sprocket.expandedballistics.cassette.hit-geometry").UnpatchSelf();NativeCassetteGeometry.Clear();new Harmony("sprocket.expandedballistics.designer.cassette-visual").UnpatchSelf();RuntimeCassettePlateVisual.Clear();new Harmony("sprocket.expandedballistics.designer.composite-plate").UnpatchSelf();RuntimeCompositePlate.Clear();new Harmony("sprocket.expandedballistics.cassette.live-technology").UnpatchSelf();RuntimeLiveTechnology.Clear();new Harmony("sprocket.expandedballistics.original-trajectory").UnpatchSelf();RuntimeOriginalTrajectory.Clear();new Harmony("sprocket.expandedballistics.designer.plate-stack").UnpatchSelf();RuntimePlateStackUi.Clear();new Harmony("sprocket.expandedballistics.designer.independent-structure").UnpatchSelf();RuntimeIndependentStructureUi.Clear();SprocketExpandedBallistics.Materials.MaterialFeature.Unload();}finally{try{RuntimeCassettePlateVisual.Clear();}finally{ShellFeature.Unload();}}return base.Unload();}
 }
 internal static class Ui
 {

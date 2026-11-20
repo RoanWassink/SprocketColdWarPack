@@ -21,7 +21,7 @@ internal static class RuntimeComposerFill
         FollowWallDump.TryWrite(Path.Combine(BepInEx.Paths.ConfigPath,"sprocket.expandedballistics.layer-overlay"),plate.VUID.Value,attempt,m=>Plugin.ModLog.LogWarning(m));
     }
 
-    internal static PreparedComposerFill Prepare(PlateStructureEditor editor,ComposerMeshAction action,double? offsetMm=null,CheekShellRequest? shell=null,string? newMaterial=null,bool convert=false,bool diagnosticApply=false)
+    internal static PreparedComposerFill Prepare(PlateStructureEditor editor,ComposerMeshAction action,double? offsetMm=null,CheekShellRequest? shell=null,string? newMaterial=null,bool convert=false,bool diagnosticApply=false,double? layerDepthMm=null)
     {
         if(!Designer||editor==null||!editor.IsValid())throw new InvalidOperationException("Composer mesh actions are available in the designer only.");
         var plate=editor.Component;
@@ -76,7 +76,7 @@ internal static class RuntimeComposerFill
             if(selected==null&&savedFront is {} stored&&stored.Front.Length==ComposerFill.Read(json,true).FaceCount)selected=stored.Front;
             try
             {
-            try{layers=LayerFaces.Convert(json,layerRecipe,RuntimeLayerFaces.MaterialLabel,id=>{var d=RuntimeLayerFaces.Density(id);return double.IsFinite(d)?d:layerRecipe.Passive.Density;},RuntimeLayerFaces.Forward(plate),RuntimeCompositePlate.LayerWallMm,RuntimeLayerFaces.Centre(plate),selected);}
+            try{layers=LayerFaces.Convert(json,layerRecipe,RuntimeLayerFaces.MaterialLabel,id=>{var d=RuntimeLayerFaces.Density(id);return double.IsFinite(d)?d:layerRecipe.Passive.Density;},RuntimeLayerFaces.Forward(plate),RuntimeCompositePlate.LayerWallMm,RuntimeLayerFaces.Centre(plate),selected,layerDepthMm);}
             catch(InvalidOperationException){throw;}
             catch(Exception unexpected){Plugin.ModLog.LogWarning("[Layer faces] Convert to layers could not read the plate: "+unexpected);throw new InvalidOperationException("Convert to layers could not read this plate. Nothing changed.");}
             }
@@ -326,7 +326,9 @@ internal static class RuntimeLayerFaces
     {
         try
         {
+            NativeMaterialReactions.SolidMarkBuilt(plate); // 0.22.79: the [Solid block] mark is noted here, at build (never during a hit); it never throws and changes nothing below
             if(plate==null||!plate.HasMesh||!CompositePlate.IsCassette(plate.armourTechID))return;
+            if(SolidMarks.Answer(plate.Pointer.ToInt64(),out _,out _) is var solid&&solid!=SolidMarkAnswer.Unmarked&&WeighSolid(plate,solid==SolidMarkAnswer.Marked))return; // 0.22.82 solid
             if(CompositePlate.LayoutFromName(MeshName(plate)) is not {} kind)return;
             if(TryWeigh(plate,kind))return;
             var pointer=plate.Pointer;if(!weighing.Add(pointer))return;
@@ -363,6 +365,63 @@ internal static class RuntimeLayerFaces
         if(ReleaseDiagnostics.Enabled)Plugin.ModLog.LogInfo(string.Create(System.Globalization.CultureInfo.InvariantCulture,$"[Layer faces] plate #{plate.VUID.Value}: density {model.Passive.Density:0.#} -> {density:0.#} kg/m3 ({weight.VolumeM3:0.####} m3 of faces), mass {mass:0.#} kg from the armour volume {volume:0.####} m3."));
         return true;
     }
+    // ---- 0.22.82 solid weight (begin) ----
+    // A plate marked [Solid block] weighs its closed volume x the density of its recipe over the nominal depth (air included), from the same Build postfix and after
+    // every Build: only SetMass (with cachedMass, as Build itself), the centre of mass and the cost are written; armourDensity keeps the value of the game (the hit
+    // reads its density elsewhere, and the mod's own UI compares armourDensity). The mark comes from SolidMarks (noted by SolidMarkBuilt just before); when it is still
+    // unknown in the designer (gate busy at Build), one deferred check reads the name once the gate is free. A marked plate that is not closed keeps the game's weight.
+    private static readonly HashSet<IntPtr> solidWeighing=new();
+    private static readonly Dictionary<IntPtr,float> solidLogged=new();
+    private static int solidWarnings,solidLines;
+    /// <summary>True when the plate is handled here (marked: weighed now or later); false for an unknown mark, which goes on as before after a deferred check is queued.</summary>
+    private static bool WeighSolid(PlateStructure plate,bool marked)
+    {
+        if(!marked)
+        {
+            if(!RuntimeComposerFill.Designer)return false;
+            var waiting=plate.Pointer;if(!solidWeighing.Add(waiting))return false;
+            PlateMeshDeferred.WhenReady("solid weight check",()=>!PlateMeshAccess.Gate.Busy,()=>{solidWeighing.Remove(waiting);try{if(plate!=null&&plate.Pointer==waiting&&plate.HasMesh&&CompositePlate.IsCassette(plate.armourTechID)&&CompositePlate.IsSolidBlock(MeshName(plate,true)))TryWeighSolid(plate);}catch(Exception ex){SolidWarn(ex);}},10f);
+            return false;
+        }
+        if(TryWeighSolid(plate))return true;
+        var pointer=plate.Pointer;if(!solidWeighing.Add(pointer))return true;
+        PlateMeshDeferred.WhenReady("solid weight",()=>!PlateMeshAccess.Gate.Busy,()=>{solidWeighing.Remove(pointer);try{if(plate!=null&&plate.Pointer==pointer&&plate.HasMesh)TryWeighSolid(plate);}catch(Exception ex){SolidWarn(ex);}},10f);
+        return true;
+    }
+    private static void SolidWarn(Exception ex){if(solidWarnings++<4)Plugin.ModLog.LogWarning("[Solid block] Weight of a solid block unavailable; the plate keeps the weight of the game: "+ex.Message);}
+    /// <summary>False: the mesh cannot be read now (try again when the gate is free).</summary>
+    private static bool TryWeighSolid(PlateStructure plate)
+    {
+        try
+        {
+            var snap=RuntimeArmourResponses.Snapshot;
+            if(snap.Cassettes?.TryGetValue(plate.armourTechID,out var model)!=true||model==null)return true;
+            var designer=RuntimeComposerFill.Designer;
+            if(designer&&PlateMeshAccess.Gate.Busy)return false;
+            var snapshot=designer?PlateMeshAccess.Read(plate,"solid weight",SnapshotUse.Fresh):PlateMeshAccess.ReadUngated(plate.Mesh,out _);
+            if(snapshot==null)return false;
+            var shape=SolidShape.FromJson(plate.Mesh.ToJson(true));
+            if(!shape.Closed)
+            {
+                if(solidWarnings++<4)Plugin.ModLog.LogWarning("[Solid block] plate #"+plate.VUID.Value+" is marked but not closed; it keeps the weight of the game (its skins). "+shape.Refusal);
+                return true;
+            }
+            var mass=(float)SolidBlockApply.MassKg(shape.VolumeM3,model.Passive.Density);
+            if(!float.IsFinite(mass)||mass<=0)return true;
+            plate.SetMass(mass,Sprocket.Vehicles.MassType.Armour);plate.cachedMass=plate.GetMass(Sprocket.Vehicles.MassType.Everything);plate.RecalculateCenterOfMass();
+            if(SprocketExpandedBallistics.Materials.MaterialBalance.TryMaterialCost(mass,plate.armourCostMultiplier,Sprocket.Constants.CostPerKgOfArmour,out var cost))
+                plate.SetCost(cost,Sprocket.Vehicles.MassType.Armour,Sprocket.Vehicles.CostType.Material);
+            // one line per plate and mass, at most 32 per session: the evidence of the weight in the game log
+            if(solidLines<32&&(!solidLogged.TryGetValue(plate.Pointer,out var last)||last!=mass))
+            {
+                solidLines++;if(solidLogged.Count>256)solidLogged.Clear();solidLogged[plate.Pointer]=mass;
+                Plugin.ModLog.LogInfo(string.Create(System.Globalization.CultureInfo.InvariantCulture,$"[Solid block] weight: plate #{plate.VUID.Value}: {shape.Pieces} closed pieces, {shape.VolumeM3:0.######} m3 x {model.Passive.Density:0.#} kg/m3 = {mass:0.#} kg ({(designer?"designer":"outside the designer")}); armourDensity stays {plate.armourDensity:0.#} kg/m3."));
+            }
+            return true;
+        }
+        catch(Exception ex){SolidWarn(ex);return true;}
+    }
+    // ---- 0.22.82 solid weight (end) ----
 
     // ---------------- 0.22.61: the overlay of a plate in layers ----------------
     /// <summary>The native overlay copy re-mapped per face (LayerOverlay); null for every plate that is not in layers (its overlay stays as it was).</summary>
@@ -370,6 +429,7 @@ internal static class RuntimeLayerFaces
     {
         try
         {
+            if(SolidOverlay(plate,data) is {} solid)return solid; // 0.22.83 solid overlay
             if(CompositePlate.LayoutFromName(MeshName(plate)) is not {} kind)return null;
             if(RuntimeArmourResponses.Snapshot.Cassettes?.TryGetValue(plate.armourTechID,out var model)!=true||model==null)return null;
             var snapshot=PlateMeshAccess.Read(plate,"layer overlay",SnapshotUse.Fresh);if(snapshot==null)return null;
@@ -382,6 +442,38 @@ internal static class RuntimeLayerFaces
         }
         catch(Exception ex){if(weightWarnings++<4)Plugin.ModLog.LogWarning("[Layer faces] Layer overlay unavailable; the whole recipe is shown: "+ex.Message);return null;}
     }
+    // ---- 0.22.83 solid overlay (begin) ----
+    // A plate marked [Solid block] shows itself in the layer view as one dense block in the colour of its recipe (the band of the thickest solid material), shaded by the
+    // native normals; the triangles off the drawn surface (the inside of the skin, and a skin outside a face that winds the other way) get zero area (SolidBlockOverlay). Null for every plate without the mark (it goes on
+    // exactly as before), and null when the mesh cannot be read now (the overlay is retried as for any plate) or on an error (the whole recipe is shown, as before).
+    // 0.22.84: the layers of the recipe as bands from front to back along the front of the vehicle (SolidBlockOverlay.ApplyBands, d per point, once per rebuild: this
+    // method only runs when the overlay signature changed); when the bands cannot be made, the one colour of 0.22.83 and the reason in the one log line of the plate.
+    private static readonly Dictionary<IntPtr,string> solidOverlayLogged=new();
+    private static int solidOverlayWarnings;
+    private static OverlayCopy? SolidOverlay(PlateStructure plate,OverlayCopy data)
+    {
+        if(!CompositePlate.IsSolidBlock(MeshName(plate)))return null;
+        try
+        {
+            CassetteModel? model=null;RuntimeArmourResponses.Snapshot.Cassettes?.TryGetValue(plate.armourTechID,out model);
+            // the view is cached on its signature (which holds the mark), so a mesh that cannot be read now still gets the colour; only the inside test needs the mesh
+            var json=PlateMeshAccess.Read(plate,"solid overlay",SnapshotUse.Fresh)!=null?plate.Mesh.ToJson(true):null;
+            var report=new SolidBlockOverlay.Report();
+            NVector? forward=null;try{forward=Forward(plate);}catch(Exception){} // no front direction: the one colour of 0.22.83
+            var result=SolidBlockOverlay.ApplyBands(data,json,model?.Preset,forward,report);
+            var state=string.Create(System.Globalization.CultureInfo.InvariantCulture,$"{report.Hidden}|{report.Bands}|{report.BandRefusal}");
+            if(solidOverlayLogged.Count<32&&(!solidOverlayLogged.TryGetValue(plate.Pointer,out var logged)||logged!=state))
+            {
+                solidOverlayLogged[plate.Pointer]=state;
+                var look=report.Bands?string.Create(System.Globalization.CultureInfo.InvariantCulture,$"the recipe as bands from front to back ({report.BandPoints} points, {report.BandNeighbour} from the nearest point, {report.BandPieces} piece(s), {report.BandMs:0.#} ms)")
+                    :string.Create(System.Globalization.CultureInfo.InvariantCulture,$"in the colour of {report.Material} (depth {report.Depth:0.###}; no bands: {report.BandRefusal})");
+                Plugin.ModLog.LogInfo(string.Create(System.Globalization.CultureInfo.InvariantCulture,$"[Solid block] overlay: plate #{plate.VUID.Value}: {report.Triangles} triangles {look}, {report.Hidden} off the drawn surface not drawn ({report.Inside} inside the shape, {report.Outside} outside){(report.Closed?".":"; every triangle drawn: "+report.Refusal)}"));
+            }
+            return result;
+        }
+        catch(Exception ex){if(solidOverlayWarnings++<4)Plugin.ModLog.LogWarning("[Solid block] Solid overlay unavailable; the whole recipe is shown: "+ex.Message);return null;}
+    }
+    // ---- 0.22.83 solid overlay (end) ----
     /// <summary>0.22.68: one file per plate in layers, overwritten each time the overlay is built; a failure to write is a line in the log and nothing else.</summary>
     private static void WriteDump(PlateStructure plate,string json,LayerMesh mesh,IReadOnlyList<int> ranks,LayerLayout layout,OverlayCopy data,LayerOverlay.OverlayReport? report,string look,string recipe)
     {

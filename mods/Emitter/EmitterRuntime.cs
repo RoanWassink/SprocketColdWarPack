@@ -41,7 +41,9 @@ public sealed class EmitterRuntime:MonoBehaviour
     private Mesh? arrow;
     private Material? brass,steel;
     private Visual[] visuals=Array.Empty<Visual>();
-    private bool ready,disposed,playingLast,invalidWarned;
+    private bool ready,disposed,playingLast,invalidWarned,nativeMaterialWarned;
+    private static readonly EjectLogBudget ejectLog=new();
+    private static bool followWarned;
     private float scanAt,harvestAt;
     private int scene=int.MinValue,logs,errors;
     private readonly System.Random random=new(9173);
@@ -71,7 +73,7 @@ public sealed class EmitterRuntime:MonoBehaviour
         try {
             if(disposed||go==null)return;var model=go.GetComponent<VehicleObjectModel>();if(model==null)return;
             if(!parts.TryGetValue(model.Pointer,out var p))return;
-            p.Settings=Read(p);Trace($"settings part={model.Pointer} item={p.Settings.Item} speed={p.Settings.Speed} count={p.Settings.Count} continuous={p.Settings.Continuous}");
+            p.Settings=Read(p);
         }catch(Exception e){Fail(e);}
     }
     public void Start() {
@@ -95,7 +97,7 @@ public sealed class EmitterRuntime:MonoBehaviour
         var m=new Material(shader){name="Emitter own material",hideFlags=HideFlags.HideAndDontSave};
         m.SetColor("_UnlitColor",color);m.SetColor("_EmissiveColor",Color.black);return m;
     }
-    internal static void Configure(MeshRenderer r){r.shadowCastingMode=ShadowCastingMode.Off;r.receiveShadows=false;r.lightProbeUsage=LightProbeUsage.Off;r.reflectionProbeUsage=ReflectionProbeUsage.Off;r.motionVectorGenerationMode=MotionVectorGenerationMode.ForceNoMotion;}
+    internal static void Configure(MeshRenderer r,bool native=false){r.shadowCastingMode=ShadowCastingMode.Off;r.receiveShadows=native;r.lightProbeUsage=native?LightProbeUsage.BlendProbes:LightProbeUsage.Off;r.reflectionProbeUsage=native?ReflectionProbeUsage.BlendProbes:ReflectionProbeUsage.Off;r.motionVectorGenerationMode=MotionVectorGenerationMode.ForceNoMotion;}
     // Revision 2: Mast stores the normalized schema object; apply the same fixed defaults and limits.
     // Below revision 2 there is no settings UI and the cfg [Defaults] apply.
     [HideFromIl2Cpp] private Settings Read(Part p)=>IoApiClient.Revision2Available?Settings.Parse(IoApiClient.GetPartData(p.Model.gameObject,DataKey),Settings.Fixed,()=>{if(!invalidWarned){invalidWarned=true;Plugin.Instance.Log.LogWarning("[EMITTER] invalid setting; default used (once per session).");}}):Plugin.Instance.Defaults;
@@ -143,19 +145,42 @@ public sealed class EmitterRuntime:MonoBehaviour
         if(MathF.Abs(unit-1)<1e-3f){try{float z=MathF.Abs(p.Model.ModelScale.z);if(float.IsFinite(z)&&z>.01f)length=Math.Clamp(z,.1f,10);}catch{}}
         if(!p.OutletLogged){p.OutletLogged=true;Trace($"outlet part={p.Model.Pointer} nodeScale={unit:F3} used={length:F3} arrow={ArrowLength*length:F3}m");}
         var tip=zero+forward*(ArrowLength*length);
-        float diameter=s.Caliber*.001f;var origin=tip+forward*(diameter*.5f+.002f);
-        var item=assets.Get(vehicle,s.Item);if(item==null)return;float factor=Settings.Finite(s.Item=="casing"?Plugin.Instance.CasingLength.Value:Plugin.Instance.ProjectileLength.Value,s.Item=="casing"?6.08f:3,.1f,20);
-        var scale=MeshAssets.Scale(item,diameter,diameter*factor);var direction=Quaternion.LookRotation(forward);
+        var gun=s.FollowCaliber?GunCaliber.Read(vehicle):default;
+        if(s.FollowCaliber&&!gun.Valid&&!followWarned) {
+            followWarned=true;
+            Plugin.Instance.Log.LogWarning("[EMITTER] follow caliber fallback: "+gun.Reason+" (once per session).");
+        }
+        var size=EjectionSize.Resolve(s,gun,s.Item=="casing"?Plugin.Instance.CasingLength.Value:Plugin.Instance.ProjectileLength.Value);
+        float diameter=size.Diameter;var origin=tip+forward*(diameter*.5f+.002f);
+        var item=assets.Get(vehicle,s.Item);if(item==null)return;
+        var scale=MeshAssets.Scale(item,size);var direction=Quaternion.LookRotation(forward);
         var inherited=Vector3.zero;
         if(s.Inherit) {var body=vehicle.Rigidbody;if(body!=null){try{inherited=body.GetPointVelocity(origin);}catch{try{inherited=body.linearVelocity;}catch{}}}}
-        Trace($"throw part={p.Model.Pointer} item={s.Item} count={s.Count} speed={s.Speed}");
+        var material=Plugin.Instance.UseNativeMaterial.Value?MeshAssets.StockMaterial:null;
+        bool native=material!=null;
+        if(!native) {
+            material=s.Item=="casing"?brass:steel;
+            if(Plugin.Instance.UseNativeMaterial.Value&&!nativeMaterialWarned) {
+                nativeMaterialWarned=true;
+                Plugin.Instance.Log.LogWarning("[EMITTER] native rack material unavailable; using own Unlit material (once per session).");
+            }
+        }
         if(meshLogged.Add((vehicle.Pointer,s.Item)))Trace($"mesh item={s.Item} source={item.Source} bounds={item.Size} scale={scale}");
         float life=Math.Min(s.Lifetime,Settings.Finite(Plugin.Instance.MaxLifetime.Value,60,2,60));
         for(int i=0;i<s.Count;i++) {
             var cone=Simulation.Cone(s.Spread,(float)random.NextDouble(),(float)random.NextDouble());
             var spinAxis=Simulation.Cone(180,(float)random.NextDouble(),(float)random.NextDouble());
             int slot=simulation.Spawn(p.Model.Pointer.ToInt64(),Num(origin),Num(direction*Unity(cone)*s.Speed+inherited),Num(direction),spinAxis,s.Spin,diameter*.5f,life);
-            var v=visuals[slot];v.Item=item;v.Scale=scale;v.Filter.sharedMesh=item.Mesh;v.Renderer.sharedMaterial=s.Item=="casing"?brass:steel;v.Root.transform.localScale=scale;v.Root.SetActive(true);
+            var v=visuals[slot];v.Item=item;v.Scale=scale;v.Filter.sharedMesh=item.Mesh;v.Renderer.sharedMaterial=material;Configure(v.Renderer,native);v.Root.transform.localScale=scale;v.Root.SetActive(true);
+        }
+        // Session budget, independent of DetailedLogging and the per-scene Trace budget.
+        switch(ejectLog.Next()) {
+            case EjectLogDecision.Line:
+                Plugin.Instance.Log.LogInfo(FormattableString.Invariant($"[EMITTER] eject item={s.Item} meshSource={item.Source} vertices={item.Mesh.vertexCount} material={material?.name??"null"} shader={material?.shader?.name??"null"} native={(native?"true":"false")} count={s.Count} speed={s.Speed} follow={(s.FollowCaliber?"true":"false")} source={size.Source} caliberMm={size.CaliberMm} propellantMm={size.PropellantMm}"));
+                break;
+            case EjectLogDecision.Suppression:
+                Plugin.Instance.Log.LogInfo("[EMITTER] further eject lines suppressed");
+                break;
         }
     }
     private void Scan() {

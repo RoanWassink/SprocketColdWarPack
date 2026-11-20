@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
     <AssemblyName>SprocketEngineExpansion</AssemblyName><RootNamespace>SprocketEngineExpansion</RootNamespace>
-    <PlatformTarget>x64</PlatformTarget><Version>0.5.0</Version>
+    <PlatformTarget>x64</PlatformTarget><Version>0.7.3</Version>
     <Authors>Nero</Authors><Company>Nero</Company><Copyright>Nero</Copyright><Product>Sprocket Engine Expansion</Product>
     <DebugType>none</DebugType><DebugSymbols>false</DebugSymbols><Deterministic>true</Deterministic>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>

@@ -126,6 +126,8 @@ internal static class EngineEditor
                     }
                     catch(Exception ex){Plugin.Warn("engine type edit",ex);}
                 }),"Diesel: lower revs and earlier torque. Gas turbine: more power and fuel use. Too-early profiles are labelled with their start date.");
+                if(EngineCharacterHooks.Enabled)
+                    ui.InfoField(EngineCharacterRules.Summary(savedKind),2,new Color(.72f,.78f,.82f));
                 foreach(var kind in new[]{EngineKind.Petrol,EngineKind.Diesel,EngineKind.GasTurbine})
                     if(!EngineDates.Allows(vehicleDate,kind))
                         ui.InfoField($"vanaf {EngineDates.For(kind):yyyy-MM-dd}: {kind}",2,new Color(.6f,.6f,.6f));
@@ -148,19 +150,20 @@ internal static class EngineEditor
         var status=context?.Status??PowerpackStatus.NoDirectTransmission;
         bool twin=context?.IsTwin==true;
         string label=allowed?"Powerpack":$"Powerpack (vanaf {EngineDates.PowerpackDate:yyyy-MM-dd})";
-        string tooltip=!PowerpackLayout.Installed?"Powerpack hooks failed to install; see the BepInEx log."
+        string baseReason=!PowerpackLayout.Installed?"Powerpack hooks failed to install; see the BepInEx log."
             :status switch
             {
-                PowerpackStatus.ViaJunction=>"Twin transmission: the engine drives a splitter junction, but it does not feed exactly two mirrored gearboxes. Powerpack is not available for this layout.",
+                PowerpackStatus.ViaJunction=>"Twin transmission: the engine drives a splitter junction, but it does not feed two distinct gearboxes. Powerpack is not available for this layout.",
                 PowerpackStatus.Conflict=>twin
                     ?"This twin layout already uses auto-position or abstracted flags that Powerpack cannot restore exactly; Powerpack leaves it unchanged."
                     :"This transmission or its engine connection already uses native auto-position or abstracted flags; Powerpack leaves it unchanged.",
-                PowerpackStatus.NoDirectTransmission=>"Connect the engine output directly to a transmission (or to a splitter feeding two mirrored transmissions) to use a powerpack.",
-                _ when twin=>$"Twin transmission: both gearboxes sit 1 mm clear of the engine's obstruction collider, one on each side, at the same depth, and the splitter stays between them while following the engine. The housing adds {PowerpackLayout.MassFraction()*100:0.#}% of the engine mass and {PowerpackLayout.CostFraction()*100:0.#}% of its material cost.",
-                _=>$"Engine and transmission as one unit: the transmission sits on the engine output without a driveshaft and follows the engine. The housing adds {PowerpackLayout.MassFraction()*100:0.#}% of the engine mass and {PowerpackLayout.CostFraction()*100:0.#}% of its material cost."
+                PowerpackStatus.NoDirectTransmission=>"Connect the engine output to a transmission (or to a splitter feeding two gearboxes) to use a powerpack.",
+                _ when twin=>$"Twin powerpack as one rigid block: both gearboxes track the engine in position and rotation with flush placement{(PowerpackCollision.Active?" and filtered internal/driveshaft collision":" (1 mm clearance)")}. Housing adds {PowerpackLayout.MassFraction()*100:0.#}% engine mass and {PowerpackLayout.CostFraction()*100:0.#}% material cost.",
+                _=>$"Engine and transmission as one rigid block: the gearbox tracks the engine in position and rotation without a driveshaft{(PowerpackCollision.Active?" and internal/driveshaft collision is filtered":" (1 mm clearance)")}. Housing adds {PowerpackLayout.MassFraction()*100:0.#}% engine mass and {PowerpackLayout.CostFraction()*100:0.#}% material cost."
             };
-        if(context?.Collapse is {} collapse&&collapse.Status!=PowerpackStatus.Ready)tooltip=collapse.Reason;
-        else if(PowerpackLayout.Refusal(engine,context) is {} refusal)tooltip=refusal;
+        if(context?.Collapse is {} collapse&&collapse.Status!=PowerpackStatus.Ready)baseReason=collapse.Reason;
+        string? refusal=PowerpackLayout.Refusal(engine,context);
+        string tooltip=refusal??baseReason;
         if(!allowed)tooltip=$"Date: powerpack requires {EngineDates.PowerpackDate:yyyy-MM-dd}; current date {vehicleDate:yyyy-MM-dd}. "+tooltip;
         // Removing is always possible; adding needs the date and a directly fed transmission or twin pair.
         bool interactable=Selections.Document(bp).Editable&&(saved||(allowed&&PowerpackLayout.Installed&&status==PowerpackStatus.Ready));
@@ -171,10 +174,16 @@ internal static class EngineEditor
             try{PowerpackLayout.Toggle(editor,engine,bp,on);editor.OnRedrawRequested(null!,Il2CppSystem.EventArgs.Empty);}
             catch(Exception ex){Plugin.Warn("powerpack toggle",ex);}
         }),tooltip);
+        if(refusal!=null)
+            ui.InfoField(refusal,2,grey);
+        else if(!interactable&&Selections.Document(bp).Editable)
+            ui.InfoField(!allowed?$"Powerpack needs {EngineDates.PowerpackDate:yyyy-MM-dd} (current {vehicleDate:yyyy-MM-dd}).":baseReason,2,grey);
         if(saved&&!allowed)
             ui.InfoField($"Saved powerpack needs {EngineDates.PowerpackDate:yyyy-MM-dd}; the layout is kept, housing mass and cost are not applied.",2,grey);
         if(saved&&context!=null&&!context.Marked)
             ui.InfoField(twin?"The gearboxes are not mounted as a twin powerpack. Untick and tick again to re-apply.":"The transmission is not mounted as a powerpack. Untick and tick again to re-apply.",2,grey);
+        if(saved&&Plans.EffectiveKind(bp)==EngineKind.GasTurbine&&engine.Blueprint.EngineLayout!=Sprocket.Powertrains.Engines.EngineLayout.V)
+            ui.InfoField("Scaled turbine powerpack mesh applies to V layout.",2,grey);
     }
     [HarmonyPostfix,HarmonyPatch(typeof(EngineProperties),nameof(EngineProperties.SyncDependentValues))]
     private static void Synced(EngineProperties __instance,EngineBlueprint __0)

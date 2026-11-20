@@ -50,8 +50,9 @@ internal static partial class RuntimeAmmoLoadout
     {
         foreach(var key in ChamberVehicles.Where(p=>p.Value==vehicle).Select(p=>p.Key).ToArray()){Chamber.Spend(key);ChamberVehicles.Remove(key);NoDebitProof.Remove(key);CycleBaselines.Remove(key);}
         foreach(var key in EmptyLogged.Keys.Where(k=>k.Vehicle==vehicle).ToArray())EmptyLogged.Remove(key);
+        foreach(var key in SwitchFeedback.Keys.Where(k=>k.Vehicle==vehicle).ToArray())SwitchFeedback.Remove(key);
     }
-    private static void ClearChamber(){Chamber.Reset();ChamberVehicles.Clear();EmptyLogged.Clear();NoDebitProof.Clear();CycleBaselines.Clear();}
+    private static void ClearChamber(){Chamber.Reset();ChamberVehicles.Clear();EmptyLogged.Clear();NoDebitProof.Clear();CycleBaselines.Clear();SwitchFeedback.Clear();}
     private static int? PhysicalStock(Cannon cannon)
     {
         var vehicle=cannon.Vehicle?.Behaviour;

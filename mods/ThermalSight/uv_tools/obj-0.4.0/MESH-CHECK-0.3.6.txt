@@ -1,0 +1,26 @@
+{
+  "triangles": {
+    "paint": 2700,
+    "steel": 914,
+    "dark": 748,
+    "lens": 672
+  },
+  "totalTriangles": 5034,
+  "sourceZeroAreaTrianglesRetained": 24,
+  "positions": 2668,
+  "texcoords": 2060,
+  "normals": 1113,
+  "boundsMin": [
+    -0.186,
+    0.0,
+    -0.345458
+  ],
+  "boundsMax": [
+    0.186,
+    0.273,
+    0.468883
+  ],
+  "sha256": "fcbd892dfd3ce15c418402d8c8f01ddc7201d8b1024b918da03e59e8643818c5",
+  "sourceSha256": "87d66eee547ddef08c85689d2bbeeebb19580ea65d45e8dc25f84729a41e3163",
+  "converterSha256": "26997d855726106a13a2ee4ec53f1bc613585f27abe2ad026bcd452d829d03e0"
+}

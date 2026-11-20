@@ -12,6 +12,7 @@ internal static class RuntimeArmourComparisonFinalInput
     private const string Owner="sprocket.expandedballistics.comparison.finalinput";
     internal static void Install()
     {
+        if(!GameBuildGate.AllowHotPath)return; // 0.22.95 game-build gate: shot/hit-path hooks only on an audited GameAssembly
         try{new Harmony(Owner).PatchAll(typeof(RuntimeArmourComparisonFinalInput));}
         catch(Exception ex){new Harmony(Owner).UnpatchSelf();Plugin.ModLog.LogWarning("[Array comparison] Selected-input check unavailable: "+ex.Message);}
     }

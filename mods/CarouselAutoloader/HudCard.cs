@@ -44,6 +44,14 @@ public sealed class HudCard
     /// <summary>Section label without the two-piece suffix, e.g. "Drum 5/18" (the style shows it in capitals).</summary>
     public string Heading { get; private set; } = "";
     public bool TwoPiece { get; private set; }
+    public bool IsBelt => kind == 2;
+    public string BeltStatus { get; private set; } = "";
+    public string BeltStatusColour { get; private set; } = BeltWarningColour;
+    public string BeltRate { get; private set; } = "";
+    public float BeltFraction { get; private set; }
+    public const string BeltReadyColour = "#8fd99c";
+    public const string BeltRefillColour = "#f3cf86";
+    public const string BeltWarningColour = "#ffcbb3";
 
     /// <summary>On screen: the fire cycle runs, the refill runs, or a "Blocked" reason is inside its window.</summary>
     public bool Shown { get; private set; }
@@ -60,12 +68,34 @@ public sealed class HudCard
     public string CycleCentre { get; private set; } = "";
     public string RefillCentre { get; private set; } = "";
 
-    public HudCardShape Shape => new(ShowCycle, CycleRunning, ShowRefill, RefillRunning);
+    public HudCardShape Shape => new(ShowCycle, CycleRunning, ShowRefill, RefillRunning, IsBelt);
 
     BlockedWindow window;
     int kind = -1, stored = -1, capacity = -1, cycleTenths = int.MinValue, refillTenths = int.MinValue;
     bool cycling, waiting;
     RefillReason reason = (RefillReason)(-1);
+    double beltRpm = -1;
+    string beltStatus = "";
+
+    public void UpdateBelt(int stock, int slots, double rpm, string status)
+    {
+        if (kind != 2 || stored != stock || capacity != slots || beltRpm != rpm || beltStatus != status)
+        {
+            Heading = $"Belt {stock}/{slots}";
+            BeltStatus = status;
+            BeltStatusColour = status switch
+            {
+                "vuurt" or "vol" => BeltReadyColour,
+                "bijvullen" => BeltRefillColour,
+                _ => BeltWarningColour
+            };
+            BeltRate = rpm.ToString("0", CultureInfo.InvariantCulture) + " rpm";
+            BeltFraction = slots > 0 ? Math.Clamp((float)stock / slots, 0f, 1f) : 0f;
+            kind = 2; stored = stock; capacity = slots; beltRpm = rpm; beltStatus = status;
+        }
+        TwoPiece = false; Shown = true;
+        ShowCycle = ShowRefill = CycleRunning = RefillRunning = false;
+    }
 
     /// <summary>
     /// Same inputs as <see cref="HudRow.Update"/> plus game time and the Blocked window length.

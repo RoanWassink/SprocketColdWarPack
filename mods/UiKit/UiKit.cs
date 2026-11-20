@@ -8,8 +8,10 @@ namespace SprocketUiKit;
 /// </summary>
 public static class UiKit
 {
+    /// <summary>Stable BepInEx owner identifier for the UI Kit.</summary>
     public const string PluginGuid = "sprocket.uikit";
-    public const string Version = "0.1.12";
+    /// <summary>UI Kit semantic version.</summary>
+    public const string Version = "0.1.13";
     /// <summary>The keyboard-focus owner (never a HUD), acquired on open/inside press and released or handed on by outside press, close or lifecycle changes (see README.md).</summary>
     public static Panel? FocusedPanel => Kit.KeyboardFocus;
 
@@ -36,6 +38,7 @@ public static class UiKit
     public static UiContexts Context => Kit.Context;
     /// <summary>"DESIGNER", "IN GAME" or null; the default context chip text.</summary>
     public static string? ContextLabel => Kit.Context switch { UiContexts.Designer => "DESIGNER", UiContexts.Game => "IN GAME", _ => null };
+    /// <summary>True while at least one normal panel is logically open, including a panel waiting for Settings to close.</summary>
     public static bool AnyPanelOpen => Kit.OpenCount > 0;
     /// <summary>True while the mouse is over (or dragging/pressing in) an open kit panel or dropdown.</summary>
     public static bool PointerOverPanel => Kit.PointerCaptured();
@@ -57,6 +60,7 @@ public static class UiKit
         HudLayer.Huds.Add(hud);
         return hud;
     }
+    /// <summary>Remove a HUD and destroy its retained objects.</summary>
     public static void DestroyHud(HudPanel hud) { if (hud != null) HudLayer.Destroy(hud); }
     /// <summary>Create a world marker (ring + label above a Transform or world point) on the HUD layer. Duplicate throws.</summary>
     public static WorldMarker CreateMarker(string modGuid, string id)
@@ -68,6 +72,7 @@ public static class UiKit
         HudLayer.Markers[key] = m;
         return m;
     }
+    /// <summary>Remove a world marker and destroy its retained objects.</summary>
     public static void DestroyMarker(WorldMarker marker) { if (marker != null && HudLayer.Markers.Remove(marker.Key)) marker.Destroy(); }
     /// <summary>"#rrggbb" or "#rrggbbaa" to a Unity colour (throws on bad input).</summary>
     public static UnityEngine.Color Colour(string hex) => Draw.C(Rgba.Hex(hex));

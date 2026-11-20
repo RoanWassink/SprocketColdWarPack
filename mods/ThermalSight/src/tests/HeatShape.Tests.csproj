@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net6.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><EnableDefaultCompileItems>false</EnableDefaultCompileItems><UseSharedCompilation>false</UseSharedCompilation><OutputPath>bin/heat-shape/</OutputPath></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="HeatShapeChecks.cs"/><Compile Include="../HeatModel.cs"/><Compile Include="../ThermalProfiles.cs"/>
+    <Compile Include="../HudMath.cs"/><Compile Include="../HudPainter.cs"/><Compile Include="../AmmoSnapshotReader.cs"/>
+    <ProjectReference Include="HeatBaseline.csproj" Aliases="baseline"/>
+  </ItemGroup>
+</Project>

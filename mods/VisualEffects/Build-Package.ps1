@@ -15,7 +15,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$Out,
-    [string]$GameDir='C:\Program Files (x86)\Steam\steamapps\common\Sprocket'
+    [string]$GameDir='E:\SteamLibrary\steamapps\common\Sprocket'
 )
 $ErrorActionPreference='Stop'
 $out=[IO.Path]::GetFullPath($Out)
@@ -26,7 +26,7 @@ $build=Join-Path ([IO.Path]::GetTempPath()) ('sprocketvfx-build-'+[Guid]::NewGui
 Push-Location $PSScriptRoot
 try{
     if((dotnet --version) -ne '8.0.425'){throw 'Build requires the pinned SDK 8.0.425 (global.json).'}
-    dotnet build SprocketVisualEffects.csproj -c Release -o $build --nologo "-p:GameDir=$GameDir" -p:ContinuousIntegrationBuild=true
+    dotnet build SprocketVisualEffects.csproj -c Release -o $build --nologo --disable-build-servers "-p:GameDir=$GameDir" -p:ContinuousIntegrationBuild=true
     if($LASTEXITCODE){throw 'Build failed.'}
     $plugin=Join-Path $out 'BepInEx\plugins\SprocketVisualEffects'
     $config=Join-Path $out 'BepInEx\config'

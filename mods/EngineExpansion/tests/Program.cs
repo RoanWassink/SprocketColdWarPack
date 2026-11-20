@@ -56,6 +56,9 @@ Check(!widthCache.TryGet((IntPtr)7,out _)&&!widthCache.TryGet((IntPtr)8,out _),"
 Check(widthCache.Remember((IntPtr)7,new TransmissionExtent(0,.6),new(0,.4))==new TransmissionExtent(0,.6),"A reused module pointer gets the new build's width");
 Near(DrivetrainRules.Angle(5,2),10,"Native default angle doubled");
 Near(DrivetrainRules.Angle(0,2),0,"Strict zero angle retained");
+Near(DrivetrainRules.Angle(5,2,true),180,"Unlimited driveshaft angle allows full 180 degrees");
+Near(DrivetrainRules.Angle(0,2,true),180,"Unlimited driveshaft angle overrides zero native angle to 180 degrees");
+Near(DrivetrainRules.Angle(5,2,false),10,"Multiplier fallback retained when unlimited is false");
 var route=RouteState.Encode(2.5);Near(RouteState.Decode(route),2.5,"Legacy route metadata round trip");
 var marker=new AssemblyMarker(true,256);Check(AssemblyMarker.Decode(marker.Encode())==marker,"Legacy assembly metadata round trip");
 // Same native technology/displacement baseline feeds all types. The adapter
@@ -135,8 +138,9 @@ var leoc=new List<LayoutConnection>{new(10,0,1,0),new(13,1,2,0),new(22,1,3,0)};
 Check(PowerpackRules.Find(leo,leoc,0).Status==PowerpackStatus.ViaJunction,"Twin is reported as fed via a junction (toggle disabled)");
 Check(PowerpackRules.Find(t72,new List<LayoutConnection>(),0).Status==PowerpackStatus.NoDirectTransmission,"Unconnected engine refused");
 var conflict=new List<LayoutModule>{new(0,ModuleKind.Engine,0),new(1,ModuleKind.Transmission,0x10)};
-Check(PowerpackRules.Find(conflict,new List<LayoutConnection>{new(8,0,1,0)},0).Status==PowerpackStatus.Conflict,"Existing auto-position bits are not taken over");
-Check(PowerpackRules.Find(new List<LayoutModule>{new(0,ModuleKind.Engine,0),new(1,ModuleKind.Transmission,0)},new List<LayoutConnection>{new(8,0,1,1)},0).Status==PowerpackStatus.Conflict,"An already abstracted connection is not taken over");
+Check(PowerpackRules.Find(conflict,new List<LayoutConnection>{new(8,0,1,0)},0).Status==PowerpackStatus.Conflict,"Existing output-auto bits on transmission are refused");
+var staleDirect=PowerpackRules.Find(new List<LayoutModule>{new(0,ModuleKind.Engine,0),new(1,ModuleKind.Transmission,0)},new List<LayoutConnection>{new(8,0,1,1)},0);
+Check(staleDirect.Status==PowerpackStatus.Ready&&!staleDirect.Marked&&staleDirect.Partial,"0.6.1 recognises partial/stale abstracted direct connection as Ready + Partial");
 // Twin 0.2.1: the Leopard 2a4 dump, engine 0 -> splitter 1 (0x70) -> transmissions 2 and 3.
 var twinModules=new List<LayoutModule>{new(0,ModuleKind.Engine,0),new(1,ModuleKind.Junction,0x70),new(2,ModuleKind.Transmission,2,3),new(3,ModuleKind.Transmission,4,2)};
 var twinConnections=new List<LayoutConnection>{new(10,0,1,0),new(13,1,2,0),new(22,1,3,0)};
@@ -159,13 +163,15 @@ Check(PowerpackRules.FindTwin(twinModules,twinConnections,0).Status==PowerpackSt
 var badSplitter=twinModules.Select(m=>m.Id==1?m with {Flags=0x1C70}:m).ToList();
 Check(PowerpackRules.FindTwin(badSplitter,twinConnections,0).Status==PowerpackStatus.Conflict,"An input-auto splitter is refused");
 var badLeft=twinModules.Select(m=>m.Id==2?m with {Flags=0x10}:m).ToList();
-Check(PowerpackRules.FindTwin(badLeft,twinConnections,0).Status==PowerpackStatus.Conflict,"Existing auto-position bits on a twin transmission are refused");
+Check(PowerpackRules.FindTwin(badLeft,twinConnections,0).Status==PowerpackStatus.Conflict,"Existing output-auto bits on a twin transmission are refused");
 var badConnection=twinConnections.Select(c=>c.Id==13?c with {Flags=1}:c).ToList();
-Check(PowerpackRules.FindTwin(twinModules,badConnection,0).Status==PowerpackStatus.Conflict,"An already abstracted splitter-to-transmission connection is refused");
+var partialConnPlan=PowerpackRules.FindTwin(twinModules,badConnection,0);
+Check(partialConnPlan.Status==PowerpackStatus.Ready&&!partialConnPlan.Marked&&partialConnPlan.Partial,"0.6.1 treats an abstracted splitter-to-transmission connection as Partial Ready");
 var partial=twinModules.Select(m=>m.Id==2?m with {Flags=0x1C02}:m).ToList();
-Check(PowerpackRules.FindTwin(partial,twinConnections,0).Status==PowerpackStatus.Conflict,"A partially marked saved twin layout is refused");
+var partialModPlan=PowerpackRules.FindTwin(partial,twinConnections,0);
+Check(partialModPlan.Status==PowerpackStatus.Ready&&!partialModPlan.Marked&&partialModPlan.Partial,"0.6.1 treats a partially marked twin layout as Partial Ready");
 var noMirror=twinModules.Select(m=>m.Id is 2 or 3?m with {MirrorId=-1}:m).ToList();
-Check(PowerpackRules.FindTwin(noMirror,twinConnections,0).Status==PowerpackStatus.NoDirectTransmission,"A junction feeding non-mirrored transmissions is not a twin plan");
+Check(PowerpackRules.FindTwin(noMirror,twinConnections,0).Status==PowerpackStatus.Ready,"0.6.0 allows a splitter feeding non-mirrored distinct transmissions");
 var extraInput=twinConnections.Append(new LayoutConnection(99,0,1,0)).ToList();
 Check(PowerpackRules.FindTwin(twinModules,extraInput,0).Status==PowerpackStatus.NoDirectTransmission,"A splitter with two inputs is not a twin plan");
 // Twin geometry from the same dump. The input port is on the inner face; the local X width is 0.4 m.
@@ -463,8 +469,318 @@ foreach(var (name,triangles,zMin,hash) in new[]{
         payload.Vertices.Min(v=>v.Y)>=zMin-.000001&&payload.Vertices.Max(v=>v.Y)<=1.000001&&
         payload.Vertices.Min(v=>v.Z)>=-.000001&&payload.Vertices.Max(v=>v.Z)<=1.000001,"Casing unit bounds "+name);
 }
+// 0.6.0: internal gear mesh fix, targeted collision rules, 3D rigid monoblock & casing TryFromCorners.
+Check(PowerpackMeshNames.Transmission("gear_LOD0")==null,"Internal gear mesh does not resolve as housing");
+Check(PowerpackMeshNames.IsInternalGear("gear_LOD0")&&PowerpackMeshNames.IsInternalGear("gear_LOD1")&&PowerpackMeshNames.IsInternalGear("gear"),"Internal gear meshes are recognised");
+Check(!PowerpackMeshNames.IsInternalGear("V60EngineCylinder_LOD0")&&!PowerpackMeshNames.IsInternalGear("gearbox_tra_mid_LOD0"),"Housing and engine meshes are not treated as internal gears");
+Check(!CasingFit.TryFromCorners(engineBox.Corners(),new OrientedBox(new Vec3(0,.4,0),new Vec3(.8,.6,.8),unitQ).Corners(),out _),"Casing TryFromCorners returns false when gearbox does not span past motor");
+Check(CasingFit.TryFromCorners(engineBox.Corners(),gearboxBox.Corners(),out var tryFit)&&tryFit!=null,"Casing TryFromCorners returns true on valid span");
+
+// Collision rules matrix.
+{
+    var pt1=(IntPtr)1001;var pt2=(IntPtr)1002;
+    var eng1=(IntPtr)101;var trans1L=(IntPtr)102;var trans1R=(IntPtr)103;
+    var eng2=(IntPtr)201;var trans2=(IntPtr)202;
+    var shaft1=(IntPtr)301;var shaft2=(IntPtr)302;
+    var hull=(IntPtr)401;var nonPp=(IntPtr)501;
+    var members=new Dictionary<IntPtr,PowerpackMember>
+    {
+        [eng1]=new(pt1,10,10),[trans1L]=new(pt1,10,11),[trans1R]=new(pt1,10,12),
+        [eng2]=new(pt1,20,20),[trans2]=new(pt2,30,30)
+    };
+    var shafts=new Dictionary<IntPtr,IntPtr>{[shaft1]=pt1,[shaft2]=pt2};
+    var groups=new Dictionary<(IntPtr,int),IReadOnlySet<int>>
+    {
+        [(pt1,10)]=new HashSet<int>{10,11,12,13},
+        [(pt1,20)]=new HashSet<int>{20},
+        [(pt2,30)]=new HashSet<int>{30}
+    };
+    PowerpackMember? LMember(IntPtr p)=>members.TryGetValue(p,out var m)?m:null;
+    IntPtr? LShaft(IntPtr p)=>shafts.TryGetValue(p,out var pt)?pt:null;
+    IReadOnlySet<int>? LGroup(IntPtr pt,int g)=>groups.TryGetValue((pt,g),out var s)?s:null;
+    (int,int)? NoEp(bool _)=>null;
+
+    Check(PowerpackCollisionRules.ShouldIgnore(3,eng1,4,trans1L,LMember,LShaft,NoEp,LGroup,true,PowerpackDriveshaftCollisionMode.SamePowertrain),"Engine ignores own powerpack transmission");
+    Check(PowerpackCollisionRules.ShouldIgnore(4,trans1L,4,trans1R,LMember,LShaft,NoEp,LGroup,true,PowerpackDriveshaftCollisionMode.SamePowertrain),"Twin transmissions ignore each other");
+    Check(!PowerpackCollisionRules.ShouldIgnore(3,eng1,4,trans1L,LMember,LShaft,NoEp,LGroup,false,PowerpackDriveshaftCollisionMode.SamePowertrain),"Internal collision remains active when ignoreInternal=false");
+    Check(!PowerpackCollisionRules.ShouldIgnore(3,eng1,3,eng2,LMember,LShaft,NoEp,LGroup,true,PowerpackDriveshaftCollisionMode.SamePowertrain),"First engine still collides with second engine");
+    Check(!PowerpackCollisionRules.ShouldIgnore(3,eng1,4,trans2,LMember,LShaft,NoEp,LGroup,true,PowerpackDriveshaftCollisionMode.SamePowertrain),"Engine does not ignore another powertrain's transmission");
+    Check(!PowerpackCollisionRules.ShouldIgnore(3,nonPp,4,trans1L,LMember,LShaft,NoEp,LGroup,true,PowerpackDriveshaftCollisionMode.SamePowertrain),"Non-powerpack component keeps native collision");
+    foreach(byte otherLayer in new byte[]{1,6,7,8,9})
+        Check(!PowerpackCollisionRules.ShouldIgnore(4,trans1L,otherLayer,hull,LMember,LShaft,NoEp,LGroup,true,PowerpackDriveshaftCollisionMode.SamePowertrain),"External layer stays colliding: "+otherLayer);
+    Check(PowerpackCollisionRules.ShouldIgnore(5,shaft1,3,eng1,LMember,LShaft,_=>(99,100),LGroup,true,PowerpackDriveshaftCollisionMode.SamePowertrain),"SamePowertrain shaft ignores powerpack engine");
+    Check(PowerpackCollisionRules.ShouldIgnore(4,trans1L,5,shaft1,LMember,LShaft,_=>(99,100),LGroup,true,PowerpackDriveshaftCollisionMode.SamePowertrain),"SamePowertrain shaft ignores powerpack transmission");
+    Check(!PowerpackCollisionRules.ShouldIgnore(5,shaft2,3,eng1,LMember,LShaft,_=>(10,11),LGroup,true,PowerpackDriveshaftCollisionMode.SamePowertrain),"Other powertrain shaft stays colliding");
+    Check(PowerpackCollisionRules.ShouldIgnore(5,shaft1,4,trans1L,LMember,LShaft,_=>(11,50),LGroup,true,PowerpackDriveshaftCollisionMode.ConnectedOnly),"ConnectedOnly ignores directly attached shaft");
+    Check(!PowerpackCollisionRules.ShouldIgnore(5,shaft1,4,trans1L,LMember,LShaft,_=>(88,89),LGroup,true,PowerpackDriveshaftCollisionMode.ConnectedOnly),"ConnectedOnly keeps unrelated downstream shaft colliding");
+    Check(!PowerpackCollisionRules.ShouldIgnore(5,shaft1,3,eng1,LMember,LShaft,_=>(10,11),LGroup,true,PowerpackDriveshaftCollisionMode.None),"DriveshaftMode=None keeps all shafts colliding");
+    Check(!PowerpackCollisionRules.ShouldIgnore(5,shaft1,5,shaft1,LMember,LShaft,NoEp,LGroup,true,PowerpackDriveshaftCollisionMode.SamePowertrain),"Driveshaft vs driveshaft stays native");
+}
+
+// 3D rigid monoblock placement & rotation (Single & Twin across all angles and X/Y/Z moves).
+{
+    var singleExtent=new TransmissionExtent(0,.2,new Vec3(0,.1,0),new Vec3(.45,.45,.40));
+    var singleInput=new Vec3(0,.12,-.33);
+    var baseEnginePos=new Vec3(0,.15,-2.0);
+    var shiftVec=new Vec3(1.2,-.4,.8);
+    OrientedBox MakeEngineBox(Vec3 pos,Quat rot)=>new(pos+rot.Rotate(new Vec3(0,.35,0)),new Vec3(1.0,.9,1.3),rot);
+    var pitch12=new Quat(Math.Sin(6*Math.PI/180),0,0,Math.Cos(6*Math.PI/180));
+    foreach(var rot in new[]{Quat.AxisY(0),Quat.AxisY(45),Quat.AxisY(90),Quat.AxisY(135),Quat.AxisY(180),Quat.AxisY(270),Quat.AxisY(358.38),Quat.AxisY(90)*pitch12})
+    {
+        var fwd=rot.Rotate(new Vec3(0,0,1)).Normalized;
+        var out1=baseEnginePos+rot.Rotate(new Vec3(0,.2,.60));
+        var eb1=MakeEngineBox(baseEnginePos,rot);
+        var pFlush=PowerpackRules.MonoblockOrigin(out1,rot,fwd,singleInput,singleExtent,eb1,-PowerpackRules.DefaultMonoblockOverlap);
+        Check(!pFlush.FellBack,"Single monoblock does not trip safety net");
+        var bFlush=new OrientedBox(pFlush.Origin+rot.Rotate(singleExtent.Centre),singleExtent.Size,rot);
+        Near(bFlush.MinProjection(fwd)-(eb1.MaxProjection(fwd)-PowerpackRules.DefaultMonoblockOverlap),0,"Single flush tucks 2 cm inside engine rear");
+        Check(bFlush.Intersects(eb1),"Flush monoblock overlaps engine box as intended");
+        Check((pFlush.Input-out1).Length<=PowerpackRules.MaxAbstractedDistance,"Single abstracted connection stays within 0.90 m");
+
+        var pClear=PowerpackRules.MonoblockOrigin(out1,rot,fwd,singleInput,singleExtent,eb1,PowerpackRules.ObstructionClearance);
+        var bClear=new OrientedBox(pClear.Origin+rot.Rotate(singleExtent.Centre),singleExtent.Size,rot);
+        Near(bClear.MinProjection(fwd)-eb1.MaxProjection(fwd),PowerpackRules.ObstructionClearance,"Collision-off keeps 1 mm clearance");
+        Check(!bClear.Intersects(eb1),"Collision-off single box never overlaps engine box");
+
+        var movedPos=baseEnginePos+shiftVec;
+        var out2=movedPos+rot.Rotate(new Vec3(0,.2,.60));
+        var eb2=MakeEngineBox(movedPos,rot);
+        var pMoved=PowerpackRules.MonoblockOrigin(out2,rot,fwd,singleInput,singleExtent,eb2,-PowerpackRules.DefaultMonoblockOverlap);
+        Check((pMoved.Origin-pFlush.Origin-shiftVec).Length<1e-9,"Single monoblock tracks X/Y/Z engine shift rigidly");
+    }
+    var badEb=MakeEngineBox(baseEnginePos+new Vec3(0,0,-344),unitQ);
+    Check(PowerpackRules.MonoblockOrigin(baseEnginePos+new Vec3(0,.2,.6),unitQ,new Vec3(0,0,1),singleInput,singleExtent,badEb,-PowerpackRules.DefaultMonoblockOverlap).FellBack,"Monoblock safety net catches world-offset engine box");
+
+    var twinExt=new TransmissionExtent(0,.2,new Vec3(0,.1,0),new Vec3(.35,.40,.60));
+    var twinIn=new Vec3(0,.16,-.32);
+    foreach(double yaw in new[]{0d,45,90,135,180,270,358.380676})
+    {
+        var rot=Quat.AxisY(yaw);
+        var fwd=rot.Rotate(new Vec3(0,0,1)).Normalized;
+        var right=PowerpackRules.EngineRight(rot,fwd);
+        var engOut=baseEnginePos+rot.Rotate(new Vec3(0,.3,.62));
+        var eb=MakeEngineBox(baseEnginePos,rot);
+        var leftTarget=engOut-right*1.4;
+        var rightTarget=engOut+right*1.4;
+        int sideL=PowerpackRules.ChooseTwinSide(right,leftTarget,rightTarget,2,4,2,3);
+        int sideR=PowerpackRules.ChooseTwinSide(right,rightTarget,leftTarget,4,2,3,2);
+        Check(sideL==-1&&sideR==1,"Twin side picks left (-1) and right (+1) toward each target without crossing at yaw "+yaw);
+        var rL=PowerpackRules.TwinRotation(rot,sideL);
+        var rR=PowerpackRules.TwinRotation(rot,sideR);
+        Check(Vec3.Dot(rL.Rotate(new Vec3(0,0,1)),fwd)>0.99&&Vec3.Dot(rR.Rotate(new Vec3(0,0,1)),fwd)>0.99,"Both twin gearboxes align parallel in engine longitudinal direction with rear driveshaft output at yaw "+yaw);
+
+        var tL=PowerpackRules.TwinMonoblockOrigin(engOut,rot,fwd,rL,twinIn,twinExt,sideL,eb,-PowerpackRules.DefaultMonoblockOverlap);
+        var tR=PowerpackRules.TwinMonoblockOrigin(engOut,rot,fwd,rR,twinIn,twinExt,sideR,eb,-PowerpackRules.DefaultMonoblockOverlap);
+        Check(!tL.FellBack&&!tR.FellBack,"Twin monoblock does not trip safety net at yaw "+yaw);
+        var boxL=new OrientedBox(tL.Origin+rL.Rotate(twinExt.Centre),twinExt.Size,rL);
+        var boxR=new OrientedBox(tR.Origin+rR.Rotate(twinExt.Centre),twinExt.Size,rR);
+        Check(!boxL.Intersects(boxR),"Twin boxes stay clear of each other across engine at yaw "+yaw);
+        Near(boxL.MaxProjection(fwd),eb.MaxProjection(fwd),"Left twin box rear aligns flush with engine rear at yaw "+yaw);
+        Near(boxR.MaxProjection(fwd),eb.MaxProjection(fwd),"Right twin box rear aligns flush with engine rear at yaw "+yaw);
+        Near(boxL.MaxProjection(right)-(eb.MinProjection(right)+PowerpackRules.DefaultMonoblockOverlap),0,"Left twin box tucks 2 cm into engine left flank at yaw "+yaw);
+        Near(boxR.MinProjection(right)-(eb.MaxProjection(right)-PowerpackRules.DefaultMonoblockOverlap),0,"Right twin box tucks 2 cm into engine right flank at yaw "+yaw);
+
+        var splitterPos=(tL.Input+tR.Input)*.5;
+        Check((splitterPos-engOut).Length<=PowerpackRules.MaxAbstractedDistance,"Engine->splitter abstracted link <= 0.90 m at yaw "+yaw);
+        Check((tL.Input-splitterPos).Length<=PowerpackRules.MaxAbstractedDistance,"Splitter->left abstracted link <= 0.90 m at yaw "+yaw);
+        Check((tR.Input-splitterPos).Length<=PowerpackRules.MaxAbstractedDistance,"Splitter->right abstracted link <= 0.90 m at yaw "+yaw);
+
+        var tLClear=PowerpackRules.TwinMonoblockOrigin(engOut,rot,fwd,rL,twinIn,twinExt,sideL,eb,PowerpackRules.ObstructionClearance);
+        var bLClear=new OrientedBox(tLClear.Origin+rL.Rotate(twinExt.Centre),twinExt.Size,rL);
+        Check(!bLClear.Intersects(eb),"Collision-off twin box stays clear of engine box at yaw "+yaw);
+
+        var movedOut=(baseEnginePos+shiftVec)+rot.Rotate(new Vec3(0,.3,.62));
+        var ebMoved=MakeEngineBox(baseEnginePos+shiftVec,rot);
+        var tLMoved=PowerpackRules.TwinMonoblockOrigin(movedOut,rot,fwd,rL,twinIn,twinExt,sideL,ebMoved,-PowerpackRules.DefaultMonoblockOverlap);
+        Check((tLMoved.Origin-tL.Origin-shiftVec).Length<1e-9,"Twin monoblock tracks X/Y/Z engine shift rigidly at yaw "+yaw);
+    }
+
+    // Verify RestoredTwinPositions stays valid at 90 deg transverse too.
+    var r90=Quat.AxisY(90);var d90=r90.Rotate(new Vec3(0,0,1));
+    var out90=baseEnginePos+r90.Rotate(new Vec3(0,.3,.62));
+    var eb90=MakeEngineBox(baseEnginePos,r90);
+    var rl90=PowerpackRules.TwinRotation(r90,-1);var rr90=PowerpackRules.TwinRotation(r90,1);
+    var l90=PowerpackRules.TwinMonoblockOrigin(out90,r90,d90,rl90,twinIn,twinExt,-1,eb90,-PowerpackRules.DefaultMonoblockOverlap);
+    var r90p=PowerpackRules.TwinMonoblockOrigin(out90,r90,d90,rr90,twinIn,twinExt,1,eb90,-PowerpackRules.DefaultMonoblockOverlap);
+    var rest90=PowerpackRules.RestoredTwinPositions(l90.Origin,rl90,twinIn,r90p.Origin,rr90,twinIn,r90,splitterInput,out90,d90,0.1);
+    var riL=rest90.Left+rl90.Rotate(twinIn);var riR=rest90.Right+rr90.Rotate(twinIn);var rc=(riL+riR)*.5;
+    Check((riL-rc).Length>=0.1-1e-9&&(riR-rc).Length>=0.1-1e-9&&(rc+r90.Rotate(splitterInput)-out90).Length>=0.1-1e-9,"Restored twin shafts respect minimum at 90 deg transverse");
+}
+// 0.6.1 regression tests: exact saved flag states seen in real blueprints after native drags.
+{
+    var challyMods=new List<LayoutModule>{new(0,ModuleKind.Engine,0),new(1,ModuleKind.Junction,0x70),new(2,ModuleKind.Transmission,0x2,3),new(3,ModuleKind.Transmission,0x4,2)};
+    var absConns=new List<LayoutConnection>{new(49,0,1,1),new(50,1,2,1),new(51,1,3,1)};
+    var chally=PowerpackRules.FindTwin(challyMods,absConns,0);
+    Check(chally.Status==PowerpackStatus.Ready&&!chally.Marked&&chally.Partial,"Challenger 1 Mk3 (0x2/0x4 + 3x Abstracted) is Ready + Partial");
+    var challyHealed=PowerpackRules.FindTwin(
+        challyMods.Select(m=>m.Id is 2 or 3?m with {Flags=PowerpackRules.Apply(m.Flags,0).Module}:m).ToList(),
+        absConns.Select(c=>c with {Flags=PowerpackRules.Apply(0,c.Flags).Connection}).ToList(),0);
+    Check(challyHealed.Status==PowerpackStatus.Ready&&challyHealed.Marked&&!challyHealed.Partial,"Applying Challenger 1 Mk3 heals to full Marked twin");
+    var challyRestoredConns=absConns.Select(c=>c with {Flags=PowerpackRules.Restore(0,c.Flags).Connection}).ToList();
+    var challyRestoredMods=challyMods.Select(m=>m.Id is 2 or 3?m with {Flags=PowerpackRules.Restore(m.Flags,0).Module}:m).ToList();
+    var challyOff=PowerpackRules.FindTwin(challyRestoredMods,challyRestoredConns,0);
+    Check(challyOff.Status==PowerpackStatus.Ready&&!challyOff.Marked&&!challyOff.Partial,"Unticking Challenger 1 Mk3 clears all Abstracted/0x1C00 flags cleanly");
+    Check(challyRestoredConns.All(c=>c.Flags==0)&&challyRestoredMods[2].Flags==0x2&&challyRestoredMods[3].Flags==0x4,"Challenger 1 Mk3 restore keeps native Left/RightSided");
+
+    var objMods=new List<LayoutModule>{new(0,ModuleKind.Engine,0),new(1,ModuleKind.Junction,0x70),new(2,ModuleKind.Transmission,0x1C02,3),new(3,ModuleKind.Transmission,0x4,2)};
+    var obj=PowerpackRules.FindTwin(objMods,absConns,0);
+    Check(obj.Status==PowerpackStatus.Ready&&!obj.Marked&&obj.Partial,"Object 292/293 (0x1C02/0x4 + 3x Abstracted) is Ready + Partial");
+    var objOffMods=objMods.Select(m=>m.Id is 2 or 3?m with {Flags=PowerpackRules.Restore(m.Flags,0).Module}:m).ToList();
+    var objOffConns=absConns.Select(c=>c with {Flags=PowerpackRules.Restore(0,c.Flags).Connection}).ToList();
+    var objOff=PowerpackRules.FindTwin(objOffMods,objOffConns,0);
+    Check(objOff.Status==PowerpackStatus.Ready&&!objOff.Marked&&!objOff.Partial&&objOffMods[2].Flags==0x2&&objOffMods[3].Flags==0x4,"Object 292/293 untick clears 0x1C00 & Abstracted");
+
+    var t72Saved=PowerpackRules.Find(new List<LayoutModule>{new(0,ModuleKind.Engine,0),new(1,ModuleKind.Transmission,0)},new List<LayoutConnection>{new(8,0,1,1)},0);
+    Check(t72Saved.Status==PowerpackStatus.Ready&&!t72Saved.Marked&&t72Saved.Partial,"T-72A (0x0 + Abstracted) is Ready + Partial");
+    var t72On=PowerpackRules.Apply(0,1);
+    var t72OnPlan=PowerpackRules.Find(new List<LayoutModule>{new(0,ModuleKind.Engine,0),new(1,ModuleKind.Transmission,t72On.Module)},new List<LayoutConnection>{new(8,0,1,t72On.Connection)},0);
+    Check(t72OnPlan.Status==PowerpackStatus.Ready&&t72OnPlan.Marked&&!t72OnPlan.Partial,"Applying T-72A heals to full Marked direct powerpack");
+    var t72Off=PowerpackRules.Restore(0,1);
+    var t72OffPlan=PowerpackRules.Find(new List<LayoutModule>{new(0,ModuleKind.Engine,0),new(1,ModuleKind.Transmission,t72Off.Module)},new List<LayoutConnection>{new(8,0,1,t72Off.Connection)},0);
+    Check(t72OffPlan.Status==PowerpackStatus.Ready&&!t72OffPlan.Marked&&!t72OffPlan.Partial&&t72Off==(0,0),"Unticking T-72A clears leftover Abstracted flag cleanly");
+}
+// 0.7.0 tests: scaled Gas Turbine Powerpack + Petrol/Diesel/Gas Turbine character + procedural audio synthesis.
+{
+    var baseModel=new PowerpackModelSettings();
+    var dieselModel=baseModel.ForKind(EngineKind.Diesel,0.80);
+    var petrolModel=baseModel.ForKind(EngineKind.Petrol,0.80);
+    var turbineModel=baseModel.ForKind(EngineKind.GasTurbine,0.80);
+    Near(dieselModel.SizeFactor,1.0,"ForKind leaves Diesel SizeFactor untouched");
+    Near(petrolModel.SizeFactor,1.0,"ForKind leaves Petrol SizeFactor untouched");
+    Near(turbineModel.SizeFactor,0.80,"ForKind scales GasTurbine SizeFactor to 0.80");
+    Near(turbineModel.Start,baseModel.Start*0.80,"Turbine ForKind scales Start uniformly");
+    Near(turbineModel.Pitch,baseModel.Pitch*0.80,"Turbine ForKind scales Pitch uniformly");
+    Near(turbineModel.Output,baseModel.Output*0.80,"Turbine ForKind scales Output uniformly");
+    Near(turbineModel.Crank,baseModel.Crank*0.80,"Turbine ForKind scales Crank uniformly");
+    Near(turbineModel.CentreOfMass,baseModel.CentreOfMass*0.80,"Turbine ForKind scales CentreOfMass uniformly");
+    var baseDims=baseModel.Dimensions(12,1.4);var turbDims=turbineModel.Dimensions(12,1.4);
+    Near(turbDims.X,baseDims.X*0.80,"Turbine Dimensions.X scales by 0.80");
+    Near(turbDims.Y,baseDims.Y*0.80,"Turbine Dimensions.Y scales by 0.80");
+    Near(turbDims.Z,baseDims.Z*0.80,"Turbine Dimensions.Z scales by 0.80");
+    Near(baseModel.ForKind(EngineKind.GasTurbine,0.20).SizeFactor,0.60,"Turbine scale clamps lower bound to 0.60");
+    Near(baseModel.ForKind(EngineKind.GasTurbine,2.50).SizeFactor,1.00,"Turbine scale clamps upper bound to 1.00");
+    Near(baseModel.ForKind(EngineKind.GasTurbine,double.NaN).SizeFactor,0.80,"Turbine scale falls back cleanly on NaN");
+
+    var p=EngineCharacterRules.For(EngineKind.Petrol);
+    var d=EngineCharacterRules.For(EngineKind.Diesel);
+    var t=EngineCharacterRules.For(EngineKind.GasTurbine);
+    Near(p.InertiaMultiplier,1.0,"Petrol keeps exact 1.0 inertia");
+    Near(p.FrictionMultiplier,1.0,"Petrol keeps exact 1.0 friction");
+    Near(d.InertiaMultiplier,1.40,"Diesel has +40% inertia");
+    Near(d.FrictionMultiplier,1.50,"Diesel has +50% engine braking");
+    Near(t.InertiaMultiplier,1.25,"Turbine has +25% inertia");
+    Near(t.FrictionMultiplier,0.30,"Turbine has low 0.30x engine braking");
+
+    // Spool dynamics, immediate lift-off and stall-proof idle governor passthrough.
+    Near(EngineCharacterRules.StepSpool(0.30,1.0,true,0.02,p),1.0,"Petrol steps instantaneously to requested throttle");
+    double s0=t.IdleSpoolFloor;
+    double sAfter=s0;for(int i=0;i<50;i++)sAfter=EngineCharacterRules.StepSpool(sAfter,1.0,true,0.02,t);
+    Check(sAfter>0.75&&sAfter<0.95,"Turbine spools up smoothly over ~1.0s at 0.85s tau");
+    double sDown=sAfter;for(int i=0;i<50;i++)sDown=EngineCharacterRules.StepSpool(sDown,0.0,true,0.02,t);
+    Check(sDown<sAfter&&sDown>t.IdleSpoolFloor,"Turbine spools down more slowly toward IdleSpoolFloor over 1.0s");
+    double sOff=sAfter;for(int i=0;i<100;i++)sOff=EngineCharacterRules.StepSpool(sOff,0.0,false,0.02,t);
+    Check(sOff<0.25&&sOff>0.01,"Turbine spools down cleanly toward 0 when engine shut down");
+    Near(EngineCharacterRules.EffectiveThrottle(0.18,0.10,t),0.18,"Idle governor passthrough below IdleGovernorPassthrough is untouched");
+    Near(EngineCharacterRules.EffectiveThrottle(0.0,0.90,t),0.0,"Lifting off throttle cuts EffectiveThrottle to 0 immediately");
+    double liftFull=EngineCharacterRules.EffectiveThrottle(1.0,t.IdleSpoolFloor,t);
+    Check(liftFull>0.40&&liftFull<0.60,"Full throttle with spooled-down turbine yields partial immediate share before spool climbs");
+
+    // 0.7.1: steeper free-power-turbine curve, smooth EffectiveThrottle (no Diesel "M"-notch), and shift-hold spool state.
+    var sturb=new EnginePlan(new(EngineKind.GasTurbine),native,3000,600);
+    Check(sturb.Profile.Shape!.At(0.20)>sturb.Profile.Shape.At(1.00)*2.0,"Static turbine shape exceeds 2:1 low-to-top torque ratio");
+    Check(sturb.Torque(sturb.MaxRPM*0.22,false)>sturb.Torque(sturb.MaxRPM*1.00,false)*2.0,"Operating turbine torque exceeds 2:1 low-to-top ratio");
+    double[] rpms={0.22,0.40,0.55,0.70,0.85,1.00};
+    for(int i=1;i<rpms.Length;i++)Check(sturb.Torque(sturb.MaxRPM*rpms[i],false)<sturb.Torque(sturb.MaxRPM*rpms[i-1],false),$"Turbine torque slopes down monotonically at {rpms[i]} MaxRPM");
+    double d1=EngineCharacterRules.EffectiveThrottle(1.0,d.IdleSpoolFloor,d);
+    double d2=EngineCharacterRules.EffectiveThrottle(1.0,0.40,d);
+    double d3=EngineCharacterRules.EffectiveThrottle(1.0,0.65,d);
+    double d4=EngineCharacterRules.EffectiveThrottle(1.0,0.90,d);
+    Check(d1<d2&&d2<d3&&d3<d4&&d4<1.0,"Diesel EffectiveThrottle increases strictly across spool range without an M-notch dead zone");
+    Near(EngineCharacterRules.EffectiveThrottle(1.0,1.0,d),1.0,"Diesel reaches full throttle at full spool");
+    Near(EngineCharacterRules.EffectiveThrottle(1.0,1.0,t),1.0,"Turbine reaches full throttle at full spool");
+    foreach(var charP in new[]{d,t})
+    {
+        double sp=charP.IdleSpoolFloor,hold=0.0;
+        for(int i=0;i<75;i++)(sp,hold)=EngineCharacterRules.StepSpoolState(sp,hold,1.0,true,0.02,charP);
+        Near(hold,charP.SpoolHoldSeconds,"Full-throttle spool-up arms shift hold timer");
+        double spBeforeShift=sp;
+        Check(spBeforeShift>0.80,"Spool reaches high load before shift");
+        for(int i=0;i<38;i++)(sp,hold)=EngineCharacterRules.StepSpoolState(sp,hold,0.0,true,0.02,charP);
+        Near(sp,spBeforeShift,"Brief 0.76s gear shift cut holds spool steady");
+        Near(EngineCharacterRules.EffectiveThrottle(0.0,sp,charP),0.0,"Throttle cut still takes effect immediately during gear shift");
+        for(int i=0;i<75;i++)(sp,hold)=EngineCharacterRules.StepSpoolState(sp,hold,0.0,true,0.02,charP);
+        Check(sp<spBeforeShift&&sp>charP.IdleSpoolFloor,"Genuine coasting past SpoolHoldSeconds decays spool smoothly toward IdleSpoolFloor");
+        (_,hold)=EngineCharacterRules.StepSpoolState(sp,hold,1.0,true,0.02,charP);
+        Near(hold,charP.SpoolHoldSeconds,"Re-applying throttle re-arms shift hold timer");
+        (sp,hold)=EngineCharacterRules.StepSpoolState(sp,hold,0.0,false,0.20,charP);
+        Near(hold,0.0,"Engine shutdown clears SpoolHoldSeconds immediately");
+        Check(sp>0&&sp<spBeforeShift,"Shutdown decays spool smoothly");
+    }
+
+    // Load-dependent fuel multipliers.
+    Near(EngineCharacterRules.LoadFuelMultiplier(0.05,true,p),1.0,"Petrol fuel multiplier stays 1.0 across loads");
+    Near(EngineCharacterRules.LoadFuelMultiplier(0.0,true,d),0.78,"Diesel leans part-load fuel down to 0.78");
+    Near(EngineCharacterRules.LoadFuelMultiplier(1.0,true,d),1.0,"Diesel fuel reaches 1.0 at full load");
+    Near(EngineCharacterRules.LoadFuelMultiplier(0.10,true,t),4.20,"Turbine idle fuel floor raises low-injection burn");
+    Near(EngineCharacterRules.LoadFuelMultiplier(0.0,true,t),t.MaxIdleFuelMultiplier,"Turbine zero-injection burn caps at MaxIdleFuelMultiplier");
+    Near(EngineCharacterRules.LoadFuelMultiplier(0.90,true,t),1.0,"Turbine high-load fuel returns to 1.0");
+    Near(EngineCharacterRules.LoadFuelMultiplier(0.05,false,t),1.0,"Turbine fuel multiplier returns 1.0 when engine stopped");
+
+    // Exhaust soot surge and rate floor.
+    var pEx=EngineCharacterRules.AdaptExhaust(0.4,0.8,0.5,1.0,0.2,true,p);
+    Near(pEx.Rate,0.4,"Petrol exhaust rate passed through");
+    Near(pEx.FuelBurn,0.5,"Petrol exhaust burn passed through");
+    var dSurge=EngineCharacterRules.AdaptExhaust(0.2,1.0,0.3,1.0,0.25,true,d);
+    var dSpooled=EngineCharacterRules.AdaptExhaust(0.2,1.0,0.3,1.0,1.0,true,d);
+    Check(dSurge.FuelBurn>dSpooled.FuelBurn+0.5,"Diesel exhaust produces strong acceleration soot surge while spool lags");
+    var tEx=EngineCharacterRules.AdaptExhaust(0.1,0.2,0.8,1.0,0.8,true,t);
+    Check(tEx.Rate>=0.38&&tEx.FuelBurn<0.15,"Turbine exhaust has high airflow rate and low smoke/soot");
+
+    // Combat fire risk differentiation.
+    Check(EngineCharacterRules.FireOutcome(0.99,5.0,p)==(true,5.0),"Petrol ignites deterministically at native duration");
+    Check(EngineCharacterRules.FireOutcome(0.20,5.0,d)==(true,4.0)&&!EngineCharacterRules.FireOutcome(0.50,5.0,d).Ignites,"Diesel ignites 35% of fires with 0.80x duration");
+    Check(EngineCharacterRules.FireOutcome(0.50,5.0,t)==(true,4.5)&&!EngineCharacterRules.FireOutcome(0.70,5.0,t).Ignites,"Turbine ignites 55% of fires with 0.90x duration");
+
+    // Audio curves.
+    var pAud=EngineCharacterRules.ComputeAudio(EngineKind.Petrol,1.0,1.0,true,p);
+    Near(pAud.NativePitchScale,1.0,"Petrol native audio pitch unchanged");
+    Near(pAud.NativeVolumeScale,1.0,"Petrol native audio volume unchanged");
+    Near(pAud.AuxVolume,0.0,"Petrol aux audio is silent");
+    var tIdleAud=EngineCharacterRules.ComputeAudio(EngineKind.GasTurbine,t.IdleSpoolFloor,0.0,true,t);
+    var tMaxAud=EngineCharacterRules.ComputeAudio(EngineKind.GasTurbine,1.0,1.0,true,t);
+    var tCoastAud=EngineCharacterRules.ComputeAudio(EngineKind.GasTurbine,0.25,0.0,false,t);
+    var tDeadAud=EngineCharacterRules.ComputeAudio(EngineKind.GasTurbine,0.0,0.0,false,t);
+    Near(tMaxAud.NativeVolumeScale,0.16,"Turbine attenuates piston audio to 0.16");
+    Check(tMaxAud.AuxPitch>tIdleAud.AuxPitch&&tMaxAud.AuxVolume>tIdleAud.AuxVolume,"Turbine whine pitch/volume scale up with spool");
+    Check(tCoastAud.AuxVolume>0,"Turbine whine coasts down after shutdown");
+    Near(tDeadAud.AuxVolume,0.0,"Turbine whine stops cleanly at zero spool");
+    var dLowAud=EngineCharacterRules.ComputeAudio(EngineKind.Diesel,0.30,0.0,true,0.22,d);
+    var dHighAud=EngineCharacterRules.ComputeAudio(EngineKind.Diesel,0.95,1.0,true,0.95,d);
+    Near(dLowAud.NativePitchScale,0.68,"Diesel deepens native pitch to 0.68");
+    Check(dHighAud.AuxPitch>dLowAud.AuxPitch*1.8,"Diesel V12 pitch revs strongly with engine RPM (no monotone drone)");
+    Check(dLowAud.AuxVolume>0.15&&dHighAud.AuxVolume>0.60,"Diesel muscle-car bark idles warmly and roars under full throttle");
+
+    // Seamless procedural audio buffers (broadband jet roar + deep V12 diesel, never >1.2 kHz piercing beeps).
+    foreach(var (label,clip,maxZcrHz) in new[]{("turbine",EngineAudioSynthesis.CreateTurbineLoop(),1200.0),("diesel-turbo",EngineAudioSynthesis.CreateTurboWhistleLoop(),500.0)})
+    {
+        Check(clip.Length==EngineAudioSynthesis.SampleRate*2,$"{label} loop has 96000 samples (2s @ 48kHz)");
+        double sumSq=0;bool valid=true;int crossings=0;
+        for(int i=0;i<clip.Length;i++)
+        {
+            float s=clip[i];if(!float.IsFinite(s)||s<-1f||s>1f){valid=false;break;}sumSq+=s*(double)s;
+            if(i>0&&(clip[i-1]<0f)!=(s<0f))crossings++;
+        }
+        double rms=Math.Sqrt(sumSq/clip.Length);
+        double zcrHz=crossings/(2.0*2.0);
+        Check(valid&&rms>0.05&&rms<0.65,$"{label} loop is finite in [-1,1] with healthy RMS={rms:0.###}");
+        Check(zcrHz<maxZcrHz,$"{label} loop stays low/broadband (ZCR={zcrHz:0.#} Hz < {maxZcrHz} Hz)");
+        float wrapJump=Math.Abs(clip[0]-clip[^1]);
+        float wrapAccel=Math.Abs((clip[1]-clip[0])-(clip[0]-clip[^1]));
+        Check(wrapJump<0.25f&&wrapAccel<0.10f,$"{label} loop wraps seamlessly across end-to-start boundary (jump={wrapJump:0.####}, accel={wrapAccel:0.####})");
+    }
+}
 if(args.Length>=2&&args[0]=="--casing-preview")WriteCasingPreview(args[1],testRoot);
-Console.WriteLine($"PASS {checks} no-turbo/profile/drivetrain/legacy-save/powerpack/obstruction/space/MTU/casing checks");
+Console.WriteLine($"PASS {checks} no-turbo/profile/drivetrain/legacy-save/powerpack/obstruction/space/MTU/casing/monoblock/character checks");
 
 static string FindRoot()
 {

@@ -16,4 +16,6 @@ public static class PowerpackMeshNames
         if(n.StartsWith("gearbox_lon_mid"))return "lon-shroud";
         return null;
     }
+    public static bool IsInternalGear(string? name)=>
+        !string.IsNullOrEmpty(name)&&(name.Equals("gear",StringComparison.OrdinalIgnoreCase)||name.StartsWith("gear_",StringComparison.OrdinalIgnoreCase));
 }

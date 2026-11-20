@@ -68,6 +68,14 @@ foreach (var id in new[] { "post", "winkel", "chevron", "rangefinder", "ladder",
     for (int dy = -24; dy <= 24 && !nearAim; dy++) for (int dx = -24; dx <= 24; dx++) if (big[(centre + dy) * s + centre + dx] > 128) { nearAim = true; break; }
     Check(nearAim, id + " marks the aim point within 2 mils (open centres allowed)");
 }
+// ------------------------------------------------------------- persistence (0.3.0)
+void Reject(Action action, string what)
+{
+    try { action(); Check(false, what + " (accepted)"); }
+    catch (Exception ex) when (ex is InvalidDataException or System.Text.Json.JsonException or ArgumentNullException) { Check(true, what); }
+}
+var fixtureDir = Environment.GetEnvironmentVariable("GUNSIGHTS_FIXTURES") ?? Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "tmp-test", "fixtures"));
+PersistenceChecks.Run(Check, Reject, fixtureDir);
 Console.WriteLine($"Gun sights: {checks - failures}/{checks} checks passed. Previews: {preview}");
 return failures == 0 ? 0 : 1;
 

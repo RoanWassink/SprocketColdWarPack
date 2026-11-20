@@ -131,7 +131,7 @@ public sealed class SegmentedButtons : Element
     internal override bool Interactive => true;
     internal override void Refresh(float now)
     {
-        int sel = Guard.Get(Where + ".Selected", selected, -1);
+        int sel = Guard.Get(Site(0, ".Selected"), selected, -1);
         hoverPart = Hovered ? PartAt(Panel.LocalPointer) : -1;
         for (int i = 0; i < parts.Count; i++)
         {
@@ -223,6 +223,7 @@ public sealed class Stepper : Element
 /// <summary>On/off switch (44×24), animated knob.</summary>
 public sealed class Toggle : Element
 {
+    private static readonly Rgba HoverOff = Rgba.Hex("#4a4840");
     private readonly Func<bool> value; private readonly Action<bool> set;
     private BoxView? track; private Image? knob; private float pos = -1;
     internal Toggle(Func<bool> value, Action<bool> set) { this.value = value; this.set = set; }
@@ -243,15 +244,15 @@ public sealed class Toggle : Element
     internal override bool Interactive => true;
     internal override void Refresh(float now)
     {
-        bool on = Guard.Get(Where + ".Value", value, false);
+        bool on = Guard.Get(Site(0, ".Value"), value, false);
         float target = on ? 1 : 0;
         pos = pos < 0 ? target : MathF.Abs(pos - target) < .01f ? target : pos + (target - pos) * MathF.Min(1, Time.unscaledDeltaTime * 14);
-        var fill = !Enabled ? Tok.DisabledBg : on ? (Hovered ? Tok.AccentHover : Tok.Accent) : (Hovered ? Rgba.Hex("#4a4840") : Tok.OffTrack);
+        var fill = !Enabled ? Tok.DisabledBg : on ? (Hovered ? Tok.AccentHover : Tok.Accent) : (Hovered ? HoverOff : Tok.OffTrack);
         track?.Set(fill, Rgba.Clear);
         Draw.SetColor(knob, on ? Tok.Ink : Enabled ? Tok.Text2 : Tok.DisabledText);
         if (knob != null) Draw.Place(knob.rectTransform, 3 + pos * (Tok.ToggleW - Tok.Knob - 6), 3, Tok.Knob, Tok.Knob);
     }
-    internal override void OnClick(Vec p) { bool on = Guard.Get(Where + ".Value", value, false); Guard.Run(Where + " set", () => set(!on)); }
+    internal override void OnClick(Vec p) { bool on = Guard.Get(Site(0, ".Value"), value, false); Guard.Run(Where + " set", () => set(!on)); }
 }
 
 /// <summary>
@@ -491,7 +492,7 @@ public sealed class TextField : Element
     {
         if (text == null || clip == null) return;
         bool focus = Focused;
-        string shown = focus ? Kit.Edit.Text : Guard.Get(Where + ".Value", value, "") ?? "";
+        string shown = focus ? Kit.Edit.Text : Guard.Get(Site(0, ".Value"), value, "") ?? "";
         bool empty = shown.Length == 0;
         string display = empty && !focus ? placeholder : shown;
         float innerW = Rect.W - 20;
@@ -513,7 +514,7 @@ public sealed class TextField : Element
     }
     internal override void OnPress(Vec p)
     {
-        if (!Focused) Kit.FocusText(this, Guard.Get(Where + ".Value", value, "") ?? "");
+        if (!Focused) Kit.FocusText(this, Guard.Get(Site(0, ".Value"), value, "") ?? "");
         else { Kit.Edit.End(); lastShown = "\u0001"; }
     }
     internal void Changed(string t) { if (onChange != null) Guard.Run(Where + " change", () => onChange(t)); }
@@ -675,7 +676,7 @@ public sealed class Chip : Element
         MarkDirty();
     }
     internal override void Unbuild() { box = null; label = null; applied = (ChipStyle)(-1); base.Unbuild(); }
-    private ChipStyle Current => styleGetter != null ? Guard.Get(Where + ".Style", styleGetter, style) : style;
+    private ChipStyle Current => styleGetter != null ? Guard.Get(Site(0, ".Style"), styleGetter, style) : style;
     internal override float IntrinsicWidth() => FixedW >= 0 ? FixedW : (label != null ? Draw.Width(label, text) : text.Length * 8) + 2 * Look.Chip(Current).PadX + 2;
     internal override float MeasureHeight(float width) => Look.Chip(Current).H;
     internal override void ArrangeCore(RectF r, Vec origin, RectF clip)
@@ -687,7 +688,7 @@ public sealed class Chip : Element
     {
         Apply(Current);
         if (getter == null) return;
-        var t = Guard.Get(Where + ".Text", getter, text) ?? "";
+        var t = Guard.Get(Site(1, ".Text"), getter, text) ?? "";
         if (t != text) { text = t; Draw.SetText(label, t); MarkDirty(); }
     }
 }

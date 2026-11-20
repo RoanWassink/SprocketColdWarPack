@@ -2,6 +2,8 @@ namespace SprocketUiKit;
 
 internal static class InputFocusPolicy
 {
+    internal static bool CanFocus(bool lifecycleAllowed, bool paused, bool stayOpen) => lifecycleAllowed && (!paused || stayOpen);
+
     // Shared by shortcuts and Enter; rendering order is deliberately not an input.
     internal static T? ShortcutTarget<T>(T? focusedPanel, bool popupOpen) where T : class =>
         popupOpen ? null : focusedPanel;

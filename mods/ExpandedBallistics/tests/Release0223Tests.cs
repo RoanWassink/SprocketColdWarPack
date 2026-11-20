@@ -91,7 +91,7 @@ internal static class Release0223Tests
         var snapshot=new AmmoSnapshot("heat","HEAT 105","HEAT","apds_late","APDS late","APDS",true,12,new[]
             {new AmmoSnapshotRound("heat","HEAT 105","HEAT",9,false,true),new AmmoSnapshotRound("apds_late","APDS late","APDS",3,true,false)},false,null);
         var mix=AmmoHudFormat.Mix(snapshot,AmmoLoadState.Loaded,"x: not available in this era, skipped.");
-        check(mix.Name=="APDS late"&&mix.Code=="APDS"&&mix.Rows.Count==2&&mix.Rows[0].Marker==">"&&mix.Rows[1].Count=="3 +gun"&&mix.Notice.Length>0,"HUD with a mix: round in the gun, rows, next-load marker, notice");
+        check(mix.Name=="APDS late"&&mix.Code=="APDS"&&mix.Rows.Count==2&&mix.Rows[0].Marker==">"&&mix.Rows[1].Count=="2 +1 gun"&&mix.Notice.Length>0,"HUD with a mix: round in the gun, rows, next-load marker, notice");
         check(AmmoHudFormat.Mix(snapshot,AmmoLoadState.Loaded).Key==AmmoHudFormat.Mix(snapshot,AmmoLoadState.Loaded).Key&&mix.Key!=native.Key,"HUD key changes only with shown values");
         var frozen=AmmoHudFormat.Mix(snapshot with{Frozen=true,FailureReason="The existing loaded round cannot be identified in this carried mix."},AmmoLoadState.Loaded);
         check(frozen.Name=="Mix unavailable"&&frozen.Notice.StartsWith("The existing loaded round",StringComparison.Ordinal),"frozen mix explains itself once on the HUD");

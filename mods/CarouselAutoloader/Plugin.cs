@@ -1,4 +1,4 @@
-﻿using BepInEx;
+using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
@@ -20,7 +20,7 @@ public sealed class Plugin : BasePlugin
     internal static bool OwnRounds = true;
     internal const string Guid = "sprocket.carousel", UiKitGuid = "sprocket.uikit";
     /// <summary>0.2.32: the one version constant (BepInPlugin attribute and the load log line).</summary>
-    public const string PluginVersion = "0.2.34";
+    public const string PluginVersion = "0.3.4";
     internal static double MaxFeedDistance;
     internal static bool HudEnabled;
     /// <summary>0.2.27: the loaded UI Kit plugin is 0.1.8 or later, so the HUD draws rings instead of bars.</summary>
@@ -39,6 +39,21 @@ public sealed class Plugin : BasePlugin
         var value = RevolverPolicy.Positive(raw, fallback);
         if (value != raw) Log.LogWarning($"[Revolver] {key} = {raw} must be a finite number above 0; using the default {fallback}.");
         return value;
+    }
+    private void BindBelt()
+    {
+        double Number(string key, double fallback, string description) => Belt.Nonnegative(Config.Bind("Belt", key, fallback, description).Value, fallback);
+        Belt.Enabled = Config.Bind("Belt", "Enabled", true, "Enable the belt feed box automatic loader.").Value;
+        Belt.MaxCalibre = Number("MaxCalibre", 57, "Maximum complete-round diameter in mm. 0 disables the upper limit; there is no lower calibre limit.");
+        Belt.MaxFeedDistance = Number("MaxFeedDistance", 1.5, "Maximum feed-box to breech distance in metres. 0 uses native crew hand reach.");
+        Belt.BoxMassKg = Number("BoxMassKg", 25, "Fixed belt box mechanism mass in kg, excluding ammunition.");
+        Belt.MassPerRoundKg = Number("MassPerRoundKg", .1, "Belt mechanism mass in kg per capacity slot; ammunition mass is counted by the game.");
+        Belt.MaxRpm = Belt.Positive(Number("MaxRpm", 1200, "Maximum rounds per minute. The absolute ceiling is always 1200, including when this value is higher."), 1200);
+        var rpm = Config.Bind("Belt", "RpmByCalibre", Belt.DefaultTable, "Ascending calibre-mm:rpm pairs separated by commas. The first upper bound at or above the calibre wins; above the last bound use its rpm.").Value;
+        if (!Belt.SetTable(rpm)) Log.LogWarning("[Belt] Invalid RpmByCalibre table; using " + Belt.DefaultTable + ".");
+        Belt.RefillSecondsPerRound = Number("RefillSecondsPerRound", 1, "Stationary crew refill seconds per round, at least 0.5, divided by loader efficiency.");
+        Belt.StationarySeconds = Number("StationarySeconds", 3, "Continuous seconds below StationarySpeed before crew refill is allowed.");
+        Belt.StationarySpeed = Belt.Positive(Number("StationarySpeed", .5, "Vehicle speed threshold in metres per second for stationary crew refill."), .5);
     }
     // HUD with the UI Kit only when the kit plugin is loaded; all kit code lives in AutoloaderHudView.
     private void StartHud()
@@ -68,6 +83,7 @@ public sealed class Plugin : BasePlugin
     public override void Load()
     {
         ModLog = Log;
+        BindBelt();
         // 0.2.23: static props; an old [Visuals] Animate line in the cfg is left unused.
         OwnRounds=Config.Bind("Visuals","OwnRounds",true,"Replace only bustle/revolver shell renderers with true-size rounds, with native ammunition fallback if unavailable.").Value;
         // 0.2.29 (BESLUITEN 2026-11-05 "Goed, bouw ze in"): carousel basket model; Simple is exactly the 0.2.28 model.

@@ -1,3 +1,4 @@
+﻿using Sprocket.DamageModelling;
 using HarmonyLib;
 using Sprocket.Vehicles;
 using Sprocket.Vehicles.AmmunitionStorage;
@@ -16,6 +17,13 @@ internal static class MagazineRefill
     private static readonly HashSet<IntPtr> WaitingTasks = new();
     private static readonly Dictionary<IntPtr, Vector3> OriginalCrewPoints = new();
     private static readonly HashSet<IntPtr> MissingBodyWarned = new();
+    private static readonly Dictionary<IntPtr, RefillTypePin> NativeTypePins = new();
+    internal static void PinNativeType(Cannon cannon, int requested, int pinned)
+    {
+        if (AmmoLoadoutBridge.HasLoadout(cannon)) return;
+        NativeTypePins[cannon.Pointer] = NativeTypePins.TryGetValue(cannon.Pointer, out var previous)
+            ? previous.With(requested, pinned) : new(requested, pinned);
+    }
     internal static bool Waiting(LoadTask task) => WaitingTasks.Contains(task.Pointer);
     // 0.2.28 (H2 "Alleen bewaken"): the native task fields as they were just before the magazine route took the
     // task, restored as raw fields on an error or a time-out. Never through SetState: SetState(Loaded) calls the
@@ -102,7 +110,7 @@ internal static class MagazineRefill
     // 0.2.26: one Info line per refill state change (rack VUID and reason), also with DetailedLogging off;
     // a reason that returns is logged again after 10 s at most. Compared as enum/int: no work per frame.
     private static readonly Dictionary<(int Rack, RefillReason Reason), float> LoggedReasons = new();
-    private static void Status(BustleState state, RefillReason reason, int detail = 0)
+    internal static void Status(BustleState state, RefillReason reason, int detail = 0)
     {
         if (state.RefillReason == reason && state.RefillDetail == detail) return;
         state.RefillReason = reason; state.RefillDetail = detail;
@@ -114,7 +122,7 @@ internal static class MagazineRefill
             if (!Plugin.DetailedLogging && LoggedReasons.TryGetValue(key, out var last) && now - last < 10f) return;
             LoggedReasons[key] = now;
             var magazine = state.Rack.behaviour;
-            Plugin.ModLog.LogInfo($"[{(state.Revolver ? "Revolver" : "Bustle")}] Magazine {state.Rack.VUID.Value} refill: {RefillPolicy.Text(reason)}" +
+            Plugin.ModLog.LogInfo($"[{(state.Revolver ? "Revolver" : state.BeltFeed ? "Belt" : "Bustle")}] Magazine {state.Rack.VUID.Value} refill: {RefillPolicy.Text(reason)}" +
                 $"{(detail != 0 ? $" from rack {detail}" : "")}; stock {magazine?.AmountStored ?? 0}/{magazine?.Capacity ?? 0}.");
         }
         catch { /* Logging never changes refilling. */ }
@@ -122,27 +130,40 @@ internal static class MagazineRefill
     internal static IEnumerable<AmmoRack> Reserves(Cannon cannon)
     {
         foreach (var rack in VehicleLoadIndex.Get(cannon).Reserves)
-            if (rack.IsInstalled && rack.HealthFraction > 0 && rack.ShellSizeBlueprintID == cannon.ShellSizeBlueprintID && rack.behaviour?.AmountStored > 0)
+            if (Reserve(cannon, rack))
                 yield return rack;
     }
 
-    private static AmmoRack? RefillSource(BustleState state, Cannon cannon)
+    private static int Size(Cannon cannon) => ProjectileSizeID.FromPropellantLength(
+        cannon.ShellBlueprint.Diameter, cannon.ShellBlueprint.PropellantLength).Value;
+    private static bool Reserve(Cannon cannon, AmmoRack rack) => RefillMatch.Reserve(rack.IsInstalled, rack.HealthFraction,
+        Size(cannon), rack.projectileSizeID.Value, rack.behaviour?.AmountStored ?? 0);
+
+    private static bool MatchingSupply(Cannon cannon, AmmoRackBehaviour aggregate, int type)
+    {
+        var result = AmmoLoadoutBridge.Supply(cannon, aggregate, type, out var typed);
+        if (result < 0) return false;
+        var source = result == 1 ? typed : aggregate;
+        return source != null && RefillMatch.Matches(Size(cannon), type, ProjectileTypeID.Invalid.Value,
+            source.ShellSizeID.Value, source.StoredTypeID.Value, source.AmountStored);
+    }
+
+    internal static AmmoRack? RefillSource(BustleState state, Cannon cannon)
     {
         var source = state.RefillRack;
         var magazine = state.Rack.behaviour;
         if (magazine == null) return null;
-        var type=RequestedType(cannon,magazine);
+        var type = RefillType(cannon, magazine, state.BeltFeed ? BeltRuntime.Type(state, cannon, magazine) : RequestedType(cannon, magazine));
         if(state.RefillType!=type)
         {state.RefillType=type;state.RefillProgress=0;state.RefillSource=IntPtr.Zero;source=null;}
-        if (state.RefillProgress > 0 && source != null && source.IsInstalled && source.HealthFraction > 0 &&
-            source.ShellSizeBlueprintID == cannon.ShellSizeBlueprintID && source.behaviour?.AmountStored > 0 &&
-            AmmoLoadoutBridge.Available(cannon,source.behaviour,type)>0) return source;
+        if (state.RefillProgress > 0 && source != null && Reserve(cannon, source) &&
+            MatchingSupply(cannon, source.behaviour, type)) return source;
         source = null;
         float nearest = float.PositiveInfinity;
         var destination = state.Rack.transform.TransformPoint(state.Rack.LoadLocalPosition);
         foreach (var rack in Reserves(cannon))
         {
-            if (AmmoLoadoutBridge.Available(cannon,rack.behaviour,type)<=0) continue;
+            if (!MatchingSupply(cannon, rack.behaviour, type)) continue;
             float distance = (rack.transform.TransformPoint(rack.LoadLocalPosition) - destination).sqrMagnitude;
             if (distance >= nearest) continue;
             source = rack; nearest = distance;
@@ -151,26 +172,46 @@ internal static class MagazineRefill
         state.RefillRack = source;
         return source;
     }
-    private static int RequestedType(Cannon cannon,AmmoRackBehaviour fallback) =>
+    internal static int RequestedType(Cannon cannon,AmmoRackBehaviour fallback) =>
         cannon.Behaviour?.LoadTask?.TryCast<LoadTask>()?.Request.TypeID.Value??fallback.StoredTypeID.Value;
+
+    // A native single-type box can adopt a different real source identity only while empty.
+    // While partly filled its current type is the storage constraint; EB always uses its requested view.
+    private static int RefillType(Cannon cannon, AmmoRackBehaviour magazine, int requested)
+    {
+        if (AmmoLoadoutBridge.HasLoadout(cannon)) return requested;
+        int current = RequestedType(cannon, magazine);
+        int original = NativeTypePins.TryGetValue(cannon.Pointer, out var pin) ? pin.Original(current) : current;
+        return original != ProjectileTypeID.Invalid.Value ? original :
+            magazine.AmountStored > 0 ? magazine.StoredTypeID.Value : ProjectileTypeID.Invalid.Value;
+    }
 
     // 0.2.26: a revolver crew loader counts when assigned, healthy and within the native hand reach of the
     // drum. Until 0.2.25 the native loader task also had to be "working", which it only is while the gun
     // itself is Loading, so a drum next to a loaded gun never got crew refills (the commander-loader case).
     internal static bool RevolverCrew(Cannon cannon) => SemiAutoloader.HasCrew(cannon);
 
+    internal static RefillReason CrewStatus(Cannon cannon)
+    {
+        var breech = FindBreech(cannon);
+        var operable = breech?.loaderOperable;
+        var active = operable?.AssignedOperator?.ActiveBehaviour;
+        return RefillPolicy.CrewStatus(breech != null && breech.HealthFraction > 0,
+            active != null && active.Enabled && active.HealthFraction > 0, operable?.Valid == true,
+            operable?.behaviour?.TryCast<LoadContributeTask>() != null);
+    }
+
     private static AmmoRack? LoaderlessSource(BustleState state, Cannon cannon, int type)
     {
+        type = RefillType(cannon, state.Rack.behaviour, type);
         var source = state.NoLoaderRack;
-        if (source != null && source.IsInstalled && source.HealthFraction > 0 &&
-            source.ShellSizeBlueprintID == cannon.ShellSizeBlueprintID && source.behaviour?.AmountStored > 0 &&
-            AmmoLoadoutBridge.Available(cannon, source.behaviour, type) > 0) return source;
+        if (source != null && Reserve(cannon, source) && MatchingSupply(cannon, source.behaviour, type)) return source;
         source = null;
         float nearest = float.PositiveInfinity;
         var destination = state.Rack.transform.TransformPoint(state.Rack.LoadLocalPosition);
         foreach (var rack in Reserves(cannon))
         {
-            if (AmmoLoadoutBridge.Available(cannon, rack.behaviour, type) <= 0) continue;
+            if (!MatchingSupply(cannon, rack.behaviour, type)) continue;
             float distance = (rack.transform.TransformPoint(rack.LoadLocalPosition) - destination).sqrMagnitude;
             if (distance >= nearest) continue;
             source = rack; nearest = distance;
@@ -183,19 +224,49 @@ internal static class MagazineRefill
         return source;
     }
 
-    private static bool TransferOne(Cannon cannon, AmmoRackBehaviour source, AmmoRackBehaviour magazine, int requested)
+    internal static bool TransferOne(Cannon cannon, AmmoRackBehaviour source, AmmoRackBehaviour magazine, int requested)
     {
-        // Consume real reserve ammunition only on a completed transfer; no stock is created.
+        requested = RefillType(cannon, magazine, requested);
+        // Validate the same request as source selection. EB owns its finite typed transfer/refund.
+        if (!MatchingSupply(cannon, source, requested) || magazine.ShellSizeID.Value != Size(cannon) ||
+            magazine.AmountStored >= magazine.Capacity) return false;
         var transfer = AmmoLoadoutBridge.Transfer(cannon, source, magazine, requested);
         if (transfer == 1) return true;
-        if (transfer != 0 || source.StoredTypeID.Value != magazine.StoredTypeID.Value || !source.TakeShell()) return false;
-        int before;
-        // 0.2.28: an exception between taking and storing the round puts it back in the reserve; no round is lost.
-        try { before = magazine.AmountStored; magazine.LoadAmmo(1); }
-        catch { source.LoadAmmo(1); throw; }
-        if (magazine.AmountStored == before + 1) return true;
-        source.LoadAmmo(1);
-        return false;
+        if (transfer != 0) return false;
+        var task = cannon.Behaviour?.LoadTask?.TryCast<LoadTask>();
+        bool canRetype = task != null && (Waiting(task) || task.State is LoadState.Unloaded or LoadState.NeverLoaded);
+        int originalType = magazine.StoredTypeID.Value;
+        try
+        {
+            return RefillTransfer.One(new NativeStore(source), new NativeStore(magazine),
+                Size(cannon), requested, ProjectileTypeID.Invalid.Value, canRetype);
+        }
+        finally
+        {
+            if (task != null && magazine.StoredTypeID.Value != originalType)
+            {
+                // Our supply route pins Request to the old box type. At this empty/unoccupied boundary
+                // update that pin to the real incoming round; never retag a Loading/Loaded round.
+                var request = task.Request;
+                PinNativeType(cannon, request.TypeID.Value, magazine.StoredTypeID.Value);
+                request.TypeID = magazine.StoredTypeID;
+                task.Request = request;
+            }
+        }
+    }
+
+    private readonly record struct NativeStore(AmmoRackBehaviour Rack) : IRefillStore
+    {
+        public int Size => Rack.ShellSizeID.Value;
+        public int Type
+        {
+            get => Rack.StoredTypeID.Value;
+            set => Rack.StoredTypeID = new ProjectileTypeID(value);
+        }
+        public int Amount => Rack.AmountStored;
+        public int Capacity => Rack.Capacity;
+        public bool Take() => Rack.TakeShell();
+        public int Load() => Rack.LoadAmmo(1);
     }
 
     private static void Loaderless(BustleState state, Cannon cannon, AmmoRackBehaviour magazine, int requested, float dt)
@@ -314,9 +385,33 @@ internal static class MagazineRefill
             if (Waiting(__instance)) return false;
             if (__instance.State == LoadState.Loading ||
                 (__instance.State == LoadState.Loaded && __instance.currentRequest != LoadRequest.Consumed)) return true;
-            var empty = BustleRuntime.Racks(cannon).FirstOrDefault(s => BustleRuntime.Eligible(s, cannon) && s.Rack.behaviour != null &&
+            BustleState? empty;
+            if (BeltRuntime.Assigned(__instance, out var belt))
+            {
+                // A non-mix box keeps its one native type; a carried mix switches across typed views of the same belt box.
+                if (!BustleRuntime.Eligible(belt, cannon) || belt.Rack.behaviour == null) return false;
+                var aggregate = belt.Rack.behaviour;
+                bool mixed = AmmoLoadoutBridge.HasLoadout(cannon);
+                int type = mixed ? BeltRuntime.Type(belt, cannon, aggregate) : BeltRuntime.Type(belt, aggregate);
+                if (!mixed && __instance.Request.TypeID.Value != ProjectileTypeID.Invalid.Value && __instance.Request.TypeID.Value != type) return false;
+                empty = AmmoLoadoutBridge.Available(cannon, aggregate, type) == 0 ? belt : null;
+            }
+            else empty = BustleRuntime.Racks(cannon).FirstOrDefault(s => BustleRuntime.Eligible(s, cannon) && s.Rack.behaviour != null &&
                 AmmoLoadoutBridge.Available(cannon,s.Rack.behaviour,RequestedType(cannon,s.Rack.behaviour))==0);
             if (empty == null) return true;
+            if (AmmoLoadoutBridge.HasLoadout(cannon) && empty.Rack.behaviour is { } mag)
+            {
+                int req = empty.BeltFeed ? BeltRuntime.Type(empty, cannon, mag) : RequestedType(cannon, mag);
+                bool full = mag.Capacity > 0 && mag.AmountStored >= mag.Capacity;
+                bool hasCrew = CrewStatus(cannon) == RefillReason.Crew;
+                bool hasReserve = Reserves(cannon).Any(r => r.behaviour != null && MatchingSupply(cannon, r.behaviour, req));
+                if (!RefillPolicy.CanTransferFromReserve(empty.Revolver, full, hasCrew, hasReserve))
+                {
+                    Status(empty, full ? RefillReason.Full : (!empty.Revolver && !hasCrew) ? CrewStatus(cannon) : RefillReason.NoReserve);
+                    __instance.rack = null;
+                    return false;
+                }
+            }
             // 0.2.28 (H2): after an earlier failure this cannon loads natively for the rest of the session.
             if (RouteSwitch.Off(cannon)) return true;
             Routes.Complete(__instance.Pointer); // A stale entry of a released task never shadows this snapshot.
@@ -365,12 +460,13 @@ internal static class MagazineRefill
             var cannon = CannonFor(__instance);
             if (cannon == null || __3 <= 0 || !float.IsFinite(__3)) return;
             if (crewFrame != Time.frameCount) { crewFrame = Time.frameCount; BusyCrew.Clear(); }
-            foreach (var state in BustleRuntime.Racks(cannon))
+            foreach (var state in VehicleLoadIndex.Get(cannon).Bustles)
             {
                 if (state.CannonId != cannon.VUID.Value) continue;
                 var magazine = state.Rack.behaviour;
                 if (magazine == null || state.RefillFrame == Time.frameCount) continue;
                 state.RefillFrame = Time.frameCount;
+                if (state.BeltFeed) { BeltRuntime.Refill(state, cannon, __3, BusyCrew); continue; }
                 if (magazine.AmountStored >= magazine.Capacity)
                 {
                     state.Refilling = false; state.RefillProgress = 0;
@@ -430,18 +526,8 @@ internal static class MagazineRefill
                 state.RefillProgress += __3 * Math.Clamp(efficiency, 0, 1) / seconds;
                 if (state.RefillProgress < 1 || magazine.AmountStored >= magazine.Capacity) continue;
                 // Consume real reserve ammunition only on completed transfer; no stock is created.
-                var transfer=AmmoLoadoutBridge.Transfer(cannon,source.behaviour,magazine,requested);
-                if(transfer==1)
+                if (TransferOne(cannon, source.behaviour, magazine, requested))
                     Plugin.ModLog.LogDebug($"[Bustle] Crew transferred one carried round: rack {source.VUID.Value} -> magazine {state.Rack.VUID.Value}; stock {magazine.AmountStored}/{magazine.Capacity}.");
-                else if (transfer==0 && source.behaviour.StoredTypeID.Value==magazine.StoredTypeID.Value && source.behaviour.TakeShell())
-                {
-                    int before;
-                    // 0.2.28: an exception between taking and storing puts the round back in the reserve.
-                    try { before = magazine.AmountStored; magazine.LoadAmmo(1); }
-                    catch { source.behaviour.LoadAmmo(1); throw; }
-                    if (magazine.AmountStored != before + 1) source.behaviour.LoadAmmo(1);
-                    else Plugin.ModLog.LogDebug($"[Bustle] Crew transferred one shot: rack {source.VUID.Value} -> magazine {state.Rack.VUID.Value}; ready stock {magazine.AmountStored}/{magazine.Capacity}.");
-                }
                 state.RefillProgress = 0;
             }
         });
@@ -457,13 +543,16 @@ internal static class MagazineRefill
         try
         {
             assigned = CannonFor(__instance);
-            var ready = assigned == null ? null : BustleRuntime.Racks(assigned).FirstOrDefault(s => BustleRuntime.Eligible(s, assigned));
+            var ready = assigned == null ? null : BeltRuntime.Assigned(__instance, out var belt)
+                ? (BustleRuntime.Eligible(belt, assigned) ? belt : null)
+                : BustleRuntime.Racks(assigned).FirstOrDefault(s => BustleRuntime.Eligible(s, assigned));
             var readyAggregate=ready?.Rack.behaviour;
-            if (readyAggregate!=null&&AmmoLoadoutBridge.Available(assigned!,readyAggregate,RequestedType(assigned!,readyAggregate))>0)
+            int requested = readyAggregate == null ? -1 : ready!.BeltFeed ? BeltRuntime.Type(ready, assigned!, readyAggregate) : RequestedType(assigned!, readyAggregate);
+            if (readyAggregate!=null&&AmmoLoadoutBridge.Available(assigned!,readyAggregate,requested)>0)
             {
                 WaitingTasks.Remove(__instance.Pointer);
                 var source=readyAggregate;
-                var result=AmmoLoadoutBridge.Supply(assigned!,readyAggregate,RequestedType(assigned!,readyAggregate),out var typed);
+                var result=AmmoLoadoutBridge.Supply(assigned!,readyAggregate,requested,out var typed);
                 if(result<0){WaitingTasks.Add(__instance.Pointer);return false;}
                 if(result==1)source=typed!;
                 __instance.rack = source.Cast<IAmmoSource>();
@@ -472,6 +561,20 @@ internal static class MagazineRefill
                 Routes.Complete(__instance.Pointer);
                 Plugin.ModLog.LogDebug($"[Bustle] Cannon {assigned!.VUID.Value} resumed mechanical loading from replenished magazine.");
                 return true;
+            }
+            if (AmmoLoadoutBridge.HasLoadout(assigned!) && ready != null && readyAggregate != null)
+            {
+                bool full = readyAggregate.Capacity > 0 && readyAggregate.AmountStored >= readyAggregate.Capacity;
+                bool hasCrew = CrewStatus(assigned!) == RefillReason.Crew;
+                bool hasReserve = Reserves(assigned!).Any(r => r.behaviour != null && MatchingSupply(assigned!, r.behaviour, requested));
+                if (!RefillPolicy.CanTransferFromReserve(ready.Revolver, full, hasCrew, hasReserve))
+                {
+                    WaitingTasks.Remove(__instance.Pointer);
+                    Routes.Complete(__instance.Pointer);
+                    __instance.rack = null;
+                    __instance.SetState(LoadState.Unloaded);
+                    return true;
+                }
             }
             if (ready == null)
             {
@@ -530,6 +633,9 @@ internal static class MagazineRefill
     internal static void ClearWaiting(Cannon __instance)
     {
         RestoreCrewPoint(__instance);
+        NativeTypePins.Remove(__instance.Pointer);
+        foreach (var state in BustleRuntime.Racks(__instance))
+            if (state.CannonId == __instance.VUID.Value) state.CrewPointApplied = false;
         var task = __instance.Behaviour?.LoadTask?.TryCast<LoadTask>();
         if (task != null) { WaitingTasks.Remove(task.Pointer); Routes.Complete(task.Pointer); }
     }
@@ -540,6 +646,8 @@ internal static class MagazineRefill
     [HarmonyPostfix, HarmonyPatch(typeof(LoadTask), nameof(LoadTask.Update))]
     private static void AfterUpdate(LoadTask __instance)
     {
+        try { BeltRuntime.AfterStep(__instance); }
+        catch (Exception ex) { HookGuard.Warn("Belt cycle accounting", HookGuard.TaskVuid(__instance), ex); }
         // 0.2.32: carousel ring turns (one count check when nothing turns; nothing for vehicles without a carousel).
         if (CarouselVisuals.Available)
         {

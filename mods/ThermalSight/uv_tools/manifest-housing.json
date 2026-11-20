@@ -1,0 +1,81 @@
+{
+  "fcs-console.obj": {
+    "source_sha256": "db6990517e75f0558bc3db6c2ea2824e710ad60d338dbaf97610a171abfd70ca",
+    "output_sha256": "0864f80cb37c44eb9d25a95e995c84ba84f235b36eacd402148887a294b23d14",
+    "generator_sha256": "49c2c2cd25b2ce4c989fc9de3c6a1364fa5c09585cd90958d51d38a6511f7f40",
+    "positions": 1623,
+    "triangles": 2492,
+    "bounds": [
+      [
+        -0.116171002,
+        -0.205113009,
+        -0.13500002
+      ],
+      [
+        0.666239023,
+        0.25,
+        0.144999996
+      ]
+    ],
+    "material_order": [
+      "Housing"
+    ]
+  },
+  "t72-style-sight.obj": {
+    "source_sha256": "25832e035559779ee4bf78f4f16b5495cee741d7ae7d4ed2ef0bb5a7a255a95e",
+    "output_sha256": "08791d275c3cdc44f1318a1bae49d29aab5e3539fd78c557793052d156d96d3f",
+    "generator_sha256": "49c2c2cd25b2ce4c989fc9de3c6a1364fa5c09585cd90958d51d38a6511f7f40",
+    "positions": 1731,
+    "triangles": 352,
+    "bounds": [
+      [
+        -0.0980000049,
+        0.0,
+        0.0
+      ],
+      [
+        0.0980000049,
+        0.268584996,
+        0.165999994
+      ]
+    ],
+    "material_order": [
+      "Housing",
+      "Glass",
+      "AmberGlass",
+      "Glass",
+      "AmberGlass",
+      "Glass",
+      "AmberGlass",
+      "Glass",
+      "AmberGlass",
+      "Glass",
+      "AmberGlass",
+      "Glass",
+      "AmberGlass",
+      "Glass",
+      "AmberGlass",
+      "Housing"
+    ]
+  },
+  "ir-searchlight.obj": {
+    "source_sha256": "07d581a6b1912d14e0eb5ceb568294e7b7cdcc362571adc7d678492e2ca7286d",
+    "output_sha256": "3255b8211c2189e5a60bb2d7dae6ad6b477e3bfcf8e13ac55508980d11f8c456",
+    "generator_sha256": "49c2c2cd25b2ce4c989fc9de3c6a1364fa5c09585cd90958d51d38a6511f7f40",
+    "positions": 2573,
+    "triangles": 2992,
+    "bounds": [
+      [
+        -0.15,
+        0.0,
+        -0.18
+      ],
+      [
+        0.15,
+        0.4,
+        0.13
+      ]
+    ],
+    "material_order": []
+  }
+}

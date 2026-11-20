@@ -1,1 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup><ItemGroup><Compile Include="../BindingStore.cs" Link="BindingStore.cs" /><Compile Include="../ModMetadata.cs" Link="ModMetadata.cs" /><Compile Include="../BindingIdentityMigration.cs" Link="BindingIdentityMigration.cs" /><Compile Include="../ButtonBinding.cs" Link="ButtonBinding.cs" /></ItemGroup></Project>
+<Project Sdk="Microsoft.NET.Sdk">
+ <PropertyGroup>
+  <OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
+  <GameDir Condition="'$(GameDir)' == ''">$(MSBuildProjectDirectory)\..\..\..\..\2026-11-13\herpak\gameref</GameDir>
+ </PropertyGroup>
+ <ItemGroup>
+  <Compile Include="../BindingStore.cs;../ModMetadata.cs;../BindingIdentityMigration.cs;../ButtonBinding.cs;../ModSettings.cs" Link="%(Filename)%(Extension)" />
+  <Reference Include="$(GameDir)\BepInEx\core\BepInEx.Core.dll;$(GameDir)\BepInEx\core\Mono.Cecil.dll;$(GameDir)\BepInEx\core\BepInEx.Unity.IL2CPP.dll;$(GameDir)\BepInEx\interop\UnityEngine.CoreModule.dll" />
+ </ItemGroup>
+</Project>

@@ -132,6 +132,8 @@ internal static class CassetteComposerPanel
         var m=new CassetteComposerModel(backend,list,legacy,Read,used.Contains,id=>RuntimeArmourResponses.Snapshot.Cassettes?.ContainsKey(id)==true&&RuntimeLiveTechnology.ReachesPlay(id),writable,
             materialDate:id=>dates.TryGetValue(id,out var d)?d:null);
         m.FrameCheck=FrameCheck;
+        // 0.22.82: the weight in the note of Solid block uses the density of the recipe over its nominal depth (air included), the density a plate in layers uses.
+        m.RecipeDensity=id=>RuntimeArmourResponses.Snapshot.Cassettes?.TryGetValue(id,out var c)==true&&c!=null?c.Passive.Density:null;
         if(!writable)panel?.SetStatus("Cassette file missing: read-only until the defaults are installed.",StatusKind.Error);
         Plugin.ModLog.LogInfo($"[Cassette composer] {list.Length} materials, {legacy.Length} legacy, {m.Catalogue.Count} presets; sidecar {(writable?"writable":"absent")}.");
         return m;
@@ -179,12 +181,25 @@ internal static class CassetteComposerPanel
             var frontNote=layerSnapshot==null?null:LayerFaces.SelectionNote(layerSnapshot,faceSelection);
             var storedFront=RuntimeLayerFaces.ReadSavedFront(plate);
             if(layerLine!=null&&storedFront is {} saved)frontNote=LayerFaces.SelectionNote(saved.Json,saved.Front);
+            // 0.22.80: without a selection the note advises to select the front (Convert to layers then follows it to the back, or to the Thickness).
+            if(selected==0&&storedFront==null&&layerSnapshot!=null)frontNote=(string.IsNullOrEmpty(frontNote)?"":frontNote+". ")+LayerFaces.SelectFrontAdvice.TrimEnd('.');
+            // 0.22.82: the mark [Solid block] (mesh name, cached 1 s) and the plate as a closed shape (from the gated snapshot, once per content signature).
+            var solidMark=composite&&CompositePlate.IsSolidBlock(RuntimeLayerFaces.MeshName(plate));
+            SolidTargetInfo? solid=null;
+            try{if(layerSnapshot!=null)solid=SolidInfo(plate.Pointer,layerSnapshot);}catch(Exception ex){Warn("Solid shape unavailable: "+ex.Message);}
             var target=new ComposerTarget(name,faces,id,label,composite,faces>0?min:0,max,VehicleDateKey(plate),KnownMaterial(plate,id),
-                RuntimeCompositePlateEdit.Eligibility(plate),composite?0:RuntimeCompositePlateEdit.LinkedCopies(plate),selected,layerLine,frontNote);
+                RuntimeCompositePlateEdit.Eligibility(plate),composite?0:RuntimeCompositePlateEdit.LinkedCopies(plate),selected,layerLine,frontNote,solidMark,solid);
             lastTarget=(plate.Pointer,target);
             return target;
         }
         catch(Exception ex){Warn("Target unreadable: "+ex.Message);unavailable=CassetteComposerModel.PlateBusy(name,"target unreadable: "+ex.Message);return null;}
+    }
+    private static (IntPtr Plate,string Signature,SolidTargetInfo Info)? solidCache;
+    /// <summary>0.22.82: closed pieces and volume of the plate (or why it is not closed), recomputed only when the content signature of the snapshot changes.</summary>
+    private static SolidTargetInfo SolidInfo(IntPtr plate,PlateMeshSnapshot snapshot)
+    {
+        if(solidCache is {} kept&&kept.Plate==plate&&kept.Signature==snapshot.Signature)return kept.Info;
+        var info=SolidTargetInfo.Of(SolidShape.FromSnapshot(snapshot),SolidShape.ThickFaces(snapshot.Faces.Select(f=>(IReadOnlyList<ushort>)f.Thickness)));solidCache=(plate,snapshot.Signature,info);return info;
     }
     // ---------------- vehicle date and native technology frame (0.22.7) ----------------
     /// <summary>The native date of the owning vehicle (year*10000+month*100+day); null when unreadable.</summary>
@@ -465,7 +480,7 @@ internal static class CassetteComposerPanel
         // 0.22.71: one choice at a time; the button Apply below applies the recipe and then does what is chosen. Choosing changes nothing on the plate.
         var choice=a.Stack(4);
         choice.Label("Apply also does",TextStyle.Small);
-        for(int r=0;r<3;r++)
+        for(int r=0;r<(CassetteComposerModel.ApplyChoiceLabels.Length+2)/3;r++) // 0.22.82: four rows (Solid block is the tenth choice)
         {
             int from=r*3;var labels=CassetteComposerModel.ApplyChoiceLabels.Skip(from).Take(3).ToArray();
             choice.Segmented(labels,()=>{var chosen=(int)(model?.ApplyChoice??0);return chosen>=from&&chosen<from+3?chosen-from:-1;},i=>model?.SetApplyChoice(from+i)).Tooltip(()=>model?.ApplyChoiceHelp??"");
@@ -492,7 +507,8 @@ internal static class CassetteComposerPanel
         if(action==ComposerMeshAction.CheekShell){CheekShellDialog();return;}
         try
         {
-            var prepared=RuntimeComposerFill.Prepare(tracked!,action,newMaterial:material,convert:convert,diagnosticApply:true);
+            // 0.22.80: Convert to layers runs a corner line without a back to the Thickness of the window (default: the depth of the recipe, air included).
+            var prepared=RuntimeComposerFill.Prepare(tracked!,action,newMaterial:material,convert:convert,diagnosticApply:true,layerDepthMm:action==ComposerMeshAction.LayerConvert&&model?.DepthMm>0?model.ApplyDepthMm:null);
             if(material!=null)prepared=prepared with{Material=material};
             void Commit()
             {
@@ -746,6 +762,17 @@ internal static class CassetteComposerPanel
         {
             // 0.22.74: the recipe is the saved preset or, with none open, the plate's own cassette. A plate that is not composite is converted in the same step (one undo): Prepare/TryPrepared do it.
             if(model.ApplyRecipeId is not {} recipe)return;
+            // 0.22.82: Solid block sets the recipe and the mark in one step (a plate that is not composite yet is converted in the same step); the geometry stays as drawn.
+            if(choice==ComposerApplyChoice.SolidBlock)
+            {
+                var converts=model.Converts;
+                if(converts?!CanConvertMeshAction():!CanMeshAction()){panel.SetStatus(converts?"Select an add-on plate in the vehicle designer.":"Select a composite plate in the vehicle designer.",StatusKind.Warning);return;}
+                var solidOk=RuntimeCompositePlateEdit.TrySolidBlock(tracked!,recipe,converts,out var solidMessage);
+                try{tracked?.RequestRedraw();}catch(Exception){}
+                if(solidOk){used.Add(recipe);model.Invalidate();nextTarget=0;}
+                panel.SetStatus(solidMessage,solidOk?StatusKind.Success:StatusKind.Warning);
+                return;
+            }
             var action=CassetteComposerModel.MeshActionOf(choice)!.Value;
             if(model.Converts)
             {

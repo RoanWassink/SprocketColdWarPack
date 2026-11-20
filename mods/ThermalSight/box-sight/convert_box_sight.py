@@ -3,6 +3,10 @@ from pathlib import Path
 import hashlib
 import json
 import math
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'uv_tools'))
+import add_uv  # noqa: E402  (0.4.1: metric 1 UV/m on the painted surface)
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
@@ -120,7 +124,14 @@ def convert():
         lines.append('usemtl '+name)
         for tri in group:
             lines.append('f '+' '.join('/'.join(str(remaps[i][c[i]]+1) for i in range(3)) for c in tri))
-    payload = ('\n'.join(lines)+'\n').encode()
+    creator = ('\n'.join(lines)+'\n')
+    # 0.4.1: the creator UVs are not metric (density 0..4 UV/m, collapsed islands); the painted
+    # surface gets the shared metric UVs, steel/dark/lens keep their creator UVs. v/vn unchanged.
+    payload, uv_rows = add_uv.convert('box-sight.obj', creator)
+    add_uv.verify_file('box-sight.obj', creator.encode(), payload)
+    uv_summary = add_uv.summary(uv_rows)
+    if not add_uv.within_limits(uv_summary):
+        raise ValueError('box-sight UV metrics out of limits')
     OUTPUT.parent.mkdir(parents=True,exist_ok=True)
     OUTPUT.write_bytes(payload)
     stls = HERE / 'stl'
@@ -144,7 +155,8 @@ def convert():
                      for n in [cross(sub(b,a),sub(c,a))])
     check = {'triangles':dict(zip(NAMES,counts)), 'totalTriangles':sum(counts),
              'sourceZeroAreaTrianglesRetained':degenerate,
-             'positions':len(compact[0]), 'texcoords':len(compact[1]), 'normals':len(compact[2]),
+             'positions':len(compact[0]), 'texcoords':sum(l.startswith(b'vt ') for l in payload.splitlines()),
+             'normals':len(compact[2]), 'paintUv':uv_summary,
              'boundsMin':low,'boundsMax':high,'sha256':hashlib.sha256(payload).hexdigest(),
              'sourceSha256':hashlib.sha256(source.read_bytes()).hexdigest(),
              'converterSha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}

@@ -7,7 +7,7 @@ using Il2CppInterop.Runtime;
 
 namespace SprocketStabilization;
 
-[BepInPlugin("sprocket.stabilization", "Sprocket Stabilization", "0.7.3")]
+[BepInPlugin("sprocket.stabilization", "Sprocket Stabilization", "0.7.4")]
 public sealed class Plugin : BasePlugin
 {
     internal static ManualLogSource ModLog = null!;
@@ -177,7 +177,7 @@ public sealed class Plugin : BasePlugin
         }
 
         Log.LogInfo(
-            "Sprocket Stabilization 0.7.3 loaded: per-drive stabilizer boost, " +
+            "Sprocket Stabilization 0.7.4 loaded: per-drive stabilizer boost, " +
             "realistic limits and blueprint persistence.");
     }
 

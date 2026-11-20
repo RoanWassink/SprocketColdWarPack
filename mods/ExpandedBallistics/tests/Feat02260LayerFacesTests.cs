@@ -75,7 +75,7 @@ internal static partial class ComposerFillBlueprintEvidence
         Check(auto.DirectionChangedFaces==1&&auto.Inspection.Contains("1 faces now thicken straight back; their rear may shift slightly."),"Auto corners (tm 1) stack along the face normal and are counted in the window");
         var mixed=LayerFaces.Convert(WithPentagon(Flat(803)),t80,null,Density);
         Check(mixed.SkippedFaces==1&&mixed.ConvertedFaces==1&&mixed.Inspection.Contains("1 faces have more than 4 corners and stay as they are.")&&mixed.Faces.Count(f=>f.Rank<0)==1,"a face with five corners stays as it is and is counted in the window");
-        Check(LayerFaces.Tooltip=="Splits each face into one face per armour layer. Air layers become real gaps. With faces selected, those are the front and the layers follow them inward."&&LayerFaces.Title=="Convert to layers - inspect before applying"&&ComposerFill.Label(ComposerMeshAction.LayerConvert)=="Convert to layers","button tooltip, window title and action label");
+        Check(LayerFaces.Tooltip=="Splits each face into one face per armour layer. Air layers become real gaps. With faces selected, those are the front and the layers follow them inward to the back; where a corner finds no back (or on an open sheet) they run to the Thickness above." /* 0.22.80 */&&LayerFaces.Title=="Convert to layers - inspect before applying"&&ComposerFill.Label(ComposerMeshAction.LayerConvert)=="Convert to layers","button tooltip, window title and action label");
         // The name survives save and load (blueprint wrapper round trip).
         foreach(var mode in new[]{ThicknessMode.Layers,ThicknessMode.LayerBlocks})
         {

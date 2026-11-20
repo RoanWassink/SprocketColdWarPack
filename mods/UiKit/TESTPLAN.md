@@ -1,3 +1,16 @@
+# Test plan: Sprocket UI Kit 0.1.13
+
+## 0.1.13 (pending in-game validation)
+
+1. Main menu: Settings > "Mod settings / Open" changes to "Opens after Settings". Close with Back, then repeat with Accept and Cancel; each round shows the panel only after Settings closes.
+2. In the panel, change UI Kit Scale live and toggle DetailedLogging; check the cfg changes. Esc closes the panel.
+3. In game, pause > Settings > Open, then leave Settings; the panel appears above the pause menu and stays open.
+4. In the designer, bind the normally unbound "Open mod settings" action, then use it to open the panel.
+5. Check "Restart required" for FontSource and SkipBlockTargets, conditional Reset, and confirm/cancel "Reset all".
+6. "Show advanced" reveals SkipBlockTargets; turn it off to hide it again.
+7. Regress focus: waiting panels suspend no keys, visible panels gain focus; clicking outside releases it, including above pause.
+8. Verify an empty registry explanation and a consumer page using Container.Setting, including external value updates, slider release and text Enter/blur commits.
+
 # Test plan: Sprocket UI Kit 0.1.12 (pending in-game validation)
 
 Coordinator installs separately; this build did not install, launch or stop the game.

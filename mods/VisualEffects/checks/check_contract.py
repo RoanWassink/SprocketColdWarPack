@@ -103,17 +103,24 @@ for i, f in enumerate(forms):
     check(g['radius'] < g['bezel_inner_radius'] and g['centre'][2] > g['lens_front_z'], f + ' glow disc inside the bezel and in front of the glass')
 check('ModelPosition' in rt and 'ModelRotation' in rt and 'GetModelScale()' in rt and 'LampLens.TryWorld' in rt, 'lens pose from the native model chain incl. signed scale')
 
-# 5. Hooks: exactly two registrations (muzzle observer, inspector postfix).
-check(count(mod, r'\.Patch\s*\(') == 2, 'Harmony .Patch registrations = 2 (muzzle observer + inspector OnGUI postfix)')
+# 5. Hooks: exactly four registrations (inspector, muzzle observer, impact observer, cookoff observer).
+check(count(mod, r'\.Patch\s*\(') == 4, 'Harmony .Patch registrations = 4 (inspector OnGUI + muzzle Setup + impact PlayEffect + Explosive.Detonate)')
 for pattern in [r'\[HarmonyPatch', r'\.PatchAll\s*\(', r'HarmonyPrefix', r'HarmonyTranspiler', r'__result']:
     check(count(mod, pattern) == 0, 'no other hook mechanism ' + pattern)
 if opts.native_methods:
     rows = json.loads(Path(opts.native_methods).read_text(encoding='utf-8-sig'))
-    same = [r for r in rows if r['RVA'] == '0x1F92E50']
-    target = [r for r in rows if r['Name'].endswith('VehicleObjectEditor::OnGUI(Sprocket.UI.IGUILayout)')]
-    check(len(target) == 1 and target[0]['Length'] == '0x36D' and len(same) == 1, 'OnGUI RVA 0x1F92E50 length 0x36D, unique (no ICF)')
+    expected_hooks = [
+        ('VehicleObjectEditor::OnGUI(Sprocket.UI.IGUILayout)', '0x1F92E50', '0x36D'),
+        ('MuzzleFlashEffect::Setup(Sprocket.WeaponFramework.CannonMuzzleFlashEffectInfo,UnityEngine.Transform,UnityEngine.Vector3,UnityEngine.Quaternion,System.Boolean)', '0x2104760', '0xAF3'),
+        ('ProjectileEffectConfig::PlayEffect(Sprocket.DamageModelling.ProjectileEffectInfo)', '0x21015E0', '0x2F3'),
+        ('Explosive::Detonate()', '0x208D7D0', '0x81E'),
+    ]
+    for suffix, rva, length in expected_hooks:
+        same = [r for r in rows if r['RVA'] == rva]
+        target = [r for r in rows if r['Name'].endswith(suffix)]
+        check(len(target) == 1 and target[0]['Length'] == length and len(same) == 1, f'{suffix} RVA {rva} length {length}, unique (no ICF)')
 else:
-    print('SKIP OnGUI RVA uniqueness (no --native-methods given)')
+    print('SKIP RVA uniqueness checks (no --native-methods given)')
 
 # 6. Light/glow behaviour.
 check('SetFloat(n,v)' in rt and '("_EmissiveExposureWeight",0)' in rt and 'LampLook.Emission(' in rt, 'lens disc: exposure weight 0 + capped LampLook emission (red stays red)')
@@ -133,5 +140,9 @@ check('[BepInDependency("sprocket.telescopicmast",BepInDependency.DependencyFlag
       and 'public const string MastGuid = "sprocket.telescopicmast";' in client
       and 'GetType("SprocketTelescopicMast.Io.IoApi", false)' in client
       and 'SprocketTelescopicMast.dll' not in (mod / 'SprocketVisualEffects.csproj').read_text(), 'Mast stays a reflection-only soft dependency: GUID sprocket.telescopicmast in Plugin.cs and IoApiClient.cs, facade type SprocketTelescopicMast.Io.IoApi')
-check('[BepInPlugin("sprocket.visualeffects","Sprocket Visual Effects","0.4.5")]' in plugin and 'new Harmony("sprocket.visualeffects.inspector")' in plugin and 'new Harmony("sprocket.visualeffects.observer")' in plugin, 'plugin GUID and both Harmony ids start with sprocket.visualeffects')
+check('[BepInPlugin("sprocket.visualeffects","Sprocket Visual Effects","0.5.3")]' in plugin
+      and 'new Harmony("sprocket.visualeffects.inspector")' in plugin
+      and 'new Harmony("sprocket.visualeffects.observer")' in plugin
+      and 'new Harmony("sprocket.visualeffects.impacts")' in plugin
+      and 'new Harmony("sprocket.visualeffects.detonate")' in plugin, 'plugin GUID and all four Harmony ids start with sprocket.visualeffects')
 print('PASS Visual Effects contract')

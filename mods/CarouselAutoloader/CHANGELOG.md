@@ -1,4 +1,35 @@
-﻿# Changelog
+# Changelog
+
+## 0.3.4 - 2026-11-20
+- Mixed ammunition autoloader fixes (with Expanded Ballistics 0.22.99):
+  - `BeltRuntime` and `MagazineRefill`: Belt feed boxes now load and refill mixed shell types via EB's typed stores instead of rejecting non-vanilla request IDs.
+  - `AmmoStorageApi` v2: adds `GetRackCapacityForGeometry` (including two-piece, revolver drum geometry, and native rack spacing), `IsReadyMagazine` (ready magazine sorted before hull reserve), and `GetReachableStorage` so EB stays aware when a carousel/bustle has no crew loader or the ready magazine is full.
+  - `MagazineRefill`: prevents deadlocks in `KeepMagazineRoute` / `Resume` when switching to a reserve type while a mixed bustle is full or has no healthy crew loader.
+  - `CarouselRuntime`: `RefreshNativeLoaders` and `Speed` call `AmmoLoadoutBridge.Prepare` before `SelectSupply` so EB stocks/steers `Request.TypeID` first; carousel fallback to hull reserve when a mixed type runs out in the carousel is permitted when a crew loader is present (`SemiAutoloader.HasCrew`).
+  - Zero new Harmony targets (stays at 41).
+
+## 0.3.3 - 2026-11-16
+- Belt HUD: count and coloured status on the heading row, cached rpm on a small second row, and a thin stock bar in both ring and bar modes. Height includes both extra elements for placement below AMMO. Bustle/revolver text and behaviour, loading, visuals, configuration defaults and all 41 patch targets are unchanged.
+
+## 0.3.2 - 2026-11-16
+- Reserve selection uses native ProjectileSizeID, requested projectile type and finite stock, independent of shell-slot blueprint numbers. Belt, bustle, semi and revolver share one transfer/refund path; managed mixes remain with Expanded Ballistics typed storage.
+- Duplicate slots may also have distinct generated projectile types. An empty unmanaged box may adopt the actual reserve type only without a real round loading/chambered; original wildcard requests stay distinct from the mechanical supply pin. Partial stock and occupied rounds retain their identity. Refusal restores both stock and box type.
+- Belt retries its native crew refill point after delayed box initialization. Refill status distinguishes missing/unhealthy crew, native reach validation and a missing native loading task; idle assigned loaders still count.
+- Own Belt and bustle round layouts include native per-axis spacing/padding (Bradley 248 x 221 x 308 mm, 25 x 212 mm, 10 mm gaps: 42 slots). Visual construction reads built component capacity and retries transient initialization instead of permanently refusing a zero-capacity preview.
+- Bustle still starts crew refill only when empty. No new Harmony targets; CarouselVisualGeometry and approved STL assets unchanged. Build default follows the relocated game folder.
+
+## 0.3.1 - 2026-11-15
+- Belt feed box: approved OpenSCAD box, 228-triangle links and chute, true-size complete rounds, packed top layer and stock-driven fill block. Empty stock shows only the box and chute.
+- Visual budget: omit links first, then use a ribbed top block; one DetailedLogging notice per rack VUID. Native ammunition, loading, damage, capacity, mass and all 41 patch targets are unchanged.
+- Dedicated 256 px Belt icon embedded and copied to installation output. Mesh hashes, packer/layer/prefix/fill/budget/allocation checks and four mesh-derived cutaway renders.
+
+## 0.3.0 - 2026-11-15
+
+Belt feed box: a fourth loader kind using a real native ammunition rack, available from 1965-01-01. Complete rounds only, no lower calibre limit, configurable 57 mm upper limit and 1.5 m feed reach. Normal native packing; mechanism mass 25 kg + 0.1 kg per capacity slot, excluding native ammunition mass.
+- Config [Belt] sets the calibre/rpm table, a hard 1200/min ceiling, mass, reach and stationary crew refill. Firing needs no crew; replenishment needs a healthy assigned loader in reach and three seconds below 0.5 m/s, transferring one finite reserve round at a time with refund on rejection. Moving discards partial work.
+- Existing Update hook: one native call per frame where possible, first three phases take one call each and ram receives the remaining work. Rounding credit crosses cycles. Only the minimum uniform substeps needed to fit the short frame-rounded cycle are used (1200/min: four calls at 30 fps, two at 60, one at 144); unused final-frame time is charged to the rounding credit. No additional hooks or TakeShell accounting.
+- One native ammunition type and a cached source; no per-round LINQ list or sorting in Belt source selection. Existing save fields; saved TwoPiece is ignored. Native rack rendering/damage and temporary bustle icon; one 10 Hz HUD line and Belt fit readout.
+- CarouselVisualGeometry, CarouselRuntime, CarouselGeometry, CarouselNativeDamage and the three older part definitions remain byte-identical to 0.2.34. Build/offline tests do not establish live cadence, interop allocation cost, ammunition lifecycle or native blueprint persistence.
 
 ## 0.2.34 - 2026-11-08
 

@@ -52,26 +52,41 @@ public sealed class NodeGraph : Element
     private bool isolate;
     internal void BatchIsolation(bool enabled)
     { isolate=enabled; if(world==null)return; if(enabled&&isolatedCanvas==null)isolatedCanvas=world.gameObject.AddComponent<Canvas>(); if(isolatedCanvas!=null)isolatedCanvas.enabled=enabled; lastClip=null; }
+    /// <summary>Laid-out graph viewport size in Kit units; zero before first layout.</summary>
     public Vector2 ViewSize => new(Rect.W,Rect.H);
+    /// <summary>Visible graph-space rectangle after pan and zoom.</summary>
     public Rect VisibleRect { get { var r=GraphMath.Visible(new(pan.x,pan.y),zoom,Rect.W,Rect.H); return new(r.X,r.Y,r.W,r.H); } }
+    /// <summary>Set port hit radius in physical pixels, independent of Kit scale and graph zoom.</summary>
     public NodeGraph PortHitRadius(float px) { portRadius=GraphMath.PortRadius(px); return this; }
+    /// <summary>Set the callback for a completed port drag; the consumer validates and creates the wire.</summary>
     public NodeGraph OnPortDrag(Action<GraphPortDrop> handler) { portDrop=handler; return this; }
+    /// <summary>Current graph pan in viewport units.</summary>
     public Vector2 Pan => pan;
+    /// <summary>Current graph zoom factor.</summary>
     public float Zoom => zoom;
+    /// <summary>Set finite pan and zoom; zoom is clamped to the configured range.</summary>
     public NodeGraph SetView(Vector2 pan,float zoom)
     {
         if(!float.IsFinite(pan.x)||!float.IsFinite(pan.y)||!float.IsFinite(zoom)) throw new ArgumentOutOfRangeException(nameof(zoom));
         zoom=Math.Clamp(zoom,minZoom,maxZoom); if(this.pan==pan&&this.zoom==zoom)return this;
         this.pan=pan; this.zoom=zoom; viewDirty=true; NotifyView(); return this;
     }
+    /// <summary>Set positive ordered zoom limits and clamp the current view.</summary>
     public NodeGraph ZoomRange(float min=.5f,float max=1.5f)
     { if(!float.IsFinite(min)||!float.IsFinite(max)||min<=0||max<min)throw new ArgumentOutOfRangeException(nameof(min)); minZoom=min; maxZoom=max; return SetView(pan,zoom); }
+    /// <summary>Set the node movement grid; zero disables snapping.</summary>
     public NodeGraph Snap(float grid) { if(!float.IsFinite(grid)||grid<0)throw new ArgumentOutOfRangeException(nameof(grid)); this.grid=grid; return this; }
+    /// <summary>Set the getter for the graph hint text.</summary>
     public NodeGraph Hint(Func<string?> text) { hint=text; return this; }
+    /// <summary>Fit all nodes into the viewport on the next frame with the specified margin.</summary>
     public NodeGraph FitAll(float margin=40) { if(!float.IsFinite(margin)||margin<0)throw new ArgumentOutOfRangeException(nameof(margin)); fitMargin=margin; return this; }
+    /// <summary>Set the callback for graph clicks, including canvas, node, port, wire and footer hits.</summary>
     public NodeGraph OnClick(Action<GraphHit> handler) { click=handler; return this; }
+    /// <summary>Set the node movement callback; its final flag marks gesture completion.</summary>
     public NodeGraph OnNodeMoved(Action<string,Vector2,bool> handler) { moved=handler; return this; }
+    /// <summary>Set the callback for pan or zoom changes.</summary>
     public NodeGraph OnViewChanged(Action<Vector2,float> handler) { viewChanged=handler; return this; }
+    /// <summary>Create a node with a unique nonempty id and return its retained handle.</summary>
     public GraphNode AddNode(string id,float x,float y,string title,string tag,Color tagColour,float width=176)
     {
         if(string.IsNullOrWhiteSpace(id)||nodes.ContainsKey(id))throw new ArgumentException("Node id must be unique and non-empty.",nameof(id));
@@ -79,8 +94,11 @@ public sealed class NodeGraph : Element
         var n=new GraphNode(this,id,x,y,title,tag,tagColour,width); nodes.Add(id,n);
         int firstSelected=order.FindIndex(static item=>item.Selected); if(firstSelected<0)order.Add(n); else order.Insert(firstSelected,n); return n;
     }
+    /// <summary>Find a node by stable id, or return null.</summary>
     public GraphNode? Node(string id) => nodes.TryGetValue(id,out var n)?n:null;
+    /// <summary>Find a wire by stable id, or return null.</summary>
     public GraphWire? Wire(string id) => wires.TryGetValue(id,out var w)?w:null;
+    /// <summary>Remove a node and its attached wires; return false if the id is absent.</summary>
     public bool RemoveNode(string id)
     {
         if(!nodes.Remove(id,out var n))return false;
@@ -88,7 +106,9 @@ public sealed class NodeGraph : Element
         if(pending?.Node==n)EndPendingWire(); if(dragNode==n||dragPort?.Node==n)PointerCancel();
         order.Remove(n); if(n.View!=null) { Draw.SetActive(n.View.Box.Rt,false); pool.Push(n.View); n.View=null; } return true;
     }
+    /// <summary>Remove every graph node and wire and cancel pointer gestures.</summary>
     public void Clear() { PointerCancel(); while(order.Count>0)RemoveNode(order[order.Count-1].Id); EndPendingWire(); }
+    /// <summary>Create a wire between existing named ports and return its retained handle.</summary>
     public GraphWire AddWire(string id,string fromNode,string fromPort,string toNode,string toPort)
     {
         if(string.IsNullOrWhiteSpace(id)||wires.ContainsKey(id))throw new ArgumentException("Wire id must be unique and non-empty.",nameof(id));
@@ -96,8 +116,11 @@ public sealed class NodeGraph : Element
         if(!a.IsOutput||b.IsOutput)throw new ArgumentException("Wires run from an output to an input.");
         var w=new GraphWire(this,id,a,b); wires.Add(id,w); wireOrder.Add(w); topology=shape=true; return w;
     }
+    /// <summary>Remove the named wire; return false if it is absent.</summary>
     public bool RemoveWire(string id) { if(!wires.Remove(id,out var w))return false; wireOrder.Remove(w); topology=shape=true; return true; }
+    /// <summary>Show a temporary wire from a named port to the pointer.</summary>
     public void BeginPendingWire(string node,string port) { pending=RequirePort(node,port); topology=shape=true; pendingEnd=new(float.NaN,float.NaN); }
+    /// <summary>Hide the temporary pending wire.</summary>
     public void EndPendingWire() { if(pending==null)return; pending=null; topology=shape=true; }
     private GraphPort RequirePort(string node,string port) => Node(node)?.FindPort(port)??throw new ArgumentException("Unknown graph port: "+node+"/"+port);
     internal void Changed(GraphDirty dirty) { if((dirty&GraphDirty.Shape)!=0)shape=true; }
@@ -105,6 +128,7 @@ public sealed class NodeGraph : Element
     { foreach(var w in wireOrder) if(w.From.Node==node||w.To.Node==node)w.ShapeDirty=true; shape=true; }
     private void Front(GraphNode n) { order.Remove(n); order.Add(n); n.View?.Box.Rt.SetAsLastSibling(); }
     private void NotifyView() { try { viewChanged?.Invoke(pan,zoom); } catch(Exception ex) { Guard.Report(Site(0,".ViewChanged"),ex); } }
+    /// <summary>Build retained Unity views when the element is first shown.</summary>
     protected override void Build()
     {
         var bg=new BoxView(Rt!,"GraphBackground",4); Draw.Stretch(bg.Rt); bg.Set(Tok.CanvasBg,Tok.Divider);

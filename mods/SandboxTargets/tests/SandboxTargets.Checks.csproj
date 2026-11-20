@@ -1,4 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><TargetFramework>net8.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><LangVersion>11</LangVersion></PropertyGroup>
-  <ItemGroup><Compile Include="../src/TargetConfig.cs" Link="TargetConfig.cs" /></ItemGroup>
-</Project>

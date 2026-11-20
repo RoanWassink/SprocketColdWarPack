@@ -6,7 +6,7 @@ internal static class DamageFeedTruth
     {if(error)return PlateOutcome.Unknown;if(embedded)return continuations==0?PlateOutcome.Stopped:PlateOutcome.Unknown;if(deflected)return PlateOutcome.Deflected;if(penetrated&&continuations>0)return PlateOutcome.Penetrated;return PlateOutcome.Unknown;}
     internal static double? Remaining(IReadOnlyList<double> continuationBudgets)=>continuationBudgets.Count==1&&double.IsFinite(continuationBudgets[0])&&continuationBudgets[0]>=0?continuationBudgets[0]:null;
     internal static string Label(string? text,string fallback)
-    {var clean=new string((text??"").Where(c=>!char.IsControl(c)&&c!='<'&&c!='>').ToArray()).Trim();return clean.Length==0?fallback:clean.Length>32?clean[..32]:clean;}
+    {var clean=new string((text??"").Where(c=>!char.IsControl(c)&&c!='<'&&c!='>').ToArray()).Trim();return clean.Length==0?fallback:clean.Length>48?clean[..48]:clean;}
     // The editor changes the runtime mesh name; the structure blueprint is a separate template.
     internal static string StructureLabel(string? instanceName,string? templateName,string fallback)
     {var instance=Label(instanceName,"");return instance.Length>0?instance:Label(templateName,fallback);}

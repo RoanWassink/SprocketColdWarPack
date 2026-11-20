@@ -11,12 +11,21 @@ using UnityEngine.UI;
 using Object = UnityEngine.Object;
 namespace SprocketUiKit;
 
-/// <summary>Injected host: all kit work happens in Update/LateUpdate, each pass guarded.</summary>
+/// <summary>Not part of the public contract. Injected Unity lifecycle host.</summary>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public sealed class UiKitHost : MonoBehaviour
 {
+    /// <summary>Not part of the public contract. Unity injection constructor.</summary>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public UiKitHost(IntPtr pointer) : base(pointer) { }
+    /// <summary>Not part of the public contract. Unity frame callback.</summary>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public void Update() { try { Kit.Update(); } catch (Exception ex) { Kit.SafeReset(); Guard.Report("Kit.Update", ex); } }
+    /// <summary>Not part of the public contract. Unity late frame callback.</summary>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public void LateUpdate() { try { Kit.LateUpdate(); } catch (Exception ex) { Kit.SafeReset(); Guard.Report("Kit.LateUpdate", ex); } }
+    /// <summary>Not part of the public contract. Unity window focus callback.</summary>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public void OnApplicationFocus(bool focused) { if(!focused)Kit.ReleaseKeyboard("alt-tab"); }
 }
 
@@ -29,6 +38,8 @@ internal static class Kit
 {
     internal const int SortingOrder = 30000;
     internal static readonly List<Panel> Panels = new();
+    private static readonly StableSnapshot<Panel> panelFrames = new(), orderFrames = new();
+    private static readonly StableSnapshot<(Panel Panel, ModKeybind Key)> toggleFrames = new();
     internal static readonly ZOrder<Panel> Order = new();
     internal static readonly List<(Panel Panel, ModKeybind Key)> Toggles = new();
     internal static float Scale = 1, ViewW = 1920, ViewH = 1080, Now;
@@ -42,11 +53,11 @@ internal static class Kit
     internal static Panel? KeyboardFocus => keyboard.Current;
     private static readonly List<int> sceneHandles = new();
     private static int activeScene;
-    private static bool scenesKnown, focusSuppressed, shuttingDown;
-    private static bool CanFocus => !focusSuppressed && !shuttingDown && Application.isFocused && !Keybinds.IsConfiguring && !GamePaused();
+    private static bool scenesKnown, scenesChanged, focusSuppressed, shuttingDown;
+    private static bool CanFocus => !focusSuppressed && !shuttingDown && Application.isFocused && !Keybinds.IsConfiguring;
     internal static void SetKeyboardFocus(Panel? panel, string reason)
     {
-        keyboard.Press(CanFocus && panel is { IsHud: false, IsOpenInternal: true } ? panel : null);
+        keyboard.Press(InputFocusPolicy.CanFocus(CanFocus, GamePaused(), panel?.StayOpenWhilePaused ?? false) && panel is { IsHud: false, IsOpenInternal: true } ? panel : null);
         KeyboardGuard.Tick(reason);
     }
     internal static void ReleaseKeyboard(string reason)
@@ -65,15 +76,22 @@ internal static class Kit
             else sceneHandles.Add(handle);
         }
         if(sceneHandles.Count>count)sceneHandles.RemoveRange(count,sceneHandles.Count-count);
-        scenesKnown=true; activeScene=active;
-        focusSuppressed = changed || !Application.isFocused || configuring || GamePaused();
-        if(focusSuppressed)
+        scenesKnown=true; activeScene=active; scenesChanged |= changed;
+        focusSuppressed = changed || !Application.isFocused || configuring;
+        if(focusSuppressed || (GamePaused() && KeyboardFocus?.StayOpenWhilePaused != true))
             ReleaseKeyboard(changed ? "scene change" : !Application.isFocused ? "window focus lost" : configuring ? "settings" : "pause");
         KeyboardGuard.Tick("lifecycle/self-heal");
     }
     internal static readonly TextEdit Edit = new();
     internal static UiContexts Context = UiContexts.Other;
-    internal static int OpenCount => Panels.Count(p => p.IsOpenInternal);
+    internal static int OpenCount
+    {
+        get { int count = 0; for (int i = 0; i < Panels.Count; i++) if (Panels[i].IsOpenInternal) count++; return count; }
+    }
+    private static bool AnyBlockingPanel
+    {
+        get { for (int i = 0; i < Panels.Count; i++) if (Panels[i].IsOpenInternal && Panels[i].BlockGameplayInput) return true; return false; }
+    }
     // 0.1.2
     internal static bool ShiftHeld, CtrlHeld, AltHeld;
     internal static float HudViewW = 1920, HudViewH = 1080;
@@ -125,7 +143,6 @@ internal static class Kit
     private static int swallowReleaseFrame = -10;
     private static bool cursorSaved, savedVisible, skipCursorRestore;
     private static CursorLockMode savedLock;
-    private static string sceneSignature = ""; private static float nextSceneCheck;
     private static bool waitingLogged;
     private static ConfigFile? positions;
     // tooltip
@@ -220,24 +237,30 @@ internal static class Kit
         if (!root!.activeSelf) root.SetActive(true);
         UpdateScale();
         bool anyFresh = false;
-        foreach (var p in Panels.Where(p => p.IsOpenInternal).ToList())
+        foreach (var p in panelFrames.Get(Panels))
+        if (p.IsOpenInternal)
         {
             bool fresh = !p.Built;
             p.EnsureBuilt(panelLayer!);
             if (fresh) { p.PlaceInitially(); anyFresh = true; }
             if (p.FitPending) p.FitOnScreen();
+            if (p.DeferredSettings.Pending && !configuring && Application.isFocused)
+            {
+                // The root is now visible; acquiring focus must not suspend keys while waiting.
+                if (CanFocus && p.DeferredSettings.Reveal(configuring, GamePaused(), p.StayOpenWhilePaused)) SetKeyboardFocus(p, "settings closed");
+            }
         }
         if (anyFresh) foreach (var p in Order.Items) if (p.Rt != null) p.Rt.SetAsLastSibling();
         ProcessPointer();
         ProcessKeyboard();
         KeyboardGuard.Tick("frame/self-heal");
-        foreach (var p in Order.Items.Where(p => p.IsOpenInternal).ToList()) p.Tick(Now);
+        foreach (var p in orderFrames.Get(Order.Items)) if (p.IsOpenInternal) p.Tick(Now);
         Popup?.Refresh(Pointer, PointerValid, LeftHeld);
         UpdateTip();
     }
     internal static void LateUpdate()
     {
-        if (OpenCount > 0 && Context == UiContexts.Game && Panels.Any(p => p.IsOpenInternal && p.BlockGameplayInput) && !Keybinds.IsConfiguring)
+        if (OpenCount > 0 && Context == UiContexts.Game && AnyBlockingPanel && !Keybinds.IsConfiguring)
         {
             SaveCursor();
             Cursor.lockState = CursorLockMode.None; Cursor.visible = true;
@@ -245,6 +268,7 @@ internal static class Kit
     }
     private static void Idle()
     {
+        scenesChanged = false;
         if (root != null && root.activeSelf) { HideTip(); root.SetActive(false); }
         ReleaseKeyboard("idle/self-heal");
         RestoreCursor();
@@ -261,41 +285,27 @@ internal static class Kit
         // pause menu: it owns the cursor, so do not restore ours
         if (Context == UiContexts.Game && GamePaused())
         {
-            var closing = Panels.Where(p => p.IsOpenInternal && !p.StayOpenWhilePaused).ToList();
-            if (closing.Count > 0)
+            var closing = panelFrames.Get(Panels);
+            if (closing.Length > 0)
             {
                 skipCursorRestore = true;
-                foreach (var p in closing) p.Close("closed: game paused");
+                foreach (var p in closing) if (p.IsOpenInternal && !p.StayOpenWhilePaused) p.Close("closed: game paused");
                 skipCursorRestore = false;
                 if (OpenCount == 0) { cursorSaved = false; return; }
             }
         }
-        foreach (var p in Panels.Where(p => p.IsOpenInternal && (p.AllowedContexts & Context) == 0).ToList()) p.Close($"closed: context {Context} not allowed");
+        foreach (var p in panelFrames.Get(Panels)) if (p.IsOpenInternal && (p.AllowedContexts & Context) == 0) p.Close($"closed: context {Context} not allowed");
         if (previous != Context)
-            foreach (var p in Panels.Where(p => p.IsOpenInternal && p.CloseOnSceneChange).ToList()) p.Close($"closed: context {previous} -> {Context}");
-        if (Now >= nextSceneCheck)
-        {
-            nextSceneCheck = Now + .5f;
-            var sig = string.Join("|", Enumerable.Range(0, SceneManager.sceneCount).Select(i => SceneManager.GetSceneAt(i).name));
-            if (sceneSignature.Length > 0 && sig != sceneSignature)
-            {
-                if (Plugin.Detailed) Plugin.Trace($"[UI Kit] Scenes changed: {sceneSignature} -> {sig}");
-                foreach (var p in Panels.Where(p => p.IsOpenInternal && p.CloseOnSceneChange).ToList()) p.Close("closed: scene change");
-            }
-            sceneSignature = sig;
-        }
+            foreach (var p in panelFrames.Get(Panels)) if (p.IsOpenInternal && p.CloseOnSceneChange) p.Close($"closed: context {previous} -> {Context}");
+        if (scenesChanged)
+            foreach (var p in panelFrames.Get(Panels)) if (p.IsOpenInternal && p.CloseOnSceneChange) p.Close("closed: scene change");
+        scenesChanged = false;
     }
-    internal static void TrackScenes()
-    {
-        // keep the scene signature current while no panel is open, so opening never sees a stale change
-        if (Now < nextSceneCheck) return;
-        nextSceneCheck = Now + .5f;
-        sceneSignature = string.Join("|", Enumerable.Range(0, SceneManager.sceneCount).Select(i => SceneManager.GetSceneAt(i).name));
-    }
+    internal static void TrackScenes() { } // scene handles are tracked by CheckKeyboardLifecycle even while idle
     private static void PollToggles()
     {
         if (Focus != null) { TrackScenes(); return; }
-        foreach (var (panel, key) in Toggles.ToList())
+        foreach (var (panel, key) in toggleFrames.Get(Toggles))
         {
             bool pressed;
             try { pressed = key.WasPressedThisFrame; }
@@ -404,7 +414,7 @@ internal static class Kit
                 else if (hit != null)
                 {
                     Pressed = hit;
-                    if (hit.Enabled) Guard.Run(hit.Where + ".Press", () => hit.OnPress(panelLocal));
+                    if (hit.Enabled) DispatchPress(hit, panelLocal);
                 }
                 else if (panel.InTitleBar(panelLocal))
                 {
@@ -499,10 +509,13 @@ internal static class Kit
                 var local = Pointer - new Vec(panel.X, panel.Y);
                 // deepest element under the pointer that scrolls (also non-interactive scroll views)
                 for (var e = DeepestAt(panel, local); e != null; e = e.Parent)
-                    if (e.Enabled && Guard.Get(e.Where + ".Scroll", () => e.OnScroll(notches, local), false)) break;
+                    if (e.Enabled && DispatchScroll(e, notches, local)) break;
             }
         }
     }
+    // Keep event closures out of ProcessPointer's outer scope: idle passes need no display class.
+    private static void DispatchPress(Element hit, Vec local) => Guard.Run(hit.Where + ".Press", () => hit.OnPress(local));
+    private static bool DispatchScroll(Element element, float notches, Vec local) => Guard.Get(element.Where + ".Scroll", () => element.OnScroll(notches, local), false);
     private static void EndResize()
     {
         var p = ResizePanel; ResizePanel = null;
@@ -525,7 +538,12 @@ internal static class Kit
             return e;
         }
     }
-    internal static Panel? TopPanelAt(Vec p) => Order.TopAt(x => x.IsOpenInternal && x.Built && (x.ScreenRect.Contains(p) || x.HasBackdrop || x.GripAt(p - new Vec(x.X, x.Y)) != ResizeEdge.None));
+    internal static Panel? TopPanelAt(Vec p)
+    {
+        var items = Order.Items;
+        for (int i = items.Count - 1; i >= 0; i--) { var x = items[i]; if (x.IsOpenInternal && x.Built && (x.ScreenRect.Contains(p) || x.HasBackdrop || x.GripAt(p - new Vec(x.X, x.Y)) != ResizeEdge.None)) return x; }
+        return null;
+    }
 
     /// <summary>Fresh check for the designer click-through hook (Inputs.Update postfix).</summary>
     internal static bool PointerCaptured()
@@ -537,14 +555,14 @@ internal static class Kit
         return Popup != null && Popup.Contains(p) || TopPanelAt(p) != null;
     }
     internal static bool OwnsGameplayInput =>
-        Context == UiContexts.Game && (Plugin.BlockGameplay?.Value ?? true) && !Keybinds.IsConfiguring && Panels.Any(p => p.IsOpenInternal && p.BlockGameplayInput);
+        Context == UiContexts.Game && (Plugin.BlockGameplay?.Value ?? true) && !Keybinds.IsConfiguring && AnyBlockingPanel;
 
     // ---------- Keyboard ----------
     private static void ProcessKeyboard()
     {
         var kb = Keyboard.current;
         if (kb == null) return;
-        if (kb.escapeKey.wasPressedThisFrame && (Focus != null || Popup != null || Panels.Any(p => p.IsOpenInternal))) EscConsumedFrame = Time.frameCount;
+        if (kb.escapeKey.wasPressedThisFrame && (Focus != null || Popup != null || (OpenCount > 0))) EscConsumedFrame = Time.frameCount;
         if (Focus != null) { TypeKeys(kb); return; }
         var top = Order.TopWhere(p => p.IsOpenInternal);
         if (kb.escapeKey.wasPressedThisFrame)
@@ -565,7 +583,7 @@ internal static class Kit
         if (shortcutOwner.ModalOpen) { if (enter) shortcutOwner.ModalEnter(); return; }
         if (enter && shortcutOwner.DefaultActionHandler != null) { var a = shortcutOwner.DefaultActionHandler; Guard.Run(shortcutOwner.Key + ".DefaultAction", a); return; }
         // Keep the existing snapshot: callbacks may mutate the shortcut list during dispatch.
-        foreach (var (chord, key, action) in shortcutOwner.Shortcuts.ToList())
+        foreach (var (chord, key, action) in shortcutOwner.ShortcutSnapshot)
         {
             KeyControl? control = null;
             try { control = kb[key]; } catch { }
@@ -584,7 +602,7 @@ internal static class Kit
         if (Time.frameCount - EscConsumedFrame <= 1) return true;
         var kb = Keyboard.current;
         // The game may ask for the pause menu before the kit's Update ran this frame.
-        return kb != null && kb.escapeKey.wasPressedThisFrame && (Focus != null || Popup != null || Panels.Any(p => p.IsOpenInternal));
+        return kb != null && kb.escapeKey.wasPressedThisFrame && (Focus != null || Popup != null || (OpenCount > 0));
     }
     private static void TypeKeys(Keyboard kb)
     {
@@ -628,7 +646,7 @@ internal static class Kit
         if (f == null) return;
         Focus = null;
         TypingGuard.End();
-        if (commit && Edit.Changed) f.Commit(Edit.Text);
+        if (TextCommitPolicy.ShouldWrite(commit, Edit.Changed)) f.Commit(Edit.Text);
     }
 
     // ---------- Popup ----------

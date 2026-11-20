@@ -107,7 +107,13 @@ def callers(target):
     return sorted(found)
 
 
-targets = [0x1FD0FA0, 0x1FD7680]
+target_names = ['System.Void Sprocket.Vehicles.VehicleComponent::ReleaseInternal()',
+                'System.Void Sprocket.Vehicles.VehicleObject::Release()']
+targets = []
+for name in target_names:
+    matches = [r for r in rows if r['Name'] == name]
+    assert len(matches) == 1, f'Expected one native method: {name}'
+    targets.append(int(matches[0]['RVA'], 16))
 for target in targets:
     calls = callers(target)
     print('\nDIRECT CALL/JMP REFERENCES TO', hex(target), 'count', len(calls))

@@ -802,9 +802,9 @@ internal static class CarouselModelTests
         var plugin = File.ReadAllText(Path.Combine(root, "Plugin.cs"));
         var csproj = File.ReadAllText(Path.Combine(root, "SprocketCarouselAutoloader.csproj"));
         var match = System.Text.RegularExpressions.Regex.Match(plugin, "public const string PluginVersion = \"([0-9.]+)\";");
-        check(match.Success && match.Groups[1].Value == "0.2.34" && csproj.Contains("<Version>" + match.Groups[1].Value + "</Version>") &&
+        check(match.Success && match.Groups[1].Value == "0.3.4" && csproj.Contains("<Version>" + match.Groups[1].Value + "</Version>") &&
               plugin.Contains("[BepInPlugin(Guid, \"Sprocket Carousel Autoloader\", PluginVersion)]") && plugin.Contains("Sprocket Autoloaders {PluginVersion} loaded;") && !plugin.Contains("0.2.28 loaded") &&
-              System.Text.RegularExpressions.Regex.Matches(plugin, "\"0\\.2\\.3[0-9]\"").Count == 1, "version constant 0.2.34: one place in Plugin.cs, the same in the csproj, used by the attribute and the load line");
+              System.Text.RegularExpressions.Regex.Matches(plugin, "\"0\\.3\\.4\"").Count == 1, "version constant 0.3.4: one place in Plugin.cs, the same in the csproj, used by the attribute and the load line");
         check(plugin.Contains("\"CarouselTurnSeconds\"") && plugin.Contains("CarouselModelGeometry.DefaultTurnSeconds"), "config [Visuals] CarouselTurnSeconds = 0.5");
         // Source guards: the tick is a call in the existing LoadTask.Update postfix; no allocation per frame; no new hook.
         var visuals = File.ReadAllText(Path.Combine(root, "CarouselVisuals.cs"));

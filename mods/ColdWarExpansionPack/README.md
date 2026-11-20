@@ -1,36 +1,51 @@
 # Sprocket Cold War Expansion Pack
 
-Core of the Cold War pack for Sprocket: it adds three eras of its own (Coldwar1, Coldwar2 and Coldwar3) with editable engine and cannon technology data, and repairs the classification of vehicles dated on the final-era maximum date. The gameplay mods of the pack are separate.
+The Cold War Expansion Pack adds three eras to Sprocket: Coldwar1, Coldwar2 and Coldwar3. Each comes with its own engine and cannon technology that you can edit, and the mod repairs how vehicles dated on the final-era maximum date are classified. The other mods of the pack are separate.
 
 - Version: 0.2.0
 - Plugin GUID: `sprocket.coldwarexpansionpack`
 - Author: Nero. MIT licence (see `LICENSE`).
-- Requires: BepInEx 6 IL2CPP (no other plugin; the only `BepInDependency` is a soft one)
-- Optional: Sprocket Keybinds (`sprocket.keybinds`) for the pack grouping in the key settings; Hydropneumatic, Telescopic Mast, Thermal Sight and Smoke Launchers are the plugins it groups there
+- Requires: BepInEx 6 IL2CPP, and no other plugin
+- Optional: Sprocket Keybinds (`sprocket.keybinds`), which lets this mod group the key settings of Hydropneumatic, Telescopic Mast, Thermal Sight and Smoke Launchers under one heading
 - Game version tested: 0.2.56.2
 
-## Features
+## What it adds
 
-- Final-era repair: a vehicle on the exact native maximum date (9999.12.31) is classified into the last registered era. The era list is read from the game at run time, so no era name or start date is hard-coded, and the vehicle's saved date is not changed.
-- Data: `Eras\Coldwar1.json`, `Eras\Coldwar2.json` and `Eras\Coldwar3.json` define the eras "Coldwar1" (start 1945.09.04), "Coldwar2" (1960.01.01) and "Coldwar3" (1975.01.01), all playable, medium vehicle mass 18,000 and heavy 36,000. Each era runs until the next one starts.
-- The game's own `Eras\Coldwar.json` (a placeholder that starts on 1945.09.03 and is not playable) is not shipped and not changed. Coldwar1 starts one day later on purpose: two eras on the same start date make the era checks of this pack (and of Expanded Ballistics, Thermal Sight and Hydropneumatic) fail closed.
-- Data: `Technology\CWEP_Engine.json` is a combustion-engine technology dated 1945.09.03 (`torqueCoefficient` 1.15, `technologyFactor` 2.25).
-- Data: `Technology\CWEP_Cannon.json` is a cannon technology dated 1945.09.03 (operating pressure 55,000, penetrator constant 1,800, expected maximum armour 500, calibre 120, propellant length 440).
-- Nothing is forced at run time: no era unlock, no technology horizon and no engine price override. Era access, part dates and prices follow the native data and calculations; edit the JSON files to change them.
-- With Sprocket Keybinds installed, the four plugins above are listed under one "Cold War Expansion Pack" group in the key settings.
-- Engine maximum RPM stays a native calculation (engine geometry and technology factor); there is no direct max-RPM setting.
+- Three playable eras: Coldwar1 (from 1945.09.04), Coldwar2 (from 1960.01.01) and Coldwar3 (from 1975.01.01). Each era lasts until the next one starts. Medium vehicles go up to 18,000 mass and heavy vehicles start at 36,000.
+- An engine technology (`CWEP_Engine`, dated 1945.09.03) with `torqueCoefficient` 1.15 and `technologyFactor` 2.25.
+- A cannon technology (`CWEP_Cannon`, dated 1945.09.03) with operating pressure 55,000, penetrator constant 1,800, expected maximum armour 500, calibre 120 and propellant length 440.
+- A repair for vehicles dated on the exact maximum date (9999.12.31). They are classified into the last era that is registered, and the saved date of the vehicle does not change. The era list is read from the game, so no era name or start date is fixed in the mod.
+- One group named Cold War Expansion Pack in the key settings, when Sprocket Keybinds is installed.
 
-## Settings and keys
+The game's own `Eras\Coldwar.json` is a placeholder that starts on 1945.09.03 and is not playable. This mod does not ship it and does not change it. Coldwar1 starts one day later on purpose. Two eras with the same start date make the era checks of this pack (and of Expanded Ballistics, Thermal Sight and Hydropneumatic) fail closed.
 
-Config file: `BepInEx\config\sprocket.coldwarexpansionpack.cfg`, created by BepInEx on first start. The only entry is `[General] Enabled` (default true); false switches the final-era repair off and leaves the data files in effect. No key bindings.
+## How to use it
 
-Shipping data (in `Sprocket_Data\StreamingAssets\`, source in `data\`): `Eras\Coldwar1.json`, `Eras\Coldwar2.json`, `Eras\Coldwar3.json`, `Technology\CWEP_Engine.json`, `Technology\CWEP_Cannon.json`. They are defaults; if you already edited these files, keep your versions. The plugin folder is `BepInEx\plugins\SprocketColdWarExpansionPack\`.
+1. Install the pack and start the game. The eras and technologies load with the game's own data.
+2. In the vehicle designer, give your vehicle a date or era. The new eras appear next to the game's own, and parts of other mods in the pack follow the date of the vehicle.
+3. To change an engine or cannon technology, edit the JSON files with the game closed (see Settings).
 
-## Status
+<!-- SCREENSHOT: cold-war-eras.png (the era choice in the designer showing Coldwar1, Coldwar2 and Coldwar3) -->
 
-Version 0.2.0 is unchanged since the DLL of 2026-10-07 and was re-checked (code and data, not in game) on 2026-11-01 against Coldwar3 as the last era. The status notes record no explicit in-game test of the final-era repair or of the era checks per vehicle date ("not yet tested in game"). The renamed pack has not been re-tested in game. The era files changed in the fresh release (Coldwar1 from 1945.09.04, Coldwar2 and Coldwar3 as before; the game's own Coldwar.json is left alone); the checks in `Checks\Checks.csproj` now also read these files and pass (100 checks, not in game).
+Nothing is forced while you play. The mod does not unlock eras, set a technology limit or change engine prices. Era access, part dates and prices follow the game's own data and calculations, so you change them by editing the JSON files. The maximum engine speed stays a calculation of the game (from engine geometry and the technology factor), and there is no setting for it.
+
+## Settings
+
+The settings file is `BepInEx\config\sprocket.coldwarexpansionpack.cfg`. BepInEx creates it on the first start. It has one entry, `[General] Enabled`, which is true by default. Set it to false to switch the final-era repair off. The data files stay in effect. The mod has no key bindings.
+
+The data files sit in `Sprocket_Data\StreamingAssets\`: `Eras\Coldwar1.json`, `Eras\Coldwar2.json`, `Eras\Coldwar3.json`, `Technology\CWEP_Engine.json` and `Technology\CWEP_Cannon.json`. They are defaults. If you have edited them, keep your own versions when you update. The plugin folder is `BepInEx\plugins\SprocketColdWarExpansionPack\`.
+
+## Known limits
+
+- Version 0.2.0 has not changed since the build of 7 October 2026. The code and data were re-checked on 1 November 2026 against Coldwar3 as the last era. That check was done on paper and by script, not in the game.
+- The final-era repair and the era checks per vehicle date have not been tested in the game.
+- The renamed pack has not been re-tested in the game.
+- The era files changed in the fresh release (Coldwar1 now starts on 1945.09.04). The scripted checks read these files and pass (100 checks), also outside the game.
 
 ## Building
 
-.NET project in this folder (`SprocketColdWarExpansionPack.csproj`, net6.0); it builds against the game's interop assemblies:
-`dotnet build SprocketColdWarExpansionPack.csproj -c Release -p:GameDir=<path to Sprocket folder>`. The pure era rules have checks in `Checks\Checks.csproj`. Install and update notes: [GUIDE.md](GUIDE.md); release notes: [RELEASE-NOTES.md](RELEASE-NOTES.md).
+This is a .NET project (`SprocketColdWarExpansionPack.csproj`, net6.0). It builds against the game's interop files:
+
+`dotnet build SprocketColdWarExpansionPack.csproj -c Release -p:GameDir=<path to Sprocket folder>`
+
+The era rules have checks in `Checks\Checks.csproj`. Install and update notes are in [GUIDE.md](GUIDE.md) and release notes in [RELEASE-NOTES.md](RELEASE-NOTES.md).

@@ -11,6 +11,12 @@ internal static class CombatForensicDrawing
     internal static float Height(ForensicModel m)=>CombatForensicGeometry.Height;
     /// <summary>Kit hatch angle (degrees, screen y down) of stripes parallel to a plate face at obliquity <paramref name="obliquity"/>, turned by a layer tilt.</summary>
     internal static float FaceHatch(double obliquity,double tilt)=>(float)(90+obliquity+tilt);
+    private static string StopLabel(ForensicLayer l)
+    {
+        if(l.PlateStop is not {} at)return $"Arrested in layer {l.Number}";
+        var sub=CombatForensics.StopSublayer(l);
+        return sub!=null?$"Arrested in layer {at.Group} of {at.Groups} ({sub.Label})":$"Arrested in layer {at.Group} of {at.Groups}";
+    }
     internal static void Draw(ISectionSink d,ForensicModel m,bool heat,bool clip=true)
     {
         var g=CombatForensicGeometry.Build(m,clip);float h=Height(m),y=g.ShotY;
@@ -38,18 +44,25 @@ internal static class CombatForensicDrawing
         var stop=stopped?g.Bands.FirstOrDefault(b=>b.Layer.Stage!="Precursor"&&b.Layer.After==0):null;
         // 0.22.69: in a plate in layers the arrest is drawn where the solid material ran out (computed from the hit), not at the middle of the band.
         float end=stop!=null?stop.Layer.PlateStop is {} place?stop.EntryX+(float)place.Fraction*(stop.ExitX-stop.EntryX):(stop.EntryX+stop.ExitX)/2:g.X(g.ExtentMm);
+        // 0.22.91: the residual label sits behind the last module frame or mark when they lie beyond the end of the bands (else where it was).
+        float behind=g.Modules.Select(k=>k.X1).Concat(g.Bands.Where(b=>b.Polygon.Length==0&&!b.Layer.Internal).Select(b=>b.ExitX)).Where(x=>x>end).DefaultIfEmpty(end).Max();
+        string residualText="Residual "+CombatForensics.N(m.Residual)+" mm RHA-eq";float residualHalf=residualText.Length*3.15f+5;
+        float residualX=behind>end?Math.Min((behind+6+Width-24)/2,Width-residualHalf-8):(end+Width-24)/2;
         d.Line(18,y,end,y,"#151a20",7);
         d.Arrow(18,y,Math.Max(26,end),y,"#f1c471",2.5f,9);
+        string stopText=stop!=null?StopLabel(stop.Layer):"";
+        float stopHalf=stopText.Length*3.15f+5;
+        float stopX=Math.Clamp(end,stopHalf+8,Width-stopHalf-8);
         if(stop!=null)
         {
             d.Line(end-6,y-8,end+6,y+8,"#ff8d72",3);d.Line(end-6,y+8,end+6,y-8,"#ff8d72",3);
-            d.Line(end,y+10,end,y+29,"#ff8d72",1);
-            d.Text(end,y+43,stop.Layer.PlateStop is {} at?$"Arrested in layer {at.Group} of {at.Groups}":$"Arrested in layer {stop.Layer.Number}","#ffac91",SectionAnchor.MiddleCenter,"#13191fe8");
+            d.Line(end,y+10,stopX,y+29,"#ff8d72",1);
+            d.Text(stopX,y+43,stopText,"#ffac91",SectionAnchor.MiddleCenter,"#13191fe8");
         }
         else if(m.Outcome=="PENETRATED"&&m.Residual is >0)
         {
             d.Arrow(end,y,Width-24,y,"#8fd99c",3,10);
-            d.Text((end+Width-24)/2,y-25,"Residual "+CombatForensics.N(m.Residual)+" mm RHA-eq","#a7e5b1",SectionAnchor.MiddleCenter,"#13191fe8");
+            d.Text(residualX,y-25,residualText,"#a7e5b1",SectionAnchor.MiddleCenter,"#13191fe8");
         }
         else if(m.Outcome=="RICOCHET")d.Text(Math.Min(Width-100,end+65),y+30,"Ricochet","#b8ad94",SectionAnchor.MiddleCenter,"#13191fe8");
         var first=g.Bands.FirstOrDefault(b=>b.Angle!=null);
@@ -65,9 +78,30 @@ internal static class CombatForensicDrawing
             }
             d.Text(x+66,y+75,$"θ = {CombatForensics.N(theta)}°","#b9e9f2",SectionAnchor.MiddleCenter,"#13191fe8");
         }
+        // 0.22.91 (owner review 16-11): the sublayers of a layered module are named in the band ("housing", "core") where they are wide enough; when one is too thin,
+        // a legend on the top line names them all, front to back.
+        var moduleLabels=new List<(float X0,float Y0,float X1,float Y1)>();var moduleLegend=new List<(string Text,string Colour)>();
+        foreach(var band in g.Bands.Where(b=>b.Layer.ModuleLayers is {Count:>0}&&b.Subs.Count>0))
+        {
+            var parts=band.Layer.ModuleLayers!;var solidSubs=band.Subs.Where(s=>!s.Layer.Air).ToList();bool thin=false;
+            double tan=Math.Tan((band.Angle??0)*Math.PI/180);float ly=y+20;
+            for(int i=0;i<solidSubs.Count&&i<parts.Count;i++)
+            {
+                var s=solidSubs[i];string text=parts[i].Short;float w=text.Length*6.3f+8;
+                if(s.ExitX-s.EntryX<w+4){thin=true;continue;}
+                float cx=(s.EntryX+s.ExitX)/2-(float)((ly-y)*tan);
+                d.Text(cx,ly,text,"#ffffff",SectionAnchor.MiddleCenter,"#13191fcc");moduleLabels.Add((cx-w/2,ly-10,cx+w/2,ly+10));
+            }
+            if(thin)
+            {
+                moduleLegend.Add(($"Layer {band.Layer.Number}:",""));
+                for(int i=0;i<parts.Count;i++)moduleLegend.Add((parts[i].Short==parts[i].Material||parts[i].Material.Length==0?parts[i].Short:$"{parts[i].Short} ({parts[i].Material})",parts[i].Colour));
+            }
+        }
         // Numbers stay on the upper visible part of their band; nearby thin bands stagger down along the band.
+        var badges=new List<(float X,float Y,bool Marked)>();
         foreach(var (l,lx,ly) in CombatForensicGeometry.Badges(g,m))
-            d.Text(lx,ly,l.Number.ToString(CultureInfo.InvariantCulture),l.GapMm!=null?"#9baab8":"#ffffff",SectionAnchor.MiddleCenter,"#13191fed");
+        {d.Text(lx,ly,l.Number.ToString(CultureInfo.InvariantCulture),l.GapMm!=null?"#9baab8":"#ffffff",SectionAnchor.MiddleCenter,"#13191fed");badges.Add((lx,ly,g.Bands.FirstOrDefault(b=>ReferenceEquals(b.Layer,l)) is {Polygon.Length:0}&&!g.Drawn(l)));}
         // Only local reaction callouts. Full material names remain in the absorption list.
         var labels=new List<(float X,float Y,float Half)>();
         // 0.22.43: where the projectile perforated the protective envelope (entry into the first internal module), with the residual penetration there.
@@ -91,14 +125,25 @@ internal static class CombatForensicDrawing
         }
         // 0.22.72: the internal modules on the shot line, as a dotted frame with an icon above it, "number name" above the icon and the recorded result below.
         var occupied=labels.Select(p=>(X0:p.X-p.Half,Y0:p.Y-10,X1:p.X+p.Half,Y1:p.Y+10)).ToList();
-        if(stop!=null){float hw=(stop.Layer.PlateStop is {} at2?$"Arrested in layer {at2.Group} of {at2.Groups}":$"Arrested in layer {stop.Layer.Number}").Length*3.15f+5;occupied.Add((end-hw,y+8,end+hw,y+53));}
-        else if(m.Outcome=="PENETRATED"&&m.Residual is >0)occupied.Add(((end+Width-24)/2-90,y-36,(end+Width-24)/2+90,y-14));
+        if(stop!=null)occupied.Add((stopX-stopHalf,y+8,stopX+stopHalf,y+53));
+        else if(m.Outcome=="PENETRATED"&&m.Residual is >0)occupied.Add((residualX-90,y-36,residualX+90,y-14));
         else if(m.Outcome=="RICOCHET")occupied.Add((Math.Min(Width-100,end+65)-30,y+20,Math.Min(Width-100,end+65)+30,y+40));
         if(first?.Angle!=null)occupied.Add((first.EntryX+30,y+64,first.EntryX+102,y+86));
+        occupied.AddRange(moduleLabels);
         foreach(var mk in g.Modules)DrawModule(d,mk,y,occupied);
         d.EndClip();
         if(g.Modules.Count>0)Legend(d,h-19);
         d.Text(16,17,TopLabel,"#c1c6ca",SectionAnchor.MiddleLeft,"#13191fed");
+        // 0.22.91: the legend of the sublayers of a layered module, on the top line after the direction label: a swatch and the name of each, front to back.
+        if(moduleLegend.Count>0)
+        {
+            float lx=16+TopLabel.Length*6.3f+8+24;
+            foreach(var (text,colour) in moduleLegend)
+            {
+                if(colour.Length>0){d.Poly(new[]{lx,12f,lx+10,12f,lx+10,22f,lx,22f},colour,"#5a6570",1);lx+=14;}
+                d.Text(lx,17,text,"#c1c6ca",SectionAnchor.MiddleLeft,null);lx+=text.Length*6.3f+12;
+            }
+        }
         float bar=g.ScaleBarMm*g.Scale,bx=Width-bar-24,by=h-19;
         d.Line(bx,by,bx+bar,by,"#e7edf2",2);d.Line(bx,by-5,bx,by+5,"#e7edf2",1);d.Line(bx+bar,by-5,bx+bar,by+5,"#e7edf2",1);
         d.Text(bx+bar/2,by-13,g.ScaleBarMm+" mm","#e7edf2",SectionAnchor.MiddleCenter,"#13191fed");

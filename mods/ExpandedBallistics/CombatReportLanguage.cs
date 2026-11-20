@@ -46,7 +46,7 @@ internal static class CombatReportLanguage
     }
     private static string Strip(string text,IEnumerable<string>? exempt)
     {
-        var t=text??"";
+        var t=(text??"").Replace('\r',' ').Replace('\n',' ');
         if(exempt!=null)foreach(var e in exempt.Where(e=>!string.IsNullOrWhiteSpace(e)).Distinct().OrderByDescending(e=>e.Length))t=t.Replace(e," · ",StringComparison.Ordinal);
         return t;
     }

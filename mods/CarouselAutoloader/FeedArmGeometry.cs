@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace SprocketCarouselAutoloader;
 
 // Bustle grid in the rack: rounds (or two-piece pieces) on the native packer grid, centred in x,
@@ -7,24 +9,31 @@ public sealed record BustleLayout(int Columns, int Layers, int Rows, double D, d
     double Floor, double Strap, double Rear, double X0, double Y0, double Z0, double Zf, double YTop)
 {
     public int Places => Columns * Layers * Rows;
-    public double ColumnX(int column) => X0 + (column + .5) * D;
-    public double LayerY(int layer) => Y0 + (layer + .5) * D;
+    public double PitchX { get; init; }
+    public double PitchY { get; init; }
+    public double PitchZ { get; init; }
+    public double ColumnX(int column) => X0 + column * PitchX + D / 2;
+    public double LayerY(int layer) => Y0 + layer * PitchY + D / 2;
 
-    public static BustleLayout Of(double x, double y, double z, int diameterMm, int cellMm)
+    public static BustleLayout Of(double x, double y, double z, int diameterMm, int cellMm,
+        Vector3 spacing = default, Vector3 min = default, Vector3 max = default)
     {
-        int w = (int)Math.Round(x * 1000), h = (int)Math.Round(y * 1000), l = (int)Math.Round(z * 1000);
-        int cols = diameterMm > 0 ? w / diameterMm : 0, layers = diameterMm > 0 ? h / diameterMm : 0;
-        int rows = cellMm > 0 && l >= cellMm ? l / cellMm : 0;
+        var grid = RackGrid.Of(x, y, z, diameterMm, cellMm, spacing, min, max);
+        int cols = grid.Columns, layers = grid.Layers, rows = grid.Rows;
         double d = diameterMm / 1000.0, cell = cellMm / 1000.0, X = x / 2, Y = y / 2, Z = z / 2;
-        double fx = x - cols * d, fy = y - layers * d, fz = z - rows * cell;
+        double width = cols * d + Math.Max(0, cols - 1) * spacing.X;
+        double height = layers * d + Math.Max(0, layers - 1) * spacing.Y;
+        double length = rows * cell + Math.Max(0, rows - 1) * spacing.Z;
+        double fx = x - min.X - max.X - width, fy = y - min.Y - max.Y - height, fz = z - min.Z - max.Z - length;
         double side = fx / 2, plate = Math.Min(side, .08 * d), gap = side - plate;
         double floor = Math.Min(fy / 2, .05 * d), strap = Math.Min(fy - Math.Max(floor, 0), .05 * d);
         double rear = Math.Min(fz / 3, .06 * d);
         if (floor < .002) floor = 0;
         if (strap < .002) strap = 0;
         if (rear < .002) rear = 0;
-        double x0 = -cols * d / 2, y0 = -Y + floor, z0 = -Z + rear;
-        return new(cols, layers, rows, d, cell, plate, gap, floor, strap, rear, x0, y0, z0, z0 + rows * cell, y0 + layers * d);
+        double x0 = -width / 2 + (min.X - max.X) / 2, y0 = -Y + min.Y + floor, z0 = -Z + min.Z + rear;
+        return new(cols, layers, rows, d, cell, plate, gap, floor, strap, rear, x0, y0, z0, z0 + length, y0 + height)
+            { PitchX = grid.PitchX, PitchY = grid.PitchY, PitchZ = grid.PitchZ };
     }
 }
 

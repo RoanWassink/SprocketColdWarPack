@@ -45,21 +45,21 @@ internal sealed class CassetteModel
         }
         if(DepthMm<preset.MinimumDepthMm||DepthMm>preset.MaximumDepthMm)throw new FormatException(preset.Id+": nominal depth is outside window.");
         Passive=new(preset.MaterialId,mass/DepthMm,resistance/DepthMm,spall,1.2*cost/mass);
-        Layers=Prepare(preset.Layers,false,materials,reactions,groups);
-        ReverseLayers=Prepare(preset.Layers.Reverse().ToArray(),true,materials,reactions,groups);
+        Layers=Prepare(preset.Id,preset.Layers,false,materials,reactions,groups); // 0.22.90 replaced
+        ReverseLayers=Prepare(preset.Id,preset.Layers.Reverse().ToArray(),true,materials,reactions,groups); // 0.22.90 replaced
         Groups=groups.ToArray();HasBacked=Layers.Any(l=>l.Recipe?.Mode=="backed");
         for(int i=0;i<Layers.Length;i++)
             if(Layers[i].Recipe?.Id=="elastomerSandwich"||Layers[i].Layer.Material.Contains("nera",StringComparison.OrdinalIgnoreCase))
             {HasNera=true;break;}
     }
-    private static PreparedCassetteLayer[] Prepare(CassetteLayer[] layers,bool reverse,
+    private static PreparedCassetteLayer[] Prepare(string presetId,CassetteLayer[] layers,bool reverse, // 0.22.90 replaced
         IReadOnlyDictionary<string,CassetteMaterial> materials,MaterialReactionCatalogue reactions,List<CassetteTilt> groups)
     {
         var prepared=new List<PreparedCassetteLayer>();var repeats=new Dictionary<string,int>(StringComparer.Ordinal);
         for(int i=0;i<layers.Length;i++)
         {
             var layer=layers[i];if(layer.Material=="air")continue;
-            var material=materials[layer.Material];MaterialReactionRecipe? recipe=null;
+            if(!materials.TryGetValue(layer.Material,out var material))throw new FormatException(presetId+": layer material "+layer.Material+" is missing from the Technology files.");MaterialReactionRecipe? recipe=null; // 0.22.90 replaced: a FormatException with the preset and the material, not a KeyNotFoundException
             if(reactions.Bindings.TryGetValue(layer.Material,out var binding))
             {
                 if(binding.Density!=material.Density||binding.RhaFactor!=material.RhaFactor||binding.SpallFactor!=material.SpallFactor)throw new FormatException("Cassette passive binding differs for "+material.Id);

@@ -35,8 +35,17 @@ internal static class PowerpackTransmission
     private static void Create(TransmissionBlock __instance,ref IVehicleMesh __0)
     {
         if(!PowerpackModel.TransmissionActive(__instance))return;
-        string? part=Core.PowerpackMeshNames.Transmission(__0.LODs[0].name);
-        if(part==null)throw new InvalidOperationException("Unrecognised native powerpack transmission mesh "+__0.LODs[0].name);
+        var lods=__0?.LODs;
+        if(lods==null||lods.Length==0||lods[0]==null)return;
+        string? name=lods[0].name;
+        if(string.IsNullOrEmpty(name))return;
+        string? part=Core.PowerpackMeshNames.Transmission(name);
+        if(part==null)
+        {
+            if(!Core.PowerpackMeshNames.IsInternalGear(name))
+                Plugin.Warn("powerpack transmission mesh",new InvalidOperationException("Unrecognised native powerpack transmission mesh "+name));
+            return;
+        }
         __0=PowerpackMeshes.Vehicle(part).Cast<IVehicleMesh>();
     }
     [HarmonyPostfix,HarmonyPatch(typeof(TransmissionBlockModel),nameof(TransmissionBlockModel.Release))]
@@ -52,5 +61,5 @@ internal static class PowerpackTransmission
         reports[__instance.Pointer]=line;
     }
     [HarmonyPostfix,HarmonyPatch(typeof(TransmissionBlock),nameof(TransmissionBlock.Release))]
-    private static void BlockReleased(TransmissionBlock __instance)=>reports.Remove(__instance.Pointer);
+    private static void BlockReleased(TransmissionBlock __instance){reports.Remove(__instance.Pointer);PowerpackCollision.RemoveComponent(__instance.Pointer);}
 }

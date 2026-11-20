@@ -1,5 +1,6 @@
 param(
- [string]$GameDir='C:\Program Files (x86)\Steam\steamapps\common\Sprocket',
+ [string]$GameDir='E:\SteamLibrary\steamapps\common\Sprocket',
+ [Parameter(Mandatory=$true)][string]$DumpRoot,
  # Optional: an all-native-methods.json index of an earlier dump to compare RVAs/lengths against. Without it only uniqueness is checked.
  [string]$ReferenceIndex=''
 )
@@ -23,9 +24,10 @@ $targets=@(
 )
 
 $rows=[System.Collections.Generic.List[object]]::new()
-$root=Join-Path $GameDir 'MLLoader/MelonLoader/Dependencies/Il2CppAssemblyGenerator/Cpp2IL/cpp2il_out'
+$root=$DumpRoot
 if(!(Test-Path $root)){ throw "Current Cpp2IL output not found: $root" }
-foreach($asm in Get-ChildItem $root -Filter 'Sprocket*.dll'){
+# ICF can share an address across assembly boundaries, including non-Sprocket methods.
+foreach($asm in Get-ChildItem $root -Filter '*.dll'){
  $a=[Mono.Cecil.AssemblyDefinition]::ReadAssembly($asm.FullName)
  function Walk($types){ foreach($t in $types){
    foreach($m in $t.Methods){
@@ -37,7 +39,7 @@ foreach($asm in Get-ChildItem $root -Filter 'Sprocket*.dll'){
  try { Walk $a.MainModule.Types } finally {$a.Dispose()}
 }
 $old=@()
-if($ReferenceIndex -and (Test-Path $ReferenceIndex)){ $old=Get-Content -Raw $ReferenceIndex | ConvertFrom-Json }
+if($ReferenceIndex){ $old=Get-Content -Raw -LiteralPath $ReferenceIndex | ConvertFrom-Json }
 $bad=0
 foreach($t in $targets){
  $hit=@($rows | Where-Object {$_.Name.Contains($t+'(')})
@@ -47,12 +49,15 @@ foreach($t in $targets){
  $oldHit=@($old | Where-Object {$_.Name.Contains($t+'(')})
  $same='n/a'
  if($oldHit.Count -eq 1){ $same=($oldHit[0].RVA -eq $h.RVA -and $oldHit[0].Length -eq $h.Length) }
- "$($h.Name) | RVA=$($h.RVA) | Len=$($h.Length) | shared=$($shared.Count) | referenceIndexMatches=$same"
+ $oldRva='n/a'; $oldLength='n/a'
+ if($oldHit.Count -eq 1){ $oldRva=$oldHit[0].RVA; $oldLength=$oldHit[0].Length }
+ "$($h.Name) | RVA=$($h.RVA) | Len=$($h.Length) | shared=$($shared.Count) | oldRVA=$oldRva | oldLen=$oldLength | referenceIndexMatches=$same"
  foreach($s in $shared){ "  SHARED $($s.Name) Len=$($s.Length)" }
- if($shared.Count -gt 0 -or ($old.Count -gt 0 -and ($oldHit.Count -ne 1 -or !$same))){ $bad++ }
+ # Address/length changes after a game update are informational; shared addresses stop the gate.
+ if($shared.Count -gt 0 -or ($ReferenceIndex -and $oldHit.Count -ne 1)){ $bad++ }
 }
 $hash=(Get-FileHash -Algorithm SHA256 (Join-Path $GameDir 'GameAssembly.dll')).Hash
 "GameAssembly SHA256 $hash"
-if($hash -ne '3E58082804D97CF32FFD400E7427E767EF9576D23DB71B2BE96FBB7F825FC17B'){ "FAIL unexpected game binary"; $bad++ }
+if($hash -ne '77FC601748991DC2101435C6B72C7A5A4B3DC3C68429B349C2EFEE711F6D5388'){ "FAIL unexpected game binary"; $bad++ }
 if($bad -gt 0){ "FAIL $bad hook-address checks"; exit 1 }
-"PASS $($targets.Count) unique hook targets; current Cpp2IL RVAs share no other method$(if($old.Count -gt 0){' and match the reference index'})."
+"PASS $($targets.Count) unique hook targets; current Cpp2IL RVAs share no other method$(if($ReferenceIndex){'; old/new addresses and lengths compared above'})."

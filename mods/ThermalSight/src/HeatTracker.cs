@@ -10,6 +10,8 @@ using Sprocket.Vehicles.Fires;
 using Sprocket.Vehicles.Weapons.Cannons;
 using Sprocket.WeaponFramework;
 using UnityEngine;
+using NMatrix = System.Numerics.Matrix4x4;
+using NVec = System.Numerics.Vector3;
 
 namespace SprocketThermalSight;
 
@@ -20,9 +22,10 @@ internal static class HeatTracker
     internal const int MaxSpots = 64;
     private const int SpotsPerVehicle = 16;
     private enum Kind : byte { Engine, Exhaust, Barrel, Wreck }
-    private sealed class EngineRef { internal CombustionEngine Part = null!; internal Transform T = null!; internal EngineBehaviour? Eb; internal IReadOnlyPowertrainEngine? Ro; internal Vector3 Center; internal float Radius; }
+    private sealed class EngineRef { internal CombustionEngine Part = null!; internal Transform T = null!; internal EngineBehaviour? Eb; internal IReadOnlyPowertrainEngine? Ro; internal Vector3 Center, Extents; internal float Radius; }
     private sealed class ExhaustRef { internal Transform Parent = null!; internal Vector3 Local; }
-    private sealed class CannonRef { internal CannonBehaviour B = null!; internal float LastFire; internal LoadState LastState; internal float Radius; }
+    // 0.4.3: one ShotCounter per cannon, observed every frame (not only at the heat poll).
+    private sealed class CannonRef { internal CannonBehaviour B = null!; internal readonly ShotCounter Shots = new(); internal float Radius; }
     private sealed class Entry
     {
         internal Vehicle V = null!; internal VehicleBehaviour? Vb; internal Transform? Root;
@@ -33,16 +36,21 @@ internal static class HeatTracker
         internal readonly VehicleHeat Heat = new();
         internal HeatInputs Last;
         internal readonly Vector3[] Local = new Vector3[SpotsPerVehicle];
+        internal readonly Vector3[] AxisX = new Vector3[SpotsPerVehicle], AxisY = new Vector3[SpotsPerVehicle], AxisZ = new Vector3[SpotsPerVehicle];
         internal readonly float[] Radius = new float[SpotsPerVehicle], Amp = new float[SpotsPerVehicle];
         internal readonly Kind[] Kinds = new Kind[SpotsPerVehicle];
-        internal int Count, InView;
+        internal int Count, InView, PendingShots;
+        // 0.4.3 diagnostics of the engine spot in the last projection (one capture in flight at a time).
+        internal int DiagIndex = -1; internal SpotReject DiagReason; internal float DiagX, DiagY, DiagDepth; internal bool DiagEngine; internal float DiagAt;
     }
     private static readonly Dictionary<IntPtr, Entry> entries = new();
     private static readonly List<IntPtr> stale = new();
     private static readonly HashSet<IntPtr> alive = new();
     internal static HeatSettings Settings { get; private set; } = new();
     private static float pollAt, summaryAt;
-    private static int logs, shotLogs;
+    private static int logs, shotLogs, diagLogs;
+    private static string cameraLabel = "none"; private static IntPtr cameraLabelId;
+    private static int rejectRange, rejectBehind, rejectFar, rejectOff, rejectSmall;
     private static IntPtr cameraId; private static Transform? cameraTransform;
 
     internal static void Configure(ConfigFile c)
@@ -80,13 +88,15 @@ internal static class HeatTracker
             BarrelSpotCalibers = F("BarrelSpotCalibers", d.BarrelSpotCalibers, "Barrel spot radius in calibers.").Value,
             PollHz = F("PollHz", d.PollHz, "Native polling rate for vehicles in view (0.5..10 Hz).").Value,
             MaxRangeM = F("MaxRangeM", d.MaxRangeM, "Vehicles farther than this are not polled or drawn (m).").Value,
-            InvertSpotY = c.Bind("Heat", "InvertSpotY", d.InvertSpotY, "Flip hot spots vertically if they appear mirrored on the sensor image.").Value
+            InvertSpotY = c.Bind("Heat", "InvertSpotY", d.InvertSpotY, "Flip hot spots vertically if they appear mirrored on the sensor image.").Value,
+            FarSideWeight = F("FarSideWeight", d.FarSideWeight, "Fraction of engine/exhaust heat still shown when it sits on the far side of the hull (0 = hidden, as 0.4.0-0.4.2).").Value
         };
+        s.ReadSurface((key, value, text) => F(key, value, text).Value);
         try { s.Validate(); Settings = s; }
         catch (Exception ex) { Settings = d; Plugin.Instance.Log.LogWarning("[Heat] " + ex.Message + " All [Heat] defaults used."); }
         Clear();
     }
-    internal static void Clear() { entries.Clear(); stale.Clear(); alive.Clear(); logs = shotLogs = 0; cameraTransform = null; cameraId = IntPtr.Zero; }
+    internal static void Clear() { entries.Clear(); stale.Clear(); alive.Clear(); logs = shotLogs = diagLogs = 0; cameraTransform = null; cameraId = IntPtr.Zero; cameraLabelId = IntPtr.Zero; cameraLabel = "none"; }
 
     // Called from the existing 1 Hz renderer refresh with the same vehicle list.
     internal static void BeginTrack() => alive.Clear();
@@ -131,8 +141,11 @@ internal static class HeatTracker
                         var behaviour = engine.Behaviour;
                         var eb = behaviour?.TryCast<EngineBehaviour>();
                         var r = new EngineRef { Part = engine, T = engine.transform, Eb = eb, Ro = eb == null ? behaviour?.TryCast<IReadOnlyPowertrainEngine>() : null };
-                        var lb = engine.LocalBounds; float er = lb.extents.magnitude * .6f;
-                        if (float.IsFinite(er) && er > .2f && er < 4) { r.Center = lb.center; r.Radius = er; } else { r.Center = Vector3.zero; r.Radius = Settings.EngineSpotRadiusM; }
+                        var lb = engine.LocalBounds;
+                        r.Radius = Settings.EngineSpotRadiusM;
+                        if (HeatProjection.UsableBox(new NVec(lb.extents.x, 0, 0), new NVec(0, lb.extents.y, 0), new NVec(0, 0, lb.extents.z))
+                            && float.IsFinite(lb.center.sqrMagnitude) && lb.center.sqrMagnitude < 900)
+                        { r.Center = lb.center; r.Extents = lb.extents; }
                         if (r.Eb != null || r.Ro != null) e.Engines.Add(r);
                         continue;
                     }
@@ -145,7 +158,7 @@ internal static class HeatTracker
                         // Keep shot bookkeeping across re-resolves so a refresh never counts a phantom shot.
                         var old = keep.FirstOrDefault(k => k.B.Pointer == cb.Pointer);
                         float caliber = cb.Caliber / 1000f;
-                        e.Cannons.Add(old ?? new CannonRef { B = cb, LastFire = cb.LastFireTime, LastState = cb.LoadState, Radius = Math.Max(.08f, caliber * Settings.BarrelSpotCalibers) });
+                        e.Cannons.Add(old ?? new CannonRef { B = cb, Radius = Math.Max(.08f, caliber * Settings.BarrelSpotCalibers) });
                         continue;
                     }
                 }
@@ -177,16 +190,8 @@ internal static class HeatTracker
             if ((state & (EngineState.Running | EngineState.Starting)) == 0) continue;
             running = true; load = Math.Max(load, VehicleHeat.EngineLoad(throttle, rpm, idle, max));
         }
-        int shots = 0;
-        foreach (var c in e.Cannons)
-        {
-            float fired = c.B.LastFireTime; var state = c.B.LoadState;
-            bool timeChanged = fired != c.LastFire;
-            bool dropped = c.LastState == LoadState.Loaded && (state == LoadState.Loading || state == LoadState.Unloaded);
-            // Either signal is one shot per poll; both together still count once.
-            if (timeChanged || dropped) shots++;
-            c.LastFire = fired; c.LastState = state;
-        }
+        // 0.4.3: shots were counted every frame by ObserveShots; the poll consumes them all.
+        int shots = e.PendingShots; e.PendingShots = 0;
         bool wreck = false;
         var ops = e.Crew?.operators;
         if (ops != null && ops.Length > 0)
@@ -212,8 +217,22 @@ internal static class HeatTracker
     /// <summary>Poll in-view vehicles at PollHz and refresh their vehicle-local spot list.</summary>
     internal static void Poll(Camera cam)
     {
+        try { ObserveShots(); }
+        catch (Exception ex) { Runtime.Warn($"Heat shot counting skipped: {ex.GetType().Name}: {ex.Message}", "heat-shots"); }
         try { PollInternal(cam); }
         catch (Exception ex) { Runtime.Warn($"Heat polling skipped: {ex.GetType().Name}: {ex.Message}", "heat-poll"); }
+    }
+    // 0.4.3: every frame, two read-only getters per resolved cannon of every tracked vehicle (in view or not),
+    // so shots between polls, before the first sighting or on the own (often out-of-view) vehicle are not lost.
+    private static void ObserveShots()
+    {
+        if (!Settings.Enabled) return;
+        foreach (var e in entries.Values)
+        {
+            if (e.Failed || e.Cannons.Count == 0) continue;
+            try { foreach (var c in e.Cannons) e.PendingShots += c.Shots.Observe(c.B.LastFireTime, (int)c.B.LoadState); }
+            catch (Exception ex) { e.Failed = true; Runtime.Warn($"Heat model disabled for one vehicle (shot counter): {ex.GetType().Name}: {ex.Message}", "heat-vehicle-shots"); }
+        }
     }
     private static void PollInternal(Camera cam)
     {
@@ -229,14 +248,17 @@ internal static class HeatTracker
                 if (e.Root == null && Time.unscaledTime >= e.ResolveAt) Resolve(e);
                 if (e.Vb == null || e.Root == null) continue;
                 var vp = cam.WorldToViewportPoint(e.Root.position);
-                if (!(vp.z > 0) || vp.z > s.MaxRangeM || vp.x < -.25f || vp.x > 1.25f || vp.y < -.25f || vp.y > 1.25f) continue;
+                // 0.4.3: vehicles close to the camera (the own vehicle) are always polled; others only in view.
+                bool near = (e.Root.position - camT.position).sqrMagnitude < (e.BoundsRadius + 15) * (e.BoundsRadius + 15);
+                if (!near && (!(vp.z > 0) || vp.z > s.MaxRangeM || vp.x < -.25f || vp.x > 1.25f || vp.y < -.25f || vp.y > 1.25f)) continue;
                 // Part lists are refreshed only for vehicles in view.
                 if (Time.unscaledTime >= e.ResolveAt) Resolve(e);
                 if (e.Vb == null || e.Root == null) continue;
                 var input = Sample(e);
                 // Not-polled time (out of view, sight off) is extrapolated with the current inputs.
                 float now = Time.time;
-                if (!e.Seen) { e.Heat.Initialize(input with { Shots = 0 }, s); e.Seen = true; }
+                // 0.4.3: shots counted before the first sighting are kept (0.4.2 dropped them here).
+                if (!e.Seen) { e.Heat.Initialize(input, s); e.Seen = true; }
                 else e.Heat.Step(now - e.PolledAt, input, s);
                 e.PolledAt = now; e.Last = input;
                 BuildSpots(e, s);
@@ -262,7 +284,17 @@ internal static class HeatTracker
             e.Local[n] = root.InverseTransformPoint(world); e.Radius[n] = radius; e.Amp[n] = amp; e.Kinds[n] = kind; n++;
         }
         Add(root.TransformPoint(e.BoundsCenter), e.BoundsRadius, h.WreckK, s.WreckScale, Kind.Wreck);
-        foreach (var r in e.Engines) Add(r.T.TransformPoint(r.Center), r.Radius, h.EngineK, s.EngineScale, Kind.Engine);
+        foreach (var r in e.Engines)
+        {
+            int index = n;
+            Add(r.T.TransformPoint(r.Center), r.Radius, h.EngineK, s.EngineScale, Kind.Engine);
+            if (n == index) continue;
+            // Keep the oriented half-axes in vehicle-local space alongside the centre between polls.
+            var ex = r.Extents;
+            e.AxisX[index] = root.InverseTransformPoint(r.T.TransformPoint(r.Center + new Vector3(ex.x, 0, 0))) - e.Local[index];
+            e.AxisY[index] = root.InverseTransformPoint(r.T.TransformPoint(r.Center + new Vector3(0, ex.y, 0))) - e.Local[index];
+            e.AxisZ[index] = root.InverseTransformPoint(r.T.TransformPoint(r.Center + new Vector3(0, 0, ex.z))) - e.Local[index];
+        }
         foreach (var x in e.Exhausts) Add(x.Parent.TransformPoint(x.Local), s.ExhaustSpotRadiusM, h.ExhaustK, s.ExhaustScale, Kind.Exhaust);
         foreach (var c in e.Cannons)
         {
@@ -275,48 +307,115 @@ internal static class HeatTracker
         e.Count = n;
     }
 
-    /// <summary>Project the current spots with the sight camera onto the sensor grid. No allocation.</summary>
+    /// <summary>
+    /// Project the current spots onto the sensor grid with the capture camera: the camera of the
+    /// DrawRenderersCustomPass HDCamera that draws the mask, and its own matrices. No allocation.
+    /// </summary>
     internal static int Project(Camera cam, HeatSpot[] output, int width, int height)
     {
         // A heat failure never disables the sensor: the image falls back to hull-only heat.
         try { return ProjectInternal(cam, output, width, height); }
         catch (Exception ex) { Runtime.Warn($"Heat projection skipped: {ex.GetType().Name}: {ex.Message}", "heat-project-all"); return 0; }
     }
+    private static float cameraFov; private static bool cameraPhysical;
     private static int ProjectInternal(Camera cam, HeatSpot[] output, int width, int height)
     {
         var s = Settings; int total = 0;
         if (!s.Enabled) return 0;
         var camT = CameraTransform(cam); if (camT == null) return 0;
-        Vector3 cp = camT.position;
-        float tanHalf = MathF.Tan(cam.fieldOfView * MathF.PI / 360f), aspect = cam.aspect;
+        // 0.4.3: projectionMatrix * worldToCameraMatrix of the mask camera (also right for physical/focal-length
+        // cameras); 0.4.0-0.4.2 derived the spot size from fieldOfView.
+        var m = cam.projectionMatrix * cam.worldToCameraMatrix;
+        var sc = new SpotCamera(new NMatrix(m.m00, m.m01, m.m02, m.m03, m.m10, m.m11, m.m12, m.m13, m.m20, m.m21, m.m22, m.m23, m.m30, m.m31, m.m32, m.m33),
+            N(camT.position), N(camT.right), N(camT.up));
+        rejectRange = rejectBehind = rejectFar = rejectOff = rejectSmall = 0;
+        if (Runtime.DetailedLogging)
+        {
+            if (cam.Pointer != cameraLabelId) { cameraLabelId = cam.Pointer; cameraLabel = cam.name + "#" + cam.GetInstanceID(); }
+            cameraFov = cam.fieldOfView; cameraPhysical = cam.usePhysicalProperties;
+        }
         foreach (var e in entries.Values)
         {
-            e.InView = 0;
+            e.InView = 0; e.DiagIndex = -1; e.DiagEngine = false; e.DiagReason = SpotReject.None;
             if (e.Failed || e.Count == 0 || e.Root == null) continue;
             try
             {
-                Vector3 center = e.Root.TransformPoint(e.BoundsCenter);
-                if ((center - cp).sqrMagnitude > s.MaxRangeM * s.MaxRangeM) continue;
+                var center = N(e.Root.TransformPoint(e.BoundsCenter));
                 for (int i = 0; i < e.Count && total < output.Length; i++)
                 {
-                    Vector3 w = e.Root.TransformPoint(e.Local[i]);
-                    float amp = e.Amp[i];
-                    if (e.Kinds[i] is Kind.Engine or Kind.Exhaust)
+                    var kind = e.Kinds[i];
+                    SpotReject r; float vx, vy, depth;
+                    if (kind == Kind.Engine)
                     {
-                        var o = w - center; var c = cp - w;
-                        amp *= HeatProjection.Facing(o.x, o.y, o.z, c.x, c.y, c.z);
+                        var world = e.Root.TransformPoint(e.Local[i]);
+                        r = HeatProjection.EvaluateBox(sc, N(world),
+                            N(e.Root.TransformPoint(e.Local[i] + e.AxisX[i]) - world),
+                            N(e.Root.TransformPoint(e.Local[i] + e.AxisY[i]) - world),
+                            N(e.Root.TransformPoint(e.Local[i] + e.AxisZ[i]) - world), e.Radius[i], e.Amp[i], center,
+                            s.FarSideWeight, s.MaxRangeM, width, height, s.InvertSpotY, out output[total], out vx, out vy, out depth);
                     }
-                    var vp = cam.WorldToViewportPoint(w);
-                    if (HeatProjection.TryProject(vp.x, vp.y, vp.z, e.Radius[i], tanHalf, aspect, width, height, amp, e.Kinds[i] == Kind.Wreck, s.InvertSpotY, out output[total]))
-                    { total++; e.InView++; }
+                    else r = HeatProjection.Evaluate(sc, N(e.Root.TransformPoint(e.Local[i])), e.Radius[i], e.Amp[i], kind == Kind.Exhaust, center,
+                        s.FarSideWeight, s.MaxRangeM, width, height, kind == Kind.Wreck, s.InvertSpotY, out output[total], out vx, out vy, out depth);
+                    if (kind == Kind.Engine && !e.DiagEngine)
+                    {
+                        e.DiagEngine = true; e.DiagReason = r; e.DiagDepth = depth;
+                        e.DiagX = vx * width - .5f; e.DiagY = (s.InvertSpotY ? 1 - vy : vy) * height - .5f;
+                        if (r == SpotReject.None) e.DiagIndex = total;
+                    }
+                    switch (r)
+                    {
+                        case SpotReject.None: total++; e.InView++; break;
+                        case SpotReject.OutOfRange: rejectRange++; break;
+                        case SpotReject.BehindCamera: rejectBehind++; break;
+                        case SpotReject.FarSide: rejectFar++; break;
+                        case SpotReject.OffScreen: rejectOff++; break;
+                        default: rejectSmall++; break;
+                    }
                 }
             }
             catch (Exception ex) { e.Failed = true; Runtime.Warn($"Heat projection disabled for one vehicle: {ex.GetType().Name}: {ex.Message}", "heat-project"); }
         }
         if (Runtime.DetailedLogging && logs < 200 && Time.unscaledTime >= summaryAt)
-        { logs++; summaryAt = Time.unscaledTime + 10; Plugin.Instance.Log.LogInfo($"[Heat] Hot spots in view: {total} from {entries.Count} tracked vehicles (sensor {width}x{height})."); }
+        {
+            logs++; summaryAt = Time.unscaledTime + 10;
+            Plugin.Instance.Log.LogInfo($"[Heat] Hot spots in view: {total} from {entries.Count} tracked vehicles (sensor {width}x{height}); rejected: behind-camera={rejectBehind}, off-screen={rejectOff}, far-side={rejectFar}, out-of-range={rejectRange}, negligible={rejectSmall}; camera={cameraLabel} fov={cameraFov:F2} physical={cameraPhysical}.");
+        }
         return total;
     }
+
+    /// <summary>
+    /// 0.4.3 diagnostics after the readback of the same capture: per vehicle the screen position of the
+    /// engine spot, why it was rejected and how many vehicle-mask pixels lie under it. Rate-limited.
+    /// </summary>
+    internal static void DiagnoseMask(byte[] mask, HeatSpot[] spots, int count, int width, int height)
+    {
+        if (!Runtime.DetailedLogging || diagLogs >= 150) return;
+        try
+        {
+            float now = Time.unscaledTime;
+            foreach (var e in entries.Values)
+            {
+                if (diagLogs >= 150 || now < e.DiagAt || e.Failed || e.Root == null) continue;
+                e.DiagAt = now + 10; diagLogs++;
+                if (!e.DiagEngine)
+                {
+                    Plugin.Instance.Log.LogInfo($"[Heat] Diag {Name(e)}: no engine spot (engines={e.Engines.Count}, engine rise {e.Heat.EngineK:F0} K, spots={e.Count}); camera={cameraLabel}.");
+                    continue;
+                }
+                var reason = e.DiagReason; int pixels = -1;
+                if (reason == SpotReject.None && e.DiagIndex >= 0 && e.DiagIndex < count)
+                { pixels = HeatProjection.MaskPixels(mask, width, height, spots[e.DiagIndex]); if (pixels == 0) reason = SpotReject.NoVehiclePixels; }
+                Plugin.Instance.Log.LogInfo($"[Heat] Diag {Name(e)}: engine spot screen=({e.DiagX:F0}, {e.DiagY:F0}) px on {width}x{height} (row 0 = bottom), depth {e.DiagDepth:F0} m, result={Reason(reason)}, vehiclePixels={(pixels < 0 ? "n/a" : pixels.ToString())}, spots in view={e.InView}/{e.Count}; camera={cameraLabel} fov={cameraFov:F2}.");
+            }
+        }
+        catch (Exception ex) { Runtime.Warn($"Heat diagnostics skipped: {ex.GetType().Name}: {ex.Message}", "heat-diag"); }
+    }
+    private static string Reason(SpotReject r) => r switch
+    {
+        SpotReject.None => "in-view", SpotReject.OutOfRange => "out-of-range", SpotReject.BehindCamera => "behind-camera",
+        SpotReject.FarSide => "far-side", SpotReject.OffScreen => "off-screen", SpotReject.NoVehiclePixels => "no-vehicle-pixels", _ => "negligible"
+    };
+    private static NVec N(Vector3 v) => new(v.x, v.y, v.z);
 
     private static Transform? CameraTransform(Camera cam)
     {

@@ -4,6 +4,34 @@ internal static class MapTests
 {
     public static void Run()
     {
+        // A 90-degree rotated rectangle: local sizes 100 x 60, world scales 2 x 3,
+        // centred at (20, -10). Inverse rotation maps world +Z to local +X.
+        var area = new BattleArea((nint)1, 0, 0, .5f, 5, -1f / 3, 0, 0, 20f / 3, 100, 60, 2, 3);
+        Require(area.Contains(20, 0, -10) && Near(area.EdgeDistance(20, 0, -10), -90), "Rotated scaled centre is inside with negative edge distance");
+        Require(Near(area.EdgeDistance(20, 0, 90), 0) && area.Contains(20, 0, 90), "Rotated scaled edge has zero distance");
+        Require(Near(area.EdgeDistance(20, 0, 100), 10), "Rotated scaled point is ten metres beyond edge");
+        Require(Near(area.EdgeDistance(-100, 0, 130), 50), "Rotated scaled corner uses nearest Euclidean edge distance");
+        Require(area.Contains(20, 0, 80) && !area.Contains(20, 0, 80, 16) && area.EdgeDistance(20, 0, 80) < 0, "Inset refusal excludes margin from reported distance and darkening");
+        Require(area.Contains(20, 100, -10), "Yaw-only bounds ignore terrain height");
+        var angle = 37 * MathF.PI / 180; var cos = MathF.Cos(angle); var sin = MathF.Sin(angle);
+        var tilted = new BattleArea((nint)3, cos / 2, 0, -sin / 2, (-cos * 20 - sin * 10) / 2,
+            sin / 3, 0, cos / 3, (-sin * 20 + cos * 10) / 3, 100, 60, 2, 3);
+        var outsideX = 20 + cos * 110; var outsideZ = -10 - sin * 110;
+        Require(Near(tilted.EdgeDistance(outsideX, 0, outsideZ), 10) && !tilted.Contains(outsideX, 0, outsideZ), "Arbitrary yaw and nonuniform scale preserve ten metre distance");
+        Require(tilted.Contains(20, 0, -10) && tilted.EdgeDistance(20, 0, -10) <= 0, "Arbitrary yaw centre remains inside");
+        var mirrored = area with { ScaleX = -2, ScaleZ = -3 };
+        Require(Near(mirrored.EdgeDistance(20, 0, 100), 10), "Negative scale keeps distance in metres");
+        Require(MapPolicy.Refusal(0, false) == OrderRefusal.NoSelection && MapPolicy.Refusal(0, true) == OrderRefusal.NoSelection, "No selection takes precedence over outside area");
+        Require(MapPolicy.Refusal(2, false) == OrderRefusal.Outside && MapPolicy.Refusal(2, true) == OrderRefusal.None, "Selected units require an inside destination");
+        Require(MapPolicy.MarkerVisible(11.999f, 10, true) && !MapPolicy.MarkerVisible(12, 10, true), "Refusal expires at exactly two unscaled seconds");
+        Require(MapPolicy.MarkerVisible(10.999f, 10, false) && !MapPolicy.MarkerVisible(11, 10, false), "Confirmation expires at exactly one unscaled second");
+        Require(!MapPolicy.MarkerVisible(9, 10, true) && !MapPolicy.MarkerVisible(float.NaN, 10, false), "Invalid marker time never displays");
+        Require(!MapPolicy.NeedsRebuild(area, area) && !MapPolicy.NeedsRebuild(null, null), "Unchanged area does not rebuild");
+        Require(MapPolicy.NeedsRebuild(area, area with { Identity = (nint)2 }), "Different WorldBounds identity rebuilds");
+        Require(MapPolicy.NeedsRebuild(area, area with { X3 = 6 }), "Changed centre rebuilds");
+        Require(MapPolicy.NeedsRebuild(area, area with { SizeX = 101 }), "Changed size rebuilds");
+        Require(MapPolicy.NeedsRebuild(area, area with { ScaleZ = 4 }) && MapPolicy.NeedsRebuild(area, area with { X0 = .1f }), "Changed scale or rotation rebuilds");
+        Require(MapPolicy.NeedsRebuild(null, area) && MapPolicy.NeedsRebuild(area, null), "Area availability changes rebuild");
         var map = new MapSpace();
         map.SetWorld(-1200, 350, 4000, 2000);
         Require(map.ToMap(-1200, 2350) == (0, 0), "Northwest corner is map origin");

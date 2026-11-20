@@ -26,6 +26,7 @@ var interopDir=Path.Combine(game,"BepInEx","interop");var coreDir=Path.Combine(g
 var dotnetDir=Path.Combine(game,"dotnet");
 var generatorDir=Path.Combine(game,"MLLoader","MelonLoader","Dependencies","Il2CppAssemblyGenerator");
 var cpp2ilDir=Path.Combine(generatorDir,"Cpp2IL","cpp2il_out");
+string? cpp2ilTrustNote=null;
 var expectFail=new List<string>();var expectPass=new List<string>();var dumps=new List<string>();var scanTypes=new List<string>();var findStripped=new List<string>();
 for(var i=3;i<args.Length;i++)
 {
@@ -35,6 +36,9 @@ for(var i=3;i<args.Length;i++)
         case "--expect-fail":expectFail.Add(args[++i]);break;case "--expect-pass":expectPass.Add(args[++i]);break;
         case "--dump":dumps.Add(args[++i]);break;case "--scan-type":scanTypes.Add(args[++i]);break;
         case "--cpp2il":cpp2ilDir=Path.GetFullPath(args[++i]);break;
+        // Test tooling only: a dump made by another tool (no MelonLoader Config.cfg next to it). The caller states in NOTE why
+        // the dump belongs to this GameAssembly; the report repeats it. Without this option the SHA512 check below stays strict.
+        case "--cpp2il-trust":cpp2ilTrustNote=args[++i];break;
         case "--find-stripped":findStripped.Add(args[++i]);break;
         default:return Usage("unknown option "+args[i]);
     }
@@ -49,12 +53,13 @@ var gameAssembly=Path.Combine(game,"GameAssembly.dll");
 string sha512;using(var s=File.OpenRead(gameAssembly))sha512=Convert.ToHexString(SHA512.HashData(s));
 var cfg=Path.Combine(generatorDir,"Config.cfg");
 var recorded=File.Exists(cfg)?File.ReadLines(cfg).Select(l=>l.Trim()).FirstOrDefault(l=>l.StartsWith("GameAssemblyHash"))?.Split('"').ElementAtOrDefault(1):null;
-if(!Directory.Exists(cpp2ilDir)||recorded==null||!string.Equals(recorded,sha512,StringComparison.OrdinalIgnoreCase))
+if(!Directory.Exists(cpp2ilDir)||(cpp2ilTrustNote==null&&(recorded==null||!string.Equals(recorded,sha512,StringComparison.OrdinalIgnoreCase))))
 {
     Console.Error.WriteLine($"Cpp2IL dump missing or not made from this GameAssembly (SHA512 {sha512[..16]}..., recorded {recorded?[..Math.Min(16,recorded.Length)]}...). Native checks cannot be trusted; regenerate the dump.");
     return 3;
 }
-report.AppendLine($"cpp2il={cpp2ilDir} (matches GameAssembly SHA512 {sha512[..16]}...)");
+if(cpp2ilTrustNote==null)report.AppendLine($"cpp2il={cpp2ilDir} (matches GameAssembly SHA512 {sha512[..16]}...)");
+else report.AppendLine($"cpp2il={cpp2ilDir} (SHA512 NOT verified by the tool; GameAssembly SHA512 {sha512[..16]}...; caller states: {cpp2ilTrustNote})");
 var unityPlayer=File.ReadAllBytes(Path.Combine(game,"UnityPlayer.dll"));
 
 var resolver=new DefaultAssemblyResolver();

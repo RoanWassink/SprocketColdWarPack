@@ -66,6 +66,12 @@ internal static class AutoloaderHudFeed
             int stored = magazine?.AmountStored ?? 0, capacity = magazine?.Capacity ?? state.Rack.Capacity;
             bool waiting = MagazineRefill.Waiting(task);
             bool cycling = task.State == LoadState.Loading && !waiting;
+            if (state.BeltFeed)
+            {
+                Cards[slot].UpdateBelt(stored, capacity, Belt.Rpm(cannon.Blueprint.Caliber),
+                    Belt.Status(cycling, stored, capacity, state.Refilling, state.BeltStationary, state.BeltCrew));
+                Reselect(); return;
+            }
             double cycleFraction = cycling ? task.LoadFraction : 0, cycleRemaining = cycling ? task.RemainingTime : double.NaN;
             var reason = state.RefillReason;
             double progress = reason == RefillReason.Crew ? state.RefillProgress : reason == RefillReason.Stationary ? state.NoLoaderProgress : 0;

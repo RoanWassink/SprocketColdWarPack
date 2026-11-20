@@ -142,3 +142,25 @@ internal static class AmmoLoadoutRules
     internal static string? Slot(IReadOnlyList<AmmoLoadoutEntry> entries, int index) =>
         index >= 0 && index < entries.Count ? entries[index].ProfileId : null;
 }
+
+internal static class AmmoRackGrid
+{
+    internal static int Capacity(int widthMm, int heightMm, int lengthMm, int diameterMm, int roundLengthMm,
+        float spacingX = 0, float spacingY = 0, float spacingZ = 0,
+        float minPadX = 0, float minPadY = 0, float minPadZ = 0,
+        float maxPadX = 0, float maxPadY = 0, float maxPadZ = 0)
+    {
+        static int Axis(int extentMm, int mm, float gap, float a, float b)
+        {
+            if (mm <= 0 || extentMm <= 0) return 0;
+            if (gap == 0 && a == 0 && b == 0) return Math.Max(0, extentMm / mm);
+            float size = mm * .001f, usable = extentMm * .001f - a - b;
+            if (!float.IsFinite(usable + gap) || gap < 0 || a < 0 || b < 0 || usable < size) return 0;
+            return Math.Max(0, (int)Math.Floor((usable + gap) / (size + gap)));
+        }
+        long total = (long)Axis(widthMm, diameterMm, spacingX, minPadX, maxPadX)
+            * Axis(heightMm, diameterMm, spacingY, minPadY, maxPadY)
+            * Axis(lengthMm, roundLengthMm, spacingZ, minPadZ, maxPadZ);
+        return (int)Math.Clamp(total, 0, ushort.MaxValue);
+    }
+}

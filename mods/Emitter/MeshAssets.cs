@@ -12,6 +12,40 @@ internal sealed class MeshAssets:IDisposable
     // and are destroyed only with the runtime. Native meshes are never borrowed, loaded or destroyed.
     private static readonly Dictionary<string,Mesh> stock=new();
     private static readonly HashSet<string> probed=new();
+    private static readonly HashSet<IntPtr> materialLogged=new();
+    private static Material? stockMaterial;
+    private static string baseProperty="";
+    private static readonly string[] BaseProperties={"_BaseColour","_BaseColorMap"};
+    // Only our material copy is owned. Textures remain native and shared.
+    internal static Material? StockMaterial {
+        get {
+            if(stockMaterial is null)return null;
+            bool exists=stockMaterial!=null;
+            bool shader=exists&&stockMaterial!.shader!=null;
+            bool texture=shader&&(baseProperty=="mainTexture"?stockMaterial!.mainTexture:stockMaterial!.GetTexture(baseProperty))!=null;
+            if(StockSource.MaterialValid(exists,shader,texture))return stockMaterial;
+            if(exists)Object.Destroy(stockMaterial!);
+            stockMaterial=null;baseProperty="";return null;
+        }
+    }
+    private static Texture? BaseTexture(Material material,out string property) {
+        foreach(var key in BaseProperties) {
+            if(!material.HasProperty(key))continue;
+            var texture=material.GetTexture(key);
+            if(texture!=null){property=key;return texture;}
+        }
+        property="mainTexture";return material.mainTexture;
+    }
+    private static void KeepMaterial(Material? source) {
+        if(StockMaterial!=null||source==null||source.shader==null)return;
+        var texture=BaseTexture(source,out var property);if(texture==null)return;
+        var copy=new Material(source){hideFlags=HideFlags.HideAndDontSave,name="Emitter owned stock rack material"};
+        // Verify the copy too; a source disappearing during harvest is not a usable combination.
+        var copiedTexture=BaseTexture(copy,out var copiedProperty);
+        if(!StockSource.MaterialValid(copy!=null,copy!.shader!=null,copiedTexture!=null)){Object.Destroy(copy);return;}
+        stockMaterial=copy;baseProperty=copiedProperty;
+        if(materialLogged.Add(source.Pointer))Plugin.Instance.Log.LogInfo($"[EMITTER] stock material name={source.name} shader={source.shader.name} baseTexture={texture.name} keywordsEnabled={source.shaderKeywords?.Length??0} baseProperty={property}");
+    }
     private readonly Dictionary<(IntPtr,string),Item> cache=new();
     private readonly Dictionary<string,Mesh> fallbacks=new();
     private readonly HashSet<string> warned=new();
@@ -21,7 +55,7 @@ internal sealed class MeshAssets:IDisposable
         mesh.vertices=v;mesh.triangles=data.Indices;mesh.RecalculateNormals();mesh.RecalculateBounds();return mesh;
     }
     private static bool Has(string item)=>stock.TryGetValue(item,out var m)&&m!=null;
-    internal static bool Missing=>!Has("casing")||!Has("projectile");
+    internal static bool Missing=>!StockSource.Complete(Has("casing"),Has("projectile"),StockMaterial!=null);
     // 0.1.1: look for the already-loaded shell meshes of any ammunition rack and keep one owned clone per item.
     // Run from the designer too, where racks load their detailed shells, so Play does not depend on the racks.
     // Never initiates or releases a native load request. One probe line per distinct result.
@@ -39,6 +73,7 @@ internal sealed class MeshAssets:IDisposable
                     for(int j=0;j<count;j++) {
                         var rack=components[j]?.TryCast<AmmoRackModel>();if(rack==null)continue;
                         racks++;hd|=rack.hdModel;optimized|=rack.optimizedMode;
+                        KeepMaterial(rack.loadedMaterial);
                         foreach(var item in Items) {
                             if(Has(item))continue;
                             var native=item=="casing"?rack.propellantLoadedMesh:rack.projectileLoadedMesh;
@@ -62,7 +97,7 @@ internal sealed class MeshAssets:IDisposable
         Plugin.Instance.Log.LogInfo($"[EMITTER] stock mesh item={item} phase={phase} bounds={size} readable={copy.isReadable}");
     }
     internal Item? Get(Vehicle vehicle,string item) {
-        var key=(vehicle.Pointer,item);if(cache.TryGetValue(key,out var cached))return cached;
+        var key=(vehicle.Pointer,item);if(cache.TryGetValue(key,out var cached)){if(cached.Mesh!=null)return cached;cache.Remove(key);}
         Harvest(vehicle,"throw");
         if(stock.TryGetValue(item,out var s)&&s!=null){var made=Describe(s,"stock");cache.Add(key,made);return made;}
         if(!Plugin.Instance.AllowFallback.Value) {
@@ -79,9 +114,9 @@ internal sealed class MeshAssets:IDisposable
         return new Item(mesh,size,bounds.center,axis,source);
     }
     private static bool Valid(Vector3 v)=>float.IsFinite(v.x)&&float.IsFinite(v.y)&&float.IsFinite(v.z)&&v.x>1e-7&&v.y>1e-7&&v.z>1e-7;
-    internal static Vector3 Scale(Item item,float diameter,float length)=>new((item.LongAxis==0?length:diameter)/item.Size.x,(item.LongAxis==1?length:diameter)/item.Size.y,(item.LongAxis==2?length:diameter)/item.Size.z);
+    internal static Vector3 Scale(Item item,EjectionSize size)=>EmitterRuntime.Unity(size.Scale(item.Size.x,item.Size.y,item.Size.z,item.LongAxis));
     internal static Quaternion AxisRotation(Item item)=>Quaternion.FromToRotation(item.LongAxis==0?Vector3.right:item.LongAxis==1?Vector3.up:Vector3.forward,Vector3.forward);
     // Per Clear: drop the caches and the embedded fallbacks; the stock clones stay (see DisposeStock).
     public void Dispose(){foreach(var m in fallbacks.Values)if(m!=null)Object.Destroy(m);fallbacks.Clear();cache.Clear();}
-    internal static void DisposeStock(){foreach(var m in stock.Values)if(m!=null)Object.Destroy(m);stock.Clear();probed.Clear();}
+    internal static void DisposeStock(){foreach(var m in stock.Values)if(m!=null)Object.Destroy(m);stock.Clear();probed.Clear();if(stockMaterial!=null)Object.Destroy(stockMaterial);stockMaterial=null;baseProperty="";materialLogged.Clear();}
 }

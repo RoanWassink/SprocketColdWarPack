@@ -7,6 +7,52 @@ namespace SprocketAIOrders;
 
 public sealed partial class OrdersHost
 {
+    private bool feedbackActive;
+    private float feedbackStarted;
+    private Vector3 feedbackPoint;
+    private OrderRefusal feedbackRefusal;
+
+    [HideFromIl2Cpp]
+    private void ClearMapFeedback() { feedbackActive = false; mapCanvas?.Invalidate(); }
+    [HideFromIl2Cpp]
+    private void ExpireMapFeedback()
+    {
+        if (feedbackActive && !MapPolicy.MarkerVisible(Time.unscaledTime, feedbackStarted, feedbackRefusal != OrderRefusal.None)) ClearMapFeedback();
+    }
+    [HideFromIl2Cpp]
+    private void ShowMapFeedback(Vector3 point, OrderRefusal refusal)
+    {
+        feedbackPoint = point; feedbackRefusal = refusal; feedbackStarted = Time.unscaledTime;
+        feedbackActive = true; mapCanvas?.Invalidate();
+    }
+    [HideFromIl2Cpp]
+    private bool RefuseOrder(Vector3 point, int count, MapClickAction action)
+    {
+        var reason = MapPolicy.Refusal(count, InsideBounds(point));
+        if (reason == OrderRefusal.None) return false;
+        status = reason == OrderRefusal.NoSelection ? "Select allies first" : "Outside battle area";
+        ShowMapFeedback(point, reason);
+        if (reason == OrderRefusal.NoSelection) Plugin.Info($"Order refused: no units selected (action={action}).");
+        else
+        {
+            var distance = Math.Max(0, battleArea?.EdgeDistance(point.x, point.y, point.z) ?? 0);
+            Plugin.Info(FormattableString.Invariant($"Order refused: outside battle area at ({point.x:F1}, {point.z:F1}); {distance:F1} m beyond the edge (action={action})."));
+        }
+        return true;
+    }
+    [HideFromIl2Cpp]
+    private void DrawMapFeedback(Painter d)
+    {
+        if (!feedbackActive || !MapPolicy.MarkerVisible(Time.unscaledTime, feedbackStarted, feedbackRefusal != OrderRefusal.None)) return;
+        var p = MapPoint(feedbackPoint); var pixel = 1 / mapCanvas!.Zoom;
+        if (feedbackRefusal == OrderRefusal.None)
+        { d.Circle(p.x, p.y, 10 * pixel, new Color(.2f, .55f, 1, 1), 3); drawShapes++; return; }
+        var red = new Color(1, .25f, .15f, 1); var half = 5 * pixel;
+        d.Line(p.x - half, p.y - half, p.x + half, p.y + half, red, 3);
+        d.Line(p.x - half, p.y + half, p.x + half, p.y - half, red, 3); drawShapes += 2;
+        MapLabel(d, p + new Vector2(10, -16) * pixel,
+            feedbackRefusal == OrderRefusal.NoSelection ? "Select allies first" : "Outside battle area", red, TextAnchor.MiddleLeft);
+    }
     [HideFromIl2Cpp]
     private Vector2 MapPoint(Vector3 world)
     { var p = mapSpace.ToMap(world.x, world.z); return new Vector2(p.X, p.Y); }
@@ -29,6 +75,7 @@ public sealed partial class OrdersHost
         if (Stopped || !mapOpen || player == null || Time.timeScale <= 0f || !Application.isFocused ||
             SprocketKeybinds.Keybinds.IsConfiguring || UiKit.TextInputActive) return;
         var w = mapSpace.ToWorld(e.World.x, e.World.y);
+        ClearMapFeedback();
         var ally = e.Button == 0 ? HitTank(allies, w.X, w.Z) : null;
         var enemy = e.Button == 1 ? HitTank(contacts.Values.Where(c => c.Visible).Select(c => c.Tank), w.X, w.Z) : null;
         var action = MapPolicy.Decide(e.Button, e.Shift, ally != null, enemy != null);
@@ -38,7 +85,7 @@ public sealed partial class OrdersHost
             case MapClickAction.Select: selected.Clear(); selected.Add(ally!.Pointer); break;
             case MapClickAction.Toggle: if (!selected.Add(ally!.Pointer)) selected.Remove(ally.Pointer); break;
             case MapClickAction.Clear: selected.Clear(); break;
-            case MapClickAction.Attack: AttackSelected(enemy!); break;
+            case MapClickAction.Attack: AttackSelected(enemy!, new Vector3(w.X, enemy!.Position.y, w.Z)); break;
             case MapClickAction.Move:
             case MapClickAction.Waypoint:
                 var y = SampleHeight(w.X, w.Z);
@@ -149,6 +196,7 @@ public sealed partial class OrdersHost
             var at = mapCanvas!.ToWorld(new Vector2(20, 40));
             MapLabel(d, at, mapFailed ? "Terrain unavailable; see log. Grid and units remain available." : $"Building map… {heightRow * 100 / MapResolution}%", Color.white, TextAnchor.MiddleLeft);
         }
+        DrawMapFeedback(d);
         drawSerial++;
     }
 
@@ -177,7 +225,7 @@ public sealed partial class OrdersHost
         var c = bounds.centre; var s = bounds.size / 2;
         var corners = new[] { new Vector3(-s.x, 0, -s.z), new Vector3(s.x, 0, -s.z), new Vector3(s.x, 0, s.z), new Vector3(-s.x, 0, s.z) }
             .Select(v => MapPoint(bounds.transform.TransformPoint(c + v))).ToArray();
-        d.Polyline(corners, new Color(.75f, .15f, .1f, .9f), 2, closed: true); drawShapes++;
+        d.Polyline(corners, new Color(1, .25f, .15f, 1), 4, closed: true); drawShapes++;
     }
 
     // Kit 0.1.2 dashes (dashPx > 0) can loop forever on float rounding and froze the game on the

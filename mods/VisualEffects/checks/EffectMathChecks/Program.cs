@@ -64,7 +64,7 @@ InRange(EffectMath.HeavyRadius(.35f)*heavyScale,1.5f,1.8f,"125 mm scaled radius"
 Console.WriteLine("PASS calibre clamp and 125 mm world-scale preset");
 
 Check(EffectMath.VolumeCapacity(-5)==1&&EffectMath.VolumeCapacity(0)==1&&EffectMath.VolumeCapacity(1)==1,"MaxVolumes lower clamp");
-Check(EffectMath.VolumeCapacity(2)==2&&EffectMath.VolumeCapacity(4)==4&&EffectMath.VolumeCapacity(5)==4&&EffectMath.VolumeCapacity(100)==4,"MaxVolumes upper clamp 4");
+Check(EffectMath.VolumeCapacity(2)==2&&EffectMath.VolumeCapacity(4)==4&&EffectMath.VolumeCapacity(8)==8&&EffectMath.VolumeCapacity(100)==8,"MaxVolumes upper clamp 8");
 Check(EffectMath.VolumeSteps(0)==16&&EffectMath.VolumeSteps(15)==16&&EffectMath.VolumeSteps(16)==16,"Raymarch lower clamp");
 Check(EffectMath.VolumeSteps(24)==24&&EffectMath.VolumeSteps(36)==36&&EffectMath.VolumeSteps(99)==36,"Raymarch upper clamp 36");
 var births=new float[2];var active=new bool[2];
@@ -79,7 +79,7 @@ var cap=EffectMath.VolumeCapacity(99);var b4=new float[cap];var a4=new bool[cap]
 for(var shot=0;shot<37;shot++)
 {
     var slot=EffectMath.SelectSlot(b4,a4);
-    Check(slot>=0&&slot<cap&&slot<4,"Pool slot outside 1-4 bound");
+    Check(slot>=0&&slot<cap&&slot<8,"Pool slot outside 1-8 bound");
     b4[slot]=shot;a4[slot]=true;
 }
 Console.WriteLine("PASS bounded 1-4 volume pool and deterministic oldest-slot recycling");
@@ -112,7 +112,7 @@ Check(EffectMath.BoxBack<=-3.6f&&EffectMath.MuzzleBoxMin.Z==EffectMath.BoxBack&&
 Check(EffectMath.FlashCurve(0)==0&&EffectMath.FlashCurve(EffectMath.FlashDuration)==0&&EffectMath.FlashCurve(.2f)==0,"Flash light starts and ends at zero");
 InRange(EffectMath.FlashCurve(.015f),.9f,1f,"Flash light near peak at 15 ms");
 InRange(EffectMath.FlashDuration,.05f,.15f,"Flash light 0.05-0.15 s");
-Check(EffectMath.FlashLightPool>=1&&EffectMath.FlashLightPool<=2,"Flash light pool 1-2");
+Check(EffectMath.FlashLightPool>=1&&EffectMath.FlashLightPool<=4,"Flash light pool 1-4");
 InRange(EffectMath.HeavyFire(.05f),.5f,1f,"Fire bright at 0.05 s");
 InRange(EffectMath.DustLifetime,1.5f,4f,"Dust lifetime");
 Check(EffectMath.DustBoxMin.Y<0&&EffectMath.DustBoxMax.Y>=3f&&EffectMath.DustMaxDrop<=10f,"Dust box spans the ground plane; raycast reach bounded");
@@ -169,7 +169,7 @@ for(var trial=0;trial<200;trial++)
 }
 for(var s_=0;s_<5;s_++){var prevF=-1f;for(var v=0f;v<=1f;v+=.01f){var fr=PuffMath.FrameFor(s_,v);Check(fr>=prevF-1e-5f&&fr>=0&&fr<=63,"Frame lookup monotone 0-63");prevF=fr;}Check(PuffMath.FrameFor(s_,FlipbookTables.Diameter[s_][^1])>=62.9f,"Final size reaches the last frame");}
 var wv=PuffMath.Wind(3,90);Check(Near(wv.Length(),3)&&Near(wv.X,3),"Wind speed/direction");Check(Near(PuffMath.Wind(99,0).Length(),12)&&Near(PuffMath.Wind(float.NaN,0).Length(),2.5f),"Wind clamp and NaN fallback");
-Check(EffectMath.PuffCapacity(5)==32&&EffectMath.PuffCapacity(160)==160&&EffectMath.PuffCapacity(9999)==400,"MaxPuffs clamp 32-400");
+Check(EffectMath.PuffCapacity(5)==32&&EffectMath.PuffCapacity(320)==320&&EffectMath.PuffCapacity(9999)==600,"MaxPuffs clamp 32-600");
 InRange(EffectMath.PuffSunStrength(100000,.7f),.99f,1f,"Daylight sun strength");Check(EffectMath.PuffSunStrength(.3f,-.2f)<.05f&&EffectMath.PuffSunStrength(float.NaN,float.NaN)>0,"Night/below horizon dim, NaN safe");
 var smax=MathF.Max(EffectMath.PuffSmokeR,MathF.Max(EffectMath.PuffSmokeG,EffectMath.PuffSmokeB));
 Check(smax<=.5f&&EffectMath.PuffSmokeB>=EffectMath.PuffSmokeR&&smax-EffectMath.PuffSmokeR<=.06f,"Smoke albedo mid grey (<= .5), neutral-cool");
@@ -177,4 +177,147 @@ Check(smax*(1f+EffectMath.PuffAmbient(1f))<=.7f,"Smoke in full sun stays below .
 Check(EffectMath.PuffDustR>EffectMath.PuffDustG&&EffectMath.PuffDustG>EffectMath.PuffDustB,"Dust sand coloured");
 Check(EffectMath.VolumeFireLifetime<=1f&&EffectMath.VolumeSmokeFadeEnd<EffectMath.VolumeFireLifetime,"Volume keeps only fire/jet since 0.3.0");
 Console.WriteLine("PASS 0.3.1 puffs: counts, tuning clamps, spawn ranges, 2-4 s smoke, grey albedo, warm only 0.1 s, low 3-6 s dust, frame lookup, wind, budget, sun");
+
+// 0.5.0 checks: SparkMath, BlastWaveMath, ImpactMath and explosion/ground/armour/cookoff puffs.
+Check(EffectMath.SparkCapacity(10)==128&&EffectMath.SparkCapacity(1600)==1600&&EffectMath.SparkCapacity(99999)==3000,"MaxSparks clamp 128-3000");
+Check(EffectMath.ImpactVolumeCapacity(0)==1&&EffectMath.ImpactVolumeCapacity(6)==6&&EffectMath.ImpactVolumeCapacity(99)==12,"MaxImpactVolumes clamp 1-12");
+var stBad=new SparkTuning(float.NaN,float.PositiveInfinity);
+Check(Near(stBad.Intensity,1.25f)&&Near(stBad.Scale,1f),"SparkTuning NaN/Inf sanitized");
+var stClamp=new SparkTuning(99f,.01f);
+Check(Near(stClamp.Intensity,3f)&&Near(stClamp.Scale,.4f),"SparkTuning range clamped");
+
+var sparkBuf=new Spark[256];
+var sRng=new Random(99);
+var origin=new System.Numerics.Vector3(1f,2f,3f);
+var upN=System.Numerics.Vector3.UnitY;
+var camPos=new System.Numerics.Vector3(12f,4f,10f);
+SparkMath.SpawnMuzzleSparks(sRng,origin,fwd,1f,0f,SparkTuning.Default,sparkBuf,out var sn);
+InRange(sn,20,70,"Muzzle spark count");
+SparkMath.SpawnRicochetSparks(sRng,origin,upN,new System.Numerics.Vector3(400f,-100f,600f),1.2f,0f,SparkTuning.Default,sparkBuf,out sn);
+InRange(sn,45,140,"Ricochet spark count");
+SparkMath.SpawnPenetrationSparks(sRng,origin,upN,1.2f,0f,SparkTuning.Default,sparkBuf,out sn);
+InRange(sn,45,140,"Penetration spark count");
+SparkMath.SpawnNonPenetrationSparks(sRng,origin,upN,1.2f,0f,SparkTuning.Default,sparkBuf,out sn);
+InRange(sn,45,140,"Non-penetration spark count");
+SparkMath.SpawnExplosionSparks(sRng,origin,upN,1.2f,0f,SparkTuning.Default,sparkBuf,out sn);
+InRange(sn,45,150,"Explosion spark count");
+SparkMath.SpawnCookoffSparks(sRng,origin,1.6f,0f,SparkTuning.Default,sparkBuf,out sn);
+InRange(sn,100,256,"Cookoff spark count");
+SparkMath.SpawnGroundSparks(sRng,origin,upN,1f,0f,SparkTuning.Default,sparkBuf,out sn);
+InRange(sn,12,50,"Ground spark count");
+
+var bounceSpark=new Spark{Pos=new System.Numerics.Vector3(0,.1f,0),Vel=new System.Numerics.Vector3(10,-20,0),Age=0,Life=1.5f,Drag=1f,Gravity=1f,Width=.04f,StreakSeconds=.03f,Brightness=1.5f,Hotness=.95f,GroundY=0f,Bounce=.5f,Seed=3f};
+for(var step=0;step<20;step++)SparkMath.Step(ref bounceSpark,.01f);
+Check(bounceSpark.Pos.Y>=0f&&bounceSpark.Vel.Y>0f&&bounceSpark.Life>0f,"Spark ground bounce reflects Y above GroundY");
+SparkMath.ComputeQuad(bounceSpark,camPos,out var q0,out var q1,out var q2,out var q3,out var sa,out var sb,out var sh,out var sr,out var sg,out var sbl);
+Check(float.IsFinite(q0.X)&&float.IsFinite(q2.Z)&&sa>0f&&sb>0f&&sh>=0f&&sr>=sg&&sg>=sbl,"Spark quad finite & blackbody colour");
+for(var step=0;step<200;step++)SparkMath.Step(ref bounceSpark,.02f);
+Check(bounceSpark.Life==0f,"Spark retires at end of life");
+
+var wBuf=new BlastWave[8];
+BlastWaveMath.SpawnMuzzleWaves(origin,fwd,1f,10f,1.3f,true,wBuf,out var wn);Check(wn==2,"Muzzle waves (flash + ring)");
+BlastWaveMath.SpawnArmourImpactFlash(origin,upN,1f,10f,true,wBuf,out wn);Check(wn==1,"Armour impact flash");
+BlastWaveMath.SpawnExplosionWaves(origin,upN,1.2f,10f,true,wBuf,out wn);Check(wn==2,"Explosion waves (flash + ring)");
+BlastWaveMath.SpawnCookoffWaves(origin,1.5f,10f,true,wBuf,out wn);Check(wn==3,"Cookoff waves (flash + double ring)");
+Check(BlastWaveMath.Evaluate(wBuf[0],10.02f,out var wr1,out var wa1)&&wr1>0f&&wa1>0f,"BlastWave active early");
+Check(BlastWaveMath.Evaluate(wBuf[0],10.12f,out var wr2,out _)&&wr2>wr1,"BlastWave expands monotonically");
+Check(!BlastWaveMath.Evaluate(wBuf[0],15f,out _,out _),"BlastWave expires cleanly");
+
+var itBad=new ImpactTuning(true,true,true,true,true,float.NaN,99f,-5f,10f);
+Check(Near(itBad.ScaleMultiplier,1.2f)&&Near(itBad.SparkIntensity,3f)&&Near(itBad.ExplosionFireballIntensity,0f)&&Near(itBad.MaxDistance,100f),"ImpactTuning sanitization");
+Check(ImpactMath.ImpactScale(20f,1f)<ImpactMath.ImpactScale(120f,1f)&&ImpactMath.ImpactScale(120f,1f)<ImpactMath.ImpactScale(155f,1f),"ImpactScale grows with calibre");
+Check(ImpactMath.CookoffScale(100f,10000f,1.2f)>=1.1f&&ImpactMath.CookoffScale(9999f,999999f,2.5f)<=2.6f,"CookoffScale bounded 1.1-2.6");
+Check(ImpactMath.ImpactLightCurve(0f)==0f&&ImpactMath.ImpactLightCurve(.02f)>0f&&ImpactMath.ImpactLightCurve(.5f)==0f,"ImpactLightCurve");
+Check(ImpactMath.ExplosionLightCurve(0f)==0f&&ImpactMath.ExplosionLightCurve(.05f)>0f&&ImpactMath.ExplosionLightCurve(1f)==0f,"ExplosionLightCurve");
+Check(ImpactMath.CookoffLightCurve(0f)==0f&&ImpactMath.CookoffLightCurve(.15f)>0f&&ImpactMath.CookoffLightCurve(2f)==0f,"CookoffLightCurve");
+
+var dedup=new ImpactMath.DuplicateFilter();
+Check(dedup.Accept(ImpactKind.Explosion,origin,5f),"First impact accepted");
+Check(!dedup.Accept(ImpactKind.Explosion,origin+new System.Numerics.Vector3(.01f,0,0),5.005f),"Duplicate same-kind same-spot dropped");
+Check(dedup.Accept(ImpactKind.Penetration,origin,5.005f),"Different kind at same spot accepted (APHE)");
+Check(dedup.Accept(ImpactKind.Explosion,origin+new System.Numerics.Vector3(.5f,0,0),5.005f),"Different position accepted (ERA chain)");
+Check(dedup.Accept(ImpactKind.Explosion,origin,5.05f),"Later timestamp accepted");
+
+var expPuffs=new Puff[48];
+PuffMath.SpawnExplosionPuffs(sRng,origin,upN,1.2f,0f,1.3f,expPuffs,out var epn);InRange(epn,8,28,"Explosion puff count");
+var estEarly=PuffMath.State(expPuffs[0],.06f,System.Numerics.Vector3.Zero,upN);Check(estEarly.HasValue&&estEarly.Value.Heat>0.3f,"HE soot puff has brief early flash");
+var estLate=PuffMath.State(expPuffs[0],.35f,System.Numerics.Vector3.Zero,upN);Check(estLate.HasValue&&estLate.Value.Heat==0f,"HE soot puff heat collapses cleanly by 0.35s");
+Check(ImpactMath.ExplosionVolumeLifetime<1.2f&&ImpactMath.CookoffVolumeLifetime>2.0f,"HE volume significantly shorter than fuel/ammo cookoff");
+PuffMath.SpawnGroundImpactPuffs(sRng,origin,upN,1.2f,0f,expPuffs,out epn);InRange(epn,6,28,"Ground impact puff count");
+PuffMath.SpawnArmourImpactPuffs(sRng,origin,upN,1.2f,0f,true,expPuffs,out epn);InRange(epn,3,10,"Armour impact puff count");
+PuffMath.SpawnCookoffPuffs(sRng,origin,1.5f,0f,1.3f,expPuffs,out epn);InRange(epn,12,38,"Cookoff puff count");
+var cst=PuffMath.State(expPuffs[0],.45f,System.Numerics.Vector3.Zero,upN);Check(cst.HasValue&&cst.Value.Heat>0.4f,"Cookoff puff stays hot & fiery through 0.45s");
+
+// 0.5.2 checks: ResolveOutwardAxis, ResolveExplosionKind, realistic scale ordering and directional ERA/HEAT/HESH layers.
+var slpOut=System.Numerics.Vector3.Normalize(new System.Numerics.Vector3(-0.78f,0.42f,0.46f));
+var inVel=new System.Numerics.Vector3(700f,-380f,-410f);
+Check(System.Numerics.Vector3.Dot(ImpactMath.ResolveOutwardAxis(-slpOut*11.04f,inVel),slpOut)>0.99f,"ResolveOutwardAxis flips inward unnormalized normal against velocity");
+Check(System.Numerics.Vector3.Dot(ImpactMath.ResolveOutwardAxis(slpOut*0.04f,inVel),slpOut)>0.99f,"ResolveOutwardAxis preserves & normalizes short outward normal");
+Check(System.Numerics.Vector3.Dot(ImpactMath.ResolveOutwardAxis(System.Numerics.Vector3.Zero,inVel),System.Numerics.Vector3.Normalize(-inVel))>0.99f,"ResolveOutwardAxis falls back to -vel when normal zero");
+Check(ImpactMath.ResolveOutwardAxis(System.Numerics.Vector3.Zero,System.Numerics.Vector3.Zero)==upN,"ResolveOutwardAxis falls back to UnitY when both zero");
+
+Check(ImpactMath.ResolveExplosionKind("era")==ImpactKind.Era&&ImpactMath.ResolveExplosionKind("heat")==ImpactKind.Heat&&ImpactMath.ResolveExplosionKind("hesh")==ImpactKind.Hesh&&ImpactMath.ResolveExplosionKind("aphe")==ImpactKind.Aphe&&ImpactMath.ResolveExplosionKind("")==ImpactKind.Explosion&&ImpactMath.ResolveExplosionKind(null)==ImpactKind.Explosion,"ResolveExplosionKind mapping");
+var sEra=ImpactMath.EraScale(1.2f);var sHeat=ImpactMath.HeatScale(125f,1.2f);var sHesh=ImpactMath.HeshScale(120f,1.2f);var sHe=ImpactMath.ImpactScale(120f,1.2f);
+Check(sEra<sHeat&&sHeat<sHesh&&sHesh<sHe,"Realistic scale ordering: ERA < HEAT < HESH < HE");
+Check(sEra>=0.22f&&sEra<=0.44f&&ImpactMath.ApheScale(100f,1.2f)<sHesh,"ERA and APHE compact scale bounds");
+
+static float AvgDot(Span<Spark> buf,int n,System.Numerics.Vector3 axis)
+{
+    var sum=0f;
+    for(var i=0;i<n;i++)sum+=System.Numerics.Vector3.Dot(System.Numerics.Vector3.Normalize(buf[i].Vel),axis);
+    return sum/Math.Max(1,n);
+}
+static float AvgPuffDot(Span<Puff> buf,int n,System.Numerics.Vector3 axis)
+{
+    var sum=0f;
+    for(var i=0;i<n;i++)sum+=System.Numerics.Vector3.Dot(buf[i].Dir,axis);
+    return sum/Math.Max(1,n);
+}
+
+SparkMath.SpawnEraSparks(sRng,origin,slpOut,sEra,0f,SparkTuning.Default,sparkBuf,out sn);
+InRange(sn,20,70,"ERA spark count");Check(AvgDot(sparkBuf,sn,slpOut)>0.45f,"ERA sparks project strongly outward");
+SparkMath.SpawnHeatSparks(sRng,origin,slpOut,sHeat,0f,SparkTuning.Default,sparkBuf,out sn);
+InRange(sn,30,100,"HEAT spark count");Check(AvgDot(sparkBuf,sn,slpOut)>0.45f,"HEAT sparks project strongly outward");
+SparkMath.SpawnHeshSparks(sRng,origin,slpOut,sHesh,0f,SparkTuning.Default,sparkBuf,out sn);
+InRange(sn,40,130,"HESH spark count");
+SparkMath.SpawnApheSparks(sRng,origin,slpOut,ImpactMath.ApheScale(100f,1.2f),0f,SparkTuning.Default,sparkBuf,out sn);
+InRange(sn,15,65,"APHE spark count");
+
+BlastWaveMath.SpawnEraWaves(origin,slpOut,sEra,10f,true,wBuf,out wn);Check(wn==2,"ERA flash + armor ring");
+BlastWaveMath.SpawnHeatWaves(origin,slpOut,sHeat,10f,true,wBuf,out wn);Check(wn==2,"HEAT flash + armor ring");
+BlastWaveMath.SpawnHeshWaves(origin,slpOut,sHesh,10f,true,wBuf,out wn);Check(wn==2,"HESH flash + armor ring");
+BlastWaveMath.SpawnApheWaves(origin,slpOut,0.5f,10f,wBuf,out wn);Check(wn==1,"APHE compact flash");
+
+PuffMath.SpawnEraPuffs(sRng,origin,slpOut,sEra,0f,1.3f,expPuffs,out epn);
+InRange(epn,8,12,"ERA puff count");Check(AvgPuffDot(expPuffs,epn,slpOut)>0.60f,"ERA puffs jet outward along normal");
+var eraLate=PuffMath.State(expPuffs[0],.30f,System.Numerics.Vector3.Zero,upN);Check(eraLate.HasValue&&eraLate.Value.Heat==0f,"ERA heat collapses cleanly by 0.30s");
+PuffMath.SpawnHeatPuffs(sRng,origin,slpOut,sHeat,0f,1.3f,expPuffs,out epn);
+InRange(epn,10,16,"HEAT puff count");Check(AvgPuffDot(expPuffs,epn,slpOut)>0.45f,"HEAT puffs jet outward + splash collar");
+var heatLate=PuffMath.State(expPuffs[0],.30f,System.Numerics.Vector3.Zero,upN);Check(heatLate.HasValue&&heatLate.Value.Heat==0f,"HEAT heat collapses cleanly by 0.30s");
+PuffMath.SpawnHeshPuffs(sRng,origin,slpOut,sHesh,0f,1.3f,expPuffs,out epn);
+InRange(epn,14,22,"HESH puff count");
+var heshLate=PuffMath.State(expPuffs[0],.30f,System.Numerics.Vector3.Zero,upN);Check(heshLate.HasValue&&heshLate.Value.Heat==0f,"HESH heat collapses cleanly by 0.30s");
+Console.WriteLine("PASS 0.5.2 directional ERA/HEAT/HESH/APHE math, outward axis resolver & scaling");
+
+// 0.5.3 checks: spark streak cap <= 0.92 m and ClusterLimiter stacking suppression/upgrade.
+var fastSpark=new Spark{Pos=origin,Vel=slpOut*120f,Age=0.02f,Life=0.8f,Drag=1.5f,Gravity=1f,Width=0.05f,StreakSeconds=0.05f,Brightness=1.8f,Hotness=1f,GroundY=0f,Bounce=0.4f,Seed=2f};
+SparkMath.ComputeQuad(fastSpark,camPos,out var fq0,out _,out _,out var fq3,out _,out _,out _,out _,out _,out _);
+var streakMeters=System.Numerics.Vector3.Distance(fq0,fq3);
+Check(streakMeters>0.15f&&streakMeters<=0.92f,$"Fast spark streak length clamped ({streakMeters:F2} m <= 0.92 m)");
+
+var cl=new ImpactMath.ClusterLimiter();
+var c1=cl.Evaluate(ImpactKind.Era,origin,10f);
+Check(c1.SpawnVolume&&c1.SpawnWave&&c1.SpawnLight&&!c1.ReplacePrevious&&c1.SparkMul==1f,"1st ERA admitted full");
+cl.SetSlots(c1.EntryIndex,0,0);
+var c2=cl.Evaluate(ImpactKind.Era,origin+new System.Numerics.Vector3(0.15f,0f,0f),10.01f);
+Check(!c2.SpawnVolume&&!c2.SpawnWave&&!c2.SpawnLight&&c2.SparkMul<0.6f,"2nd Duplet ERA at 0.15 m coalesced (no double fireball)");
+var c3=cl.Evaluate(ImpactKind.Heat,origin+new System.Numerics.Vector3(0.10f,0f,0f),10.01f);
+Check(c3.SpawnVolume&&c3.SpawnWave&&c3.SpawnLight&&c3.ReplacePrevious&&c3.ReplacedVolSlot==0&&c3.ReplacedLightSlot==0,"HEAT in same cluster upgrades & replaces ERA volume/light");
+cl.SetSlots(c3.EntryIndex,1,1);
+var c4=cl.Evaluate(ImpactKind.Penetration,origin+new System.Numerics.Vector3(0.05f,0f,0f),10.01f);
+Check(!c4.SpawnVolume&&!c4.SpawnWave&&!c4.SpawnLight&&c4.SparkMul<0.5f,"Post-HEAT Penetration in cluster suppressed");
+var c5=cl.Evaluate(ImpactKind.Era,origin+new System.Numerics.Vector3(2.5f,0f,0f),10.01f);
+var c6=cl.Evaluate(ImpactKind.Era,origin,10.25f);
+Check(c5.SpawnVolume&&c6.SpawnVolume,"Distant (2.5 m) and later (0.25 s) impacts admitted full");
+Console.WriteLine("PASS 0.5.3 spark length cap <= 0.92 m and ClusterLimiter stacking suppression");
 Console.WriteLine("ALL EFFECTMATH CHECKS PASSED");

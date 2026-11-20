@@ -1,8 +1,9 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$ModDll,
-    [string]$GamePath='C:\Program Files (x86)\Steam\steamapps\common\Sprocket',
-    [string]$Report
+    [string]$GamePath='E:\SteamLibrary\steamapps\common\Sprocket',
+    [string]$Report,
+    [string]$Cpp2Il
 )
 # Static interop scan (read-only on the game): every Unity/Il2Cpp call in the
 # mod DLL is followed into the generated wrapper IL. FAIL families: span (missing
@@ -15,18 +16,22 @@ param(
 $ErrorActionPreference='Stop'
 if(-not $Report){$Report=Join-Path ([IO.Path]::GetTempPath()) ('sprocketvfx-interop-scan-'+[Guid]::NewGuid().ToString('N')+'.txt')}
 $tool=Join-Path $PSScriptRoot 'InteropScan\InteropScan.csproj'
-dotnet build $tool -c Release --nologo -v q "-p:GameDir=$GamePath" | Out-Null
+dotnet build $tool -c Release --nologo --disable-build-servers -v q "-p:GameDir=$GamePath" | Out-Null
 if($LASTEXITCODE){throw 'InteropScan build failed.'}
 $exe=Join-Path $PSScriptRoot 'InteropScan\bin\Release\net8.0\InteropScan.dll'
-dotnet $exe $ModDll $GamePath $Report `
-    --expect-fail 'UnityEngine.AssetBundle::LoadFromFile(System.String)' `
-    --expect-fail 'UnityEngine.AssetBundle::LoadAllAssets()' `
-    --expect-fail 'UnityEngine.AssetBundle::LoadFromMemory(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray`1<System.Byte>)' `
-    --expect-fail 'UnityEngine.AssetBundle::LoadAllAssetsAsync()' `
-    --expect-fail 'UnityEngine.MaterialPropertyBlock::ExtractFloatArrayImpl(System.Int32,Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray`1<System.Single>)' `
-    --expect-pass 'UnityEngine.AssetBundle::LoadFromFileAsync(System.String)' `
-    --expect-pass 'UnityEngine.AssetBundle::LoadAllAssetsAsync(Il2CppSystem.Type)' `
-    --expect-pass 'UnityEngine.AssetBundle::LoadAssetAsync(System.String,Il2CppSystem.Type)' `
-    --expect-pass 'UnityEngine.ImageConversion::LoadImage(UnityEngine.Texture2D,Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray`1<System.Byte>,System.Boolean)' `
-    --expect-pass 'UnityEngine.Shader::Find(System.String)'
+$scanArgs=@($ModDll,$GamePath,$Report)
+if($Cpp2Il){$scanArgs+=@('--cpp2il',$Cpp2Il)}
+$scanArgs+=@(
+    '--expect-fail','UnityEngine.AssetBundle::LoadFromFile(System.String)',
+    '--expect-fail','UnityEngine.AssetBundle::LoadAllAssets()',
+    '--expect-fail','UnityEngine.AssetBundle::LoadFromMemory(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray`1<System.Byte>)',
+    '--expect-fail','UnityEngine.AssetBundle::LoadAllAssetsAsync()',
+    '--expect-fail','UnityEngine.MaterialPropertyBlock::ExtractFloatArrayImpl(System.Int32,Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray`1<System.Single>)',
+    '--expect-pass','UnityEngine.AssetBundle::LoadFromFileAsync(System.String)',
+    '--expect-pass','UnityEngine.AssetBundle::LoadAllAssetsAsync(Il2CppSystem.Type)',
+    '--expect-pass','UnityEngine.AssetBundle::LoadAssetAsync(System.String,Il2CppSystem.Type)',
+    '--expect-pass','UnityEngine.ImageConversion::LoadImage(UnityEngine.Texture2D,Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray`1<System.Byte>,System.Boolean)',
+    '--expect-pass','UnityEngine.Shader::Find(System.String)'
+)
+dotnet $exe @scanArgs
 if($LASTEXITCODE){throw "Interop scan FAILED (see $Report)."}

@@ -13,7 +13,7 @@
 //   icall    wrapper resolves an internal call by name that UnityPlayer.dll lacks.
 //
 // usage: InteropScan <mod.dll> <gameDir> <report.txt> [--cpp2il DIR]
-//        [--expect-fail SPEC]... [--expect-pass SPEC]... [--dump SPEC]... [--scan-type TYPE]...
+//        [--generator-dir DIR] [--expect-fail SPEC]... [--expect-pass SPEC]... [--dump SPEC]... [--scan-type TYPE]...
 // SPEC:  Namespace.Type::Method(ParamType,ParamType)   (parameter list optional; non-generic preferred)
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -35,6 +35,7 @@ for(var i=3;i<args.Length;i++)
         case "--expect-fail":expectFail.Add(args[++i]);break;case "--expect-pass":expectPass.Add(args[++i]);break;
         case "--dump":dumps.Add(args[++i]);break;case "--scan-type":scanTypes.Add(args[++i]);break;
         case "--cpp2il":cpp2ilDir=Path.GetFullPath(args[++i]);break;
+        case "--generator-dir":generatorDir=Path.GetFullPath(args[++i]);cpp2ilDir=Path.Combine(generatorDir,"Cpp2IL","cpp2il_out");break;
         case "--find-stripped":findStripped.Add(args[++i]);break;
         default:return Usage("unknown option "+args[i]);
     }

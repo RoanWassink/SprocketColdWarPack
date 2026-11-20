@@ -6,8 +6,10 @@ public static class RangefinderPolicy
     {
         if (nearest == null) return "No return";
         if (nearest.Value < minimum) return "Too close";
-        return $"{Math.Round(nearest.Value / 10, MidpointRounding.AwayFromZero) * 10:0} m";
+        return $"{Rounded(nearest.Value):0} m";
     }
+    // The ten-metre value the text readout shows (0.5.0: shared with the HUD).
+    public static double Rounded(double metres) => Math.Round(metres / 10, MidpointRounding.AwayFromZero) * 10;
     public static double? Nearest(IEnumerable<double> distances, double maximum)
     {
         if (!double.IsFinite(maximum) || maximum <= 0) return null;

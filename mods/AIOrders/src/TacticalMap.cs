@@ -16,6 +16,7 @@ public sealed partial class OrdersHost
     private float[]? heights;
     private int heightRow = -1;
     private Texture2D? mapTexture;
+    private BattleArea? battleArea;
     private bool mapFailed;
     private (float X0, float Z0, float X1, float Z1)[] terrainRects = Array.Empty<(float, float, float, float)>();
     private float[] terrainBase = Array.Empty<float>();
@@ -151,7 +152,13 @@ public sealed partial class OrdersHost
             for (var col = 0; col < n; col++)
             {
                 var h = heights[row * n + col];
-                if (!float.IsFinite(h)) { pixels[row * n + col] = new Color32(58, 64, 70, 255); continue; }
+                if (!float.IsFinite(h))
+                {
+                    var outside = battleArea is { } missingArea && !missingArea.Contains(mapSpace.MinX + (col + .5f) * metersPerPixel,
+                        player?.Position.y ?? 0, mapSpace.MinZ + (row + .5f) * metersPerPixel);
+                    pixels[row * n + col] = outside ? new Color32(29, 32, 35, 255) : new Color32(58, 64, 70, 255);
+                    continue;
+                }
                 var dx = (H(heights, n, row, col + 1, h) - H(heights, n, row, col - 1, h)) / (2 * metersPerPixel);
                 var dz = (H(heights, n, row + 1, col, h) - H(heights, n, row - 1, col, h)) / (2 * metersPerPixel);
                 // Light from the north-west, like a printed relief map.
@@ -161,6 +168,9 @@ public sealed partial class OrdersHost
                 var contour = Math.Floor(h / minor) != Math.Floor(H(heights, n, row, col + 1, h) / minor) || Math.Floor(h / minor) != Math.Floor(H(heights, n, row + 1, col, h) / minor);
                 var major = Math.Floor(h / (minor * 5)) != Math.Floor(H(heights, n, row, col + 1, h) / (minor * 5)) || Math.Floor(h / (minor * 5)) != Math.Floor(H(heights, n, row + 1, col, h) / (minor * 5));
                 var dark = major ? .55f : contour ? .78f : 1f;
+                // Snapshot uses the same inverse transform as InsideBounds, with no 16 m inset.
+                if (battleArea is { } area && !area.Contains(mapSpace.MinX + (col + .5f) * metersPerPixel,
+                    h, mapSpace.MinZ + (row + .5f) * metersPerPixel)) dark *= .5f;
                 pixels[row * n + col] = new Color32(Byte(r0 * shade * dark), Byte(g0 * shade * dark), Byte(b0 * shade * dark), 255);
             }
         try

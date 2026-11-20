@@ -1,39 +1,47 @@
 # Sprocket JSON Editor
 
-A reusable in-game editor window for lists of JSON entries. Other mods plug in their own data (fields, ranges, file paths, saving) and the editor shows it with add/duplicate controls, validation and a Save button.
+JSON Editor is an in-game window for editing lists of entries. Other mods supply the data, and the editor shows it with controls to add and copy entries, checks on what you type and a Save button.
 
-This is a shared library with no standalone button or screen. Expanded Ballistics requires it for its older editor windows (shell editor, combat report and material editor, which fall back to it when their `Use UI Kit` option is off).
+It is a shared library with no button or screen of its own. Expanded Ballistics needs it for its older editor windows (the shell editor, the combat report and the material editor), which use it when their `Use UI Kit` option is off. Install it with the pack.
 
-- Version: 0.1.5
-- Plugin GUID: `sprocket.jsoneditor`
-- Requires: no other plugin (BepInEx 6 IL2CPP loader only)
-- Optional: none
-- Game version tested: 0.2.56.2
+Version 0.1.5. It needs no other mod.
 
-## Features
+## What it adds
 
-- Expandable entries with text and numeric inputs, dropdowns defined by the consuming mod, and optional grouped sections per entry.
-- Add and duplicate controls based on templates that the consuming mod supplies.
-- Field-level validation feedback; Save is only called once visible errors are resolved.
-- Numeric ranges (minimum, maximum, step) for bounded fields and sliders.
-- A read-only mode for list viewers.
-- Blocks gameplay input while the editor is open.
-- `JsonFileTransaction` writes a group of text files with conflict checks, backups and rollback.
-- Public API for modders: subclass `EditorSession`, then call `JsonEditor.Open(session)` on the main thread. The consuming mod owns validation, writing files and refreshing the game.
+- Entries that open and close, with text and number fields, dropdowns and optional groups of fields.
+- Add and duplicate buttons, based on templates that the mod supplies.
+- A message beside a field when its value is not valid. Save only goes ahead once all visible errors are fixed.
+- Minimum, maximum and step for number fields, shown as sliders where that fits.
+- A read-only mode for lists that you only look at.
+- Game input is blocked while the editor is open.
 
-## Settings and keys
+## How to use it
 
-- No config file and no keys of its own. The plugin creates no settings entries, uses no Harmony patches and stores nothing.
-- Plugin folder: `BepInEx\plugins\SprocketJsonEditor\`. It ships no parts, technology or localization data.
+You do not open this editor yourself. It appears when a mod opens one of its lists.
 
-## Status
+1. In Expanded Ballistics, set `Use UI Kit` to off for the window you want, for example the shell editor.
+2. Open that window in the game. The list appears in the JSON Editor.
+<!-- SCREENSHOT: jsoneditor-list.png (a list of entries in the JSON Editor, for example the shell editor) -->
+3. Click an entry to open it, change the fields, or add and duplicate entries. Fix any field that shows an error.
+4. Click Save.
 
-- No separate test record exists for this library; it was used in game through Expanded Ballistics' editors.
-- The whole pack was renamed and has not been re-tested in game yet.
-- Expanded Ballistics now prefers its UI Kit windows, so this editor mainly remains as the fallback.
+## Settings
+
+The editor has no settings file and no keys. It creates no entries in the settings and stores nothing. The plugin folder is `BepInEx\plugins\SprocketJsonEditor\`.
+
+## For mod makers
+
+A mod subclasses `EditorSession` and calls `JsonEditor.Open(session)` on the main thread. The mod keeps control of validation, writing files and refreshing the game. `JsonFileTransaction` writes a group of text files with conflict checks, backups and rollback. Usage and API notes are in [GUIDE.md](GUIDE.md).
+
+## Known limits
+
+- No separate test record exists for this library. It was used in the game through the editors of Expanded Ballistics.
+- The pack was renamed recently and has not been tested in the game again since.
+- Expanded Ballistics now prefers its UI Kit windows, so this editor mostly remains as the fallback.
+- The mod was written for game version 0.2.56.2.
 
 ## Building
 
-.NET project in this folder (`SprocketJsonEditor.csproj`, net6.0, shared settings in `SprocketMod.props`). It builds against the game's interop assemblies: `dotnet build SprocketJsonEditor.csproj -c Release -p:GameDir=<path to Sprocket folder>`. There is no test project.
+The project is a .NET project in this folder (`SprocketJsonEditor.csproj`, net6.0, shared settings in `SprocketMod.props`). It builds against the game's interop assemblies: `dotnet build SprocketJsonEditor.csproj -c Release -p:GameDir=<path to Sprocket folder>`. There is no test project.
 
-Docs: [GUIDE.md](GUIDE.md) (usage and API notes), [BUILD.md](BUILD.md), [RELEASE-NOTES.md](RELEASE-NOTES.md). Licence: MIT ([LICENSE](LICENSE)). Author: Nero.
+More notes: [GUIDE.md](GUIDE.md), [BUILD.md](BUILD.md) and [RELEASE-NOTES.md](RELEASE-NOTES.md). Plugin ID: `sprocket.jsoneditor`. Licence: MIT ([LICENSE](LICENSE)). Author: Nero.

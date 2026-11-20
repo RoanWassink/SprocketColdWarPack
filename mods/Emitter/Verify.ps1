@@ -8,8 +8,10 @@ param(
     [string]$WorkDir='',
     # Optional: Make-PartIcon.ps1 of the sprocket-bepinex skill. Without it a built-in minimal icon check runs.
     [string]$PartIconScript='',
-    [string]$Version='0.1.1')
-# The single gate for Emitter. Reads the game folder, writes only under $WorkDir. Installs nothing.
+    # Optional: Il2CppAssemblyGenerator-style folder with a Cpp2IL dump of the exact GameAssembly (default: inside the game folder).
+    [string]$GeneratorDir='',
+    [string]$Version='0.1.3')
+# The single gate for Emitter 0.1.3 (follow caliber, validated dimensions, native material, bounded diagnostics). Reads the game folder, writes only under $WorkDir. Installs nothing.
 $ErrorActionPreference='Stop'
 $root=$PSScriptRoot
 if(-not $BuildGameDir){$BuildGameDir=$GamePath}
@@ -58,7 +60,7 @@ try{
         dotnet (Join-Path $out 'checks\eligibility\Eligibility.dll')
     }
     Step 'interop' {
-        & (Join-Path $root 'checks\Scan-InteropSpans.ps1') -ModDll $dll -GamePath $GamePath -BuildGameDir $BuildGameDir -Report (Join-Path $logs 'interop-scan.txt')
+        & (Join-Path $root 'checks\Scan-InteropSpans.ps1') -ModDll $dll -GamePath $GamePath -BuildGameDir $BuildGameDir -GeneratorDir $GeneratorDir -Report (Join-Path $logs 'interop-scan.txt')
         $r=Get-Content -LiteralPath (Join-Path $logs 'interop-scan.txt')
         $start=[Array]::FindIndex($r,[Predicate[string]]{param($l)$l -like '== Native status not decidable offline*'})
         if($start -ge 0){$r[$start..($r.Length-1)] | Where-Object {$_ -match '^(==|  )'} | Set-Content -LiteralPath (Join-Path $logs 'interop-undecidable.txt') -Encoding UTF8}

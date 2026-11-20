@@ -16,6 +16,7 @@ internal static class CassetteDefaults
         if(responses==null)throw new FormatException("Armour responses are required to reject ERA cassette constituents.");
         var reactive=new HashSet<string>(StringComparer.Ordinal);
         foreach(var response in responses.Responses)if(response.Kind is "lightEra" or "heavyEra")foreach(var id in response.CompatibleMaterialIds)reactive.Add(id);
+        CassetteTechnology.Log??=(warning,text)=>{if(warning)Plugin.ModLog.LogWarning("[Cassettes] "+text);else Plugin.ModLog.LogInfo("[Cassettes] "+text);}; // 0.22.90: one line per Technology file with a missing field
         var materials=CassetteTechnology.ReadDirectory(Path.Combine(Paths.GameRootPath,"Sprocket_Data/StreamingAssets/Technology"));
         var models=new Dictionary<string,CassetteModel>(StringComparer.Ordinal);
         foreach(var preset in catalogue.Presets)

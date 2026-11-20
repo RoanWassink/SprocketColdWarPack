@@ -26,7 +26,9 @@ public sealed class HudPanel
         Host = new Panel(modGuid, id, "", null, MathF.Max(40, width), 40, hud: true) { AllowedContexts = UiContexts.Game };
         Host.Hud = this;
     }
+    /// <summary>Stable identifier of the mod that owns this panel.</summary>
     public string ModGuid => Host.ModGuid;
+    /// <summary>Stable panel identifier within the owning mod.</summary>
     public string Id => Host.Id;
     /// <summary>Content; the same factories as a panel body.</summary>
     public Stack Body => Host.Body;
@@ -38,6 +40,7 @@ public sealed class HudPanel
     public HudPanel MaxHeight(float px) { MaxHeightPx = MathF.Max(20, px); Host.MarkDirty(); return this; }
     /// <summary>Fixed height in reference px; 0 = auto (default).</summary>
     public float Height { get => FixedHeight; set { FixedHeight = MathF.Max(0, value); Host.MarkDirty(); } }
+    /// <summary>Current panel width in Kit units.</summary>
     public float Width { get => Host.W; set { Host.W = MathF.Max(40, value); Host.MarkDirty(); } }
     /// <summary>Default <see cref="UiContexts.Game"/>.</summary>
     public UiContexts AllowedContexts { get => Host.AllowedContexts; set => Host.AllowedContexts = value; }
@@ -55,6 +58,7 @@ public sealed class HudPanel
     public float FadeSeconds { get; set; } = .15f;
     /// <summary>Show (default state) / hide by code, on top of <see cref="Visible"/>.</summary>
     public void Show() => shown = true;
+    /// <summary>Hide the HUD until Show is called again.</summary>
     public void Hide() => shown = false;
     /// <summary>True while the HUD is on screen (after the visibility rules).</summary>
     public bool IsShown => WasVisible;

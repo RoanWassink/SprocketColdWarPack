@@ -78,6 +78,15 @@ internal sealed class ProtectionFactorTable
     }
     internal static double NativeRhaFactor(double factor,double angleDegrees,double exponent,double overmatch=0,double apModifier=1)=>
         factor*apModifier*NativeAngleMultiplier(angleDegrees,exponent,overmatch);
+    // 0.22.90 begin
+    // User 16-11, "Anyway, fix. Dit had al eerder gezien moeten worden, delen door 0...": native divides by the rhaFactor EB writes
+    // (CompoundStructure.SimulateFragment 0x1D782C2: B = GetBasePenetration x apModifier / rhaFactor). At 0, B is +inf and the overmatch blend
+    // (B - c*B)*om + c*B (0x1D78333) is NaN: the continuation becomes a ricochet child at a NaN position and the vehicle vanishes (VANISH-MAP section 2).
+    // Every native rhaFactor write passes this floor. Every v from 1e-6f up (finite or +inf) comes back bit for bit; [0, 1e-6) and negatives give
+    // exactly 1e-6f. NaN passes unchanged: the callers reject non-finite values themselves. Cost of the floor: 1e-6 x path, about 0.0002 mm RHA on 236 mm.
+    internal const float MinimumNativeRhaFactor=1e-6f;
+    internal static float NativeSafe(float v)=>v<MinimumNativeRhaFactor?MinimumNativeRhaFactor:v;
+    // 0.22.90 end
     internal static double Overmatch(double mass,double speed,double diameter,double pathM,double angleDegrees)
     {
         var c=Math.Max(1e-6,Math.Cos(angleDegrees*Math.PI/180));var t=pathM*c;

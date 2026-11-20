@@ -34,6 +34,14 @@ internal static class Rangefinder
     private static Vector3 pendingDirection;
     private static RangefinderKind activeKind;
     private static RangefinderZeroRecord? zero;
+    // 0.5.0: last measured value for the night-sight HUD (read only; the text readout above is unchanged).
+    internal readonly record struct Reading(double? Range, RangeStatus Status, int Echoes, bool Body, Vector3 SightDirection, IntPtr Vehicle, float At);
+    internal static Reading Last;
+    private static int pendingEchoes;
+    private static bool pendingBody;
+    private static Vector3 pendingSight;
+    private static void Record(double? range, RangeStatus status, int echoes, bool body, Vector3 sightDirection, IntPtr vehicle)
+        => Last = new(range, status, echoes, body, sightDirection, vehicle, Time.unscaledTime);
     internal static double Baseline(VehicleComponent component)
     {
         var models = component.models;
@@ -175,11 +183,12 @@ internal static class Rangefinder
         if (pendingDevice != null)
         {
             if (pendingDevice.Pointer != device!.Pointer || direction.sqrMagnitude < .000001f || Vector3.Dot(direction.normalized, pendingDirection) < .99996f)
-            { pendingDevice = null; Show("Measurement cancelled"); return; }
+            { pendingDevice = null; Show("Measurement cancelled"); Record(null, RangeStatus.Cancelled, 0, false, pendingSight, owner); return; }
             if (Time.unscaledTime < completesAt) return;
             var estimate = RangefinderDevicePolicy.OpticalReading(pendingDistance, pendingBaseline);
             pendingDevice = null;
             Show($"{estimate:0} m");
+            Record(estimate, RangeStatus.Ok, pendingEchoes, pendingBody, pendingSight, owner);
             if (readingLogs++ < 10) Plugin.Instance.Log.LogInfo($"[Rangefinder] Optical true={pendingDistance:F1}m estimated={estimate:F1}m baseline={pendingBaseline:F2}m.");
             return;
         }
@@ -193,6 +202,7 @@ internal static class Rangefinder
         if (direction.sqrMagnitude < .000001f) { Show("No valid aiming ray"); return; }
         var hits = Physics.RaycastAll(new Ray(origin, direction.normalized), max, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
         var distances = new List<double>();
+        double nearestHit = double.PositiveInfinity; bool nearestBody = false;
         foreach (var hit in hits)
         {
             if (hit.collider == null) continue;
@@ -200,19 +210,26 @@ internal static class Rangefinder
             var own = player.ControlledVehicleGameObject;
             if (own != null && hit.collider.transform.IsChildOf(own.transform)) continue;
             distances.Add(hit.distance);
+            // HUD only: a moving body (vehicle) rather than static terrain at the nearest return.
+            if (hit.distance < nearestHit) { nearestHit = hit.distance; nearestBody = hit.collider.attachedRigidbody != null; }
         }
         var distance = RangefinderPolicy.Nearest(distances, max);
+        var echoes = HudMath.Echoes(distances, min, max);
+        var sightLine = (scope.ScopeAimPoint - origin).normalized;
         if (activeKind == RangefinderKind.Optical && distance != null && distance >= min)
         {
             pendingDevice = device; pendingDistance = distance.Value; pendingBaseline = Baseline(device);
             if (!double.IsFinite(pendingBaseline) || pendingBaseline <= 0) { pendingDevice = null; Show("Invalid optical baseline"); return; }
             pendingDirection = direction.normalized;
+            pendingEchoes = echoes; pendingBody = nearestBody; pendingSight = sightLine;
             completesAt = Time.unscaledTime + (float)RangefinderDevicePolicy.OpticalDelay(distance.Value);
             nextByVehicle[owner] = completesAt + 2;
             Show($"Measuring... ({pendingBaseline:F2} m base)"); expires = completesAt + duration.Value;
             return;
         }
         Show(RangefinderPolicy.Readout(distance, min));
+        Record(distance is { } d && d >= min ? (activeKind == RangefinderKind.AutomaticLaser ? Math.Round(d) : RangefinderPolicy.Rounded(d)) : null,
+            distance == null ? RangeStatus.NoReturn : distance < min ? RangeStatus.TooClose : RangeStatus.Ok, echoes, nearestBody, sightLine, owner);
         if (activeKind == RangefinderKind.AutomaticLaser && distance != null && distance >= min)
         {
             var linked = RangefinderBallistics.LinkedCannon(sight);
@@ -273,7 +290,7 @@ internal static class Rangefinder
     internal static void Clear() { pendingDevice = null; sightId = IntPtr.Zero; resultVehicle = IntPtr.Zero; result = null; }
     internal static void Shutdown()
     {
-        ready = false; Clear(); zero = null; player = null; time = null; nextByVehicle.Clear();
+        ready = false; Clear(); zero = null; Last = default; player = null; time = null; nextByVehicle.Clear();
         if (measure != null) { Keybinds.Unregister(Owner, "rangefinder-measure"); measure = null; }
     }
 }

@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><RootNamespace>SprocketUiKit.Tests</RootNamespace></PropertyGroup>
+  <ItemGroup><Compile Remove="settings-runtime/**;bin-validation/**" /></ItemGroup>
   <ItemGroup><Compile Include="../Core/*.cs" LinkBase="Core" /></ItemGroup>
   <ItemGroup><Compile Include="../Runtime/GraphHit.cs" Link="GraphHit.cs" /></ItemGroup>
 </Project>

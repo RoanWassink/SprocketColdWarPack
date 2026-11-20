@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'HeatShape.Tests' Or '$(MSBuildProjectName)' == 'HeatBaseline'">
+    <BaseIntermediateOutputPath>obj/$(MSBuildProjectName)/</BaseIntermediateOutputPath>
+    <!-- The comparison uses the game's net6 runtime; lifecycle support is not a source diagnostic. -->
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+  </PropertyGroup>
+</Project>

@@ -70,9 +70,9 @@ internal static class RuntimeCompositePlate
         catch(Exception){return null;}
     }
     // 0.22.60: the same mesh events also drop the layer table of a plate in layers (RuntimeLayerFaces).
-    internal static void Invalidate(IntPtr mesh){cache.Invalidate(mesh);RuntimeLayerFaces.Invalidate(mesh);}
+    internal static void Invalidate(IntPtr mesh){cache.Invalidate(mesh);RuntimeLayerFaces.Invalidate(mesh);SolidMarks.ForgetMesh(mesh.ToInt64());RuntimeSolidCollider.Invalidate(mesh);}
     /// <summary>Drops the cached identity of the current mesh of this plate (after an own operation or a native mesh edit).</summary>
-    internal static void Invalidate(PlateStructure? plate){try{if(plate!=null&&plate.HasMesh){cache.Invalidate(plate.Mesh.Pointer);RuntimeLayerFaces.Invalidate(plate.Mesh.Pointer);}}catch(Exception){}}
+    internal static void Invalidate(PlateStructure? plate){try{if(plate!=null){SolidMarks.Forget(plate.Pointer.ToInt64());if(plate.HasMesh){cache.Invalidate(plate.Mesh.Pointer);RuntimeLayerFaces.Invalidate(plate.Mesh.Pointer);SolidMarks.ForgetMesh(plate.Mesh.Pointer.ToInt64());RuntimeSolidCollider.Invalidate(plate.Mesh.Pointer);}}}catch(Exception){}}
     /// <summary>
     /// Makes sure this mesh carries the identity name (no mesh replacement, no placement). Called after every Apply operation
     /// and on undo/redo, because a mesh copy made from ToJson has no name. Returns whether the name is there afterwards.

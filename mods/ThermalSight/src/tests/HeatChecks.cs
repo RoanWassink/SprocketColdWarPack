@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 namespace SprocketThermalSight.Tests;
 
@@ -103,7 +103,8 @@ internal static class HeatChecks
         check(HeatProjection.Facing(0, 0, .1f, 0, 0, 500) == 1, "spot at the vehicle centre always counts");
 
         // Sum on the mask: spots only change vehicle pixels.
-        var p = new ThermalProfile { Width = 80, Height = 60, Noise = 0, Blur = 0, GrayLevels = 256, Contrast = 1, Gamma = 1 };
+        // 0.5.4: the catalogue defaults are now the standardised Gen 1 values; this check needs a neutral profile.
+        var p = new ThermalProfile { Width = 80, Height = 60, Noise = 0, Blur = 0, GrayLevels = 256, Contrast = 1, Gamma = 1, BackgroundLevel = .3f, BackgroundDetail = .3f, BackgroundGamma = .6f, VehicleHeat = .8f };
         int n = p.Width * p.Height; var scene = new byte[n * 4]; var mask = new byte[n * 4];
         for (int i = 0; i < n; i++) { scene[i * 4] = scene[i * 4 + 1] = scene[i * 4 + 2] = 90; scene[i * 4 + 3] = 255; }
         for (int y = 20; y < 40; y++) for (int x = 20; x < 60; x++) { int k = (y * p.Width + x) * 4; mask[k] = mask[k + 1] = mask[k + 2] = 255; }
@@ -120,8 +121,9 @@ internal static class HeatChecks
         field.Clear(); check(field.Add.All(v => v == 0) && field.Spots == 0, "field clears");
         field.AddSpot(new HeatSpot { X = 40, Y = 30, Rx = 10, Ry = 10, Amp = 1, Plateau = true });
         check(field.Add[30 * p.Width + 40] == 1 && field.Add[30 * p.Width + 47] == 1 && field.Add[30 * p.Width + 49] < 1, "plateau spot is flat inside 80 %");
+        // 0.5.4: the spot edge is soft (SpotSoftness .75), so the falloff is measured at the radius, not at 50 %.
         field.Clear(); field.AddSpot(new HeatSpot { X = 40, Y = 30, Rx = 10, Ry = 10, Amp = 1 });
-        check(field.Add[30 * p.Width + 40] == 1 && field.Add[30 * p.Width + 45] < 1 && field.Add[30 * p.Width + 50] == 0, "soft spot falls off to zero at its radius");
+        check(field.Add[30 * p.Width + 40] == 1 && field.Add[30 * p.Width + 45] <= 1 && field.Add[30 * p.Width + 50] == 0, "soft spot falls off to zero at its radius");
         field.Clear(); field.AddSpot(new HeatSpot { X = -100, Y = -100, Rx = 5, Ry = 5, Amp = 1 }); check(field.Add.All(v => v == 0), "off-grid spot ignored safely");
         field.AddSpot(new HeatSpot { X = 40, Y = 30, Rx = 1e6f, Ry = 1e6f, Amp = 1 }); check(field.Add[0] > 0, "huge spot is clipped to the grid");
         var legacy = new SensorWorkspace(p).Process(scene, mask, 1);

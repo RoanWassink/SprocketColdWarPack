@@ -1,0 +1,9 @@
+rendered thermal-head
+rendered thermal-head-vertical
+rendered automatic-lrf
+rendered lrf-concept
+rendered optical-rangefinder
+rendered fcs-console
+rendered t72-style-sight
+rendered ir-searchlight
+rendered box-sight

@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net6.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><EnableDefaultCompileItems>false</EnableDefaultCompileItems><UseSharedCompilation>false</UseSharedCompilation><OutputPath>bin/heat-baseline/</OutputPath></PropertyGroup>
+  <ItemGroup><Compile Include="../../src-0.5.1/HeatModel.cs" Link="HeatModel.cs"/><Compile Include="../../src-0.5.1/ThermalProfiles.cs" Link="ThermalProfiles.cs"/></ItemGroup>
+</Project>

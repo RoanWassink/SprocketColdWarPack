@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.4 - 2026-11-18
+
+- Removed the Blueprint.Clone postfix: its native address is shared (ICF) with Object.MemberwiseClone, Array.Clone and Delegate.Clone, so it ran on every object clone. Duplication keeps the flag through the existing Blueprint.Copy postfix.
+
 ## 0.7.3 - 2026-11-01
 
 - Both Technology records (`SprocketStabilization` and `SprocketStabilizationTraverseMotor`) are dated 1948.01.01.

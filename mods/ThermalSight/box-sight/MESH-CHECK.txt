@@ -8,8 +8,31 @@
   "totalTriangles": 5034,
   "sourceZeroAreaTrianglesRetained": 24,
   "positions": 2668,
-  "texcoords": 2060,
+  "texcoords": 15102,
   "normals": 1113,
+  "paintUv": {
+    "plane": {
+      "groups": 780,
+      "triangles": 1511,
+      "ratio_min": 0.9938443010091024,
+      "ratio_max": 1.0000000000000486,
+      "stretch_max": 1.01359157254831
+    },
+    "cylinder": {
+      "groups": 30,
+      "triangles": 259,
+      "ratio_min": 0.9999999999999996,
+      "ratio_max": 1.0242010711118497,
+      "stretch_max": 1.1183760396931102
+    },
+    "cone": {
+      "groups": 41,
+      "triangles": 930,
+      "ratio_min": 0.9999999999999601,
+      "ratio_max": 1.001007807250317,
+      "stretch_max": 1.0618660849833852
+    }
+  },
   "boundsMin": [
     -0.186,
     0.0,
@@ -20,7 +43,7 @@
     0.273,
     0.468883
   ],
-  "sha256": "fcbd892dfd3ce15c418402d8c8f01ddc7201d8b1024b918da03e59e8643818c5",
+  "sha256": "ba3cea697213343679cf9a263ab79aad483ccc83729af508b17a4c122a371c20",
   "sourceSha256": "87d66eee547ddef08c85689d2bbeeebb19580ea65d45e8dc25f84729a41e3163",
-  "converterSha256": "26997d855726106a13a2ee4ec53f1bc613585f27abe2ad026bcd452d829d03e0"
+  "converterSha256": "113c3b4f696bf972ef093f2145e5f36027239b954306cfe8039e43218aecb6eb"
 }

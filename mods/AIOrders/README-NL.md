@@ -1,14 +1,22 @@
-# AI Orders 0.5.2 — niet-modaal F9-snelmenu
+# AI Orders 0.5.3 — zichtbare kaartfeedback
 
 Testbuild voor Sprocket **0.2.56.2 Experimental** en BepInEx 6 IL2CPP; HUD en kaart zijn nog niet in-game bevestigd (zie [TESTPLAN.md](TESTPLAN.md)). Wat er per versie veranderde staat in [CHANGELOG.md](CHANGELOG.md); deze tekst beschrijft de bediening die sinds 0.5.0 geldt.
 
 Vereist: **Sprocket UI Kit ≥0.1.2 <0.2.0** (`sprocket.uikit`) en **Sprocket Keybinds ≥0.1.7 <0.2.0** (`sprocket.keybinds`). Beide mods moeten afzonderlijk in de game staan; hun DLL's worden niet meegeleverd. Optioneel: **Sprocket Expedition** (`sprocket.expedition`, zachte afhankelijkheid); in Expedition-gevechten geeft AI Orders zijn orders aan Expedition door.
 
+## Wat is nieuw in 0.5.3
+
+Een geweigerde rechtsklik (Move, Waypoint of Attack) toont op de klikplek een rood kruis van 10 px met `Outside battle area` of `Select allies first`. Geen selectie heeft voorrang. De melding blijft 2 seconden (`Time.unscaledTime`) of tot de volgende kaartklik staan; de statusregel blijft beschikbaar. Elke weigering wordt altijd gelogd, met actie en bij een buitenklik de afstand tot de werkelijke grens in meters. De veiligheidsmarge van 16 m telt niet mee in die afstand; binnen die marge is de gerapporteerde overschrijding 0 m. Doelen worden niet naar de rand geklemd.
+
+Een geslaagde Move of Waypoint toont 1 seconde een blauwe ring (straal 10 px) naast de route. Kruis en ring houden bij zoomen dezelfde schermmaat. De gevechtsgrens is helder rood, 4 px dik; terrein daarbuiten krijgt 50% van de kleurhelderheid. Inkleuring gebruikt dezelfde inverse transformatie als de ordercontrole, zonder de veiligheidsmarge. Rotatie en schaal tellen dus mee. Een ander WorldBounds-object, midden, maat of transformatie start een nieuwe kaartopbouw in stappen van 16 hoogterijen per frame; inkleuren gebeurt eenmaal per opbouw.
+
+Met DetailedLogging worden de gebiedskandidaten, de gekozen wereldpositie/maat/hoek, kaart- en canvasmaat en zoom gelogd. De M-toetsdiagnose leest alleen de gedeelde Keybinds-status; de Kit opent en sluit het paneel. Als het een frame na een openingsdruk nog dicht is met een speler aanwezig, verschijnt een extra diagnoseregel. Zie `logs/keybind-api-evidence.log` voor de controle van de niet-verbruikende getter.
+
 ## Wat is nieuw in 0.5.0
 
 F9 is geen Kit-paneel meer maar een kleine, niet-modale HUD linksonder (340 px breed, 24 px van links en 150 px van onder, in Kit-referentiepx). Die hoogte houdt hem boven de eigen Sprocket-HUD onderaan het scherm; Kit 0.1.2 heeft alleen hoekankers, dus een rechtsmidden-anker bestaat niet. De HUD krijgt geen cursor, blokkeert geen muis, camera, vuren of rijden en blijft zichtbaar wanneer een ander paneel de cursor vrijgeeft. F9 aan/uit gaat via de bestaande keybind; de HUD sluit zodra de M-kaart opent.
 
-De inhoud is alleen tekst, live via getters: een kop met **AI Orders** en `Selected n/m`, de menuregels met hun cijfer, de submenu's met pagina's en één statusregel met het resultaat van de laatste order. Er is geen lijst van alle bondgenoten meer; in submenu 2 staat `[x]` bij gekozen tanks. Alle labels hebben een outline. Een geslaagde Follow/Halt/Attack/Retreat-order of 0 in het hoofdmenu verbergt de HUD. De M-kaart is ongewijzigd ten opzichte van 0.4.1.
+De inhoud is alleen tekst, live via getters: een kop met **AI Orders** en `Selected n/m`, de menuregels met hun cijfer, de submenu's met pagina's en één statusregel met het resultaat van de laatste order. Er is geen lijst van alle bondgenoten meer; in submenu 2 staat `[x]` bij gekozen tanks. Alle labels hebben een outline. Een geslaagde Follow/Halt/Attack/Retreat-order of 0 in het hoofdmenu verbergt de HUD. De M-kaart toont sinds 0.5.3 ook directe klikfeedback.
 
 ## Bediening
 
@@ -28,7 +36,7 @@ De cijfers worden alleen door AI Orders gelezen zolang de HUD zichtbaar is. Is d
 - Wiel boven het Canvas zoomt naar de cursor; middelste muisknop slepen schuift. Knoppen en lijst buiten het Canvas geven geen kaartorder of kaartzoom.
 - Cijfers 1–9 selecteren tank 1–9; Shift voegt toe. 0 wisselt alles/niets.
 - Jezelf: geel; bondgenoten: blauw met nummer/richting en gele selectiering; zichtbare vijanden: rood met afstand. Laatst geziene vijanden vervagen met een vraagteken gedurende 90 seconden.
-- De topokaart toont terreinreliëf, hoogtelijnen en de rode gevechtsgrens.
+- De topokaart toont terreinreliëf, hoogtelijnen, donkerder terrein buiten het gebied en een helderrode gevechtsgrens van 4 px.
 
 Terwijl de kaart open is, blokkeert **de UI Kit** schieten/scopen en camerabeweging door muisklikken. Rijden met het toetsenbord blijft werken. Esc sluit eerst het paneel zonder pauzemenu; nogmaals Esc kan daarna normaal pauzeren. Bij pauze of scènewissel sluit de Kit de kaart.
 

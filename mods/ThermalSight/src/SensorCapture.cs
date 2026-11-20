@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using UnityEngine;
@@ -33,6 +33,9 @@ internal sealed class SensorCapture : IDisposable
     private uint sequence;
     private readonly object gate = new();
     internal bool HasImage { get; private set; }
+    // 0.5.0: set by Runtime while a cooled detector is still cooling; the next frames are grey noise.
+    internal bool Cooling;
+    internal float Gain => processor.LastGain;
     internal bool Pending { get { lock (gate) return outstanding > 0; } }
     internal bool AwaitingUpload { get { lock (gate) return sceneBytes != null || maskBytes != null || error; } }
 
@@ -53,7 +56,10 @@ internal sealed class SensorCapture : IDisposable
     }
     // Spots belong to the capture issued right after this call (one capture in flight at a time).
     internal void SetHeatSpots(int count, HeatSettings settings)
-    { heatSpotCount = Math.Clamp(count, 0, HeatSpots.Length); heatEnabled = settings.Enabled; if (heat != null) heat.HullContrast = settings.HullContrast; }
+    {
+        heatSpotCount = Math.Clamp(count, 0, HeatSpots.Length); heatEnabled = settings.Enabled;
+        if (heat != null) { heat.HullContrast = settings.HullContrast; heat.HullBaseSignal = settings.HullBaseK / settings.FullScaleKelvin; heat.SpotSoftness = settings.SpotSoftness; }
+    }
     private static RenderTexture Make(int width, int height, string name)
     {
         var rt = new RenderTexture(width, height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear)
@@ -118,13 +124,15 @@ internal sealed class SensorCapture : IDisposable
         if (!IrSearchlight.TryPose(sight, out var origin, out var forward)) return false;
         // Sparse collider depth avoids an unverified depth-readback shader. The grid
         // uses the current camera projection and the lamp's independent world pose.
+        // 0.5.4: the grid carries distance falloff and occlusion only; the cone shape is per pixel.
+        // Cell values: -1 = missed ray (sky, ignored in neighbour interpolation), 0 = occluded or beyond range, > 0 = falloff.
         for (int gy = 0; gy < BeamHeight; gy++) for (int gx = 0; gx < BeamWidth; gx++)
         {
-            int cell = gy * BeamWidth + gx; beamGrid[cell] = 0;
+            int cell = gy * BeamWidth + gx; beamGrid[cell] = -1;
             var ray = camera.ViewportPointToRay(new Vector3((gx + .5f) / BeamWidth, (gy + .5f) / BeamHeight, 0));
             int hits = Physics.RaycastNonAlloc(ray, rayHits, profile.BeamRangeM + Vector3.Distance(ray.origin, origin), Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
             // A saturated result is incomplete; fail dark instead of looking behind a surface.
-            if (hits == rayHits.Length) continue;
+            if (hits == rayHits.Length) { beamGrid[cell] = 0; continue; }
             float nearest = float.PositiveInfinity; Vector3 point = Vector3.zero;
             for (int i = 0; i < hits; i++)
             {
@@ -134,11 +142,10 @@ internal sealed class SensorCapture : IDisposable
             }
             if (!float.IsFinite(nearest)) continue;
             var offset = point - origin;
-            float weight = IrBeamPolicy.Illumination(offset.x, offset.y, offset.z, forward.x, forward.y, forward.z, profile.BeamRangeM, profile.BeamAngleDeg);
-            if (weight <= 0) continue;
+            float distance = offset.magnitude;
+            if (distance >= profile.BeamRangeM) { beamGrid[cell] = 0; continue; }
             // Also test lamp-to-surface occlusion. The player's own hull is deliberately
             // excluded, matching the native rangefinder's self-hit contract.
-            float distance = offset.magnitude;
             hits = Physics.RaycastNonAlloc(new Ray(origin, offset.normalized), rayHits, Math.Max(0, distance - .1f), Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
             bool blocked = hits == rayHits.Length;
             for (int i = 0; i < hits && !blocked; i++)
@@ -146,17 +153,43 @@ internal sealed class SensorCapture : IDisposable
                 var collider = rayHits[i].collider;
                 if (collider != null && (own == null || !collider.transform.IsChildOf(own.transform))) blocked = true;
             }
-            if (!blocked) beamGrid[cell] = weight;
+            beamGrid[cell] = blocked ? 0 : IrBeamPolicy.DistanceFalloff(distance, profile.BeamRangeM);
         }
-        for (int y = 0; y < profile.Height; y++) for (int x = 0; x < profile.Width; x++)
+        // Per pixel: the cone falloff from the pixel's own ray against the lamp axis, times the normalised
+        // bilinear distance/occlusion grid. Basis vectors are read from 3 viewport rays (no per-pixel native calls).
+        Vector3 center = camera.ViewportPointToRay(new Vector3(.5f, .5f, 0)).direction;
+        Vector3 rightRay = camera.ViewportPointToRay(new Vector3(1f, .5f, 0)).direction;
+        Vector3 upRay = camera.ViewportPointToRay(new Vector3(.5f, 1f, 0)).direction;
+        Vector3 rightSpan, upSpan;
+        float dr = Vector3.Dot(rightRay, center), du = Vector3.Dot(upRay, center);
+        if (center.sqrMagnitude > .000001f && dr > .01f && du > .01f)
         {
-            float sx = Math.Clamp((x + .5f) * BeamWidth / profile.Width - .5f, 0, BeamWidth - 1);
-            float sy = Math.Clamp((y + .5f) * BeamHeight / profile.Height - .5f, 0, BeamHeight - 1);
-            int x0 = (int)sx, y0 = (int)sy, x1 = Math.Min(x0 + 1, BeamWidth - 1), y1 = Math.Min(y0 + 1, BeamHeight - 1);
-            float tx = sx - x0, ty = sy - y0;
-            float a = beamGrid[y0 * BeamWidth + x0] * (1 - tx) + beamGrid[y0 * BeamWidth + x1] * tx;
-            float b = beamGrid[y1 * BeamWidth + x0] * (1 - tx) + beamGrid[y1 * BeamWidth + x1] * tx;
-            illumination[y * profile.Width + x] = a * (1 - ty) + b * ty;
+            rightSpan = rightRay / dr - center;
+            upSpan = upRay / du - center;
+        }
+        else
+        {
+            float aspect = camera.aspect > .01f ? camera.aspect : (profile.Height > 0 ? (float)profile.Width / profile.Height : 1);
+            float tanHalf = MathF.Tan(camera.fieldOfView * MathF.PI / 360);
+            center = camera.transform.forward;
+            rightSpan = camera.transform.right * (tanHalf * aspect);
+            upSpan = camera.transform.up * tanHalf;
+        }
+        for (int y = 0; y < profile.Height; y++)
+        {
+            float vy = ((y + .5f) / profile.Height - .5f) * 2;
+            float sy = (y + .5f) * BeamHeight / profile.Height - .5f;
+            float rdx = center.x + upSpan.x * vy, rdy = center.y + upSpan.y * vy, rdz = center.z + upSpan.z * vy;
+            for (int x = 0; x < profile.Width; x++)
+            {
+                float sx = (x + .5f) * BeamWidth / profile.Width - .5f;
+                float grid = IrBeamPolicy.SampleGrid(beamGrid, BeamWidth, BeamHeight, sx, sy);
+                if (grid <= 0) continue;
+                float vx = ((x + .5f) / profile.Width - .5f) * 2;
+                float cone = IrBeamPolicy.PixelWeight(rdx + rightSpan.x * vx, rdy + rightSpan.y * vx, rdz + rightSpan.z * vx,
+                    forward.x, forward.y, forward.z, profile.BeamAngleDeg);
+                illumination[y * profile.Width + x] = IrBeamPolicy.Combine(cone, grid);
+            }
         }
         return true;
     }
@@ -196,7 +229,13 @@ internal sealed class SensorCapture : IDisposable
             for (int i = 0; i < heatSpotCount; i++) heat.AddSpot(HeatSpots[i]);
             field = heat;
         }
-        var bytes = processor.Process(a, b, ++sequence, illumination, field);
+        // 0.5.4: the white-hot/black-hot switch of this sight (thermal profiles only).
+        processor.BlackHot = Runtime.ActiveBlackHot(profile);
+        // 0.5.4: the HUD shows the polarity of the frame that is actually on the tube.
+        Runtime.ShownPalette = profile.EffectivePalette(processor.BlackHot);
+        var bytes = processor.Process(a, b, ++sequence, illumination, field, Cooling);
+        // 0.4.3: the mask of this capture tells whether the projected engine spots lie on vehicle pixels.
+        if (field != null && Runtime.DetailedLogging) HeatTracker.DiagnoseMask(b, HeatSpots, heatSpotCount, profile.Width, profile.Height);
         bytes.AsSpan().CopyTo(uploadBytes.AsSpan());
         upload.LoadRawTextureData(uploadBytes);
         upload.Apply(false, false);

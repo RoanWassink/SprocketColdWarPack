@@ -1,13 +1,17 @@
 # Read-only Cecil export of the game's types and native addresses (input of tests\icf_audit.py).
 # No game assembly is loaded into the CLR or native runtime; the game folder is only read.
-#   powershell -NoProfile -File Export-IcfMetadata.ps1 -Output <path of icf-metadata.json> [-GameDir <game folder>]
+#   powershell -NoProfile -File Export-IcfMetadata.ps1 -Output <icf-metadata.json> -Cpp2ILDir <dummy DLL folder> [-GameDir <game folder>]
 param(
     [string]$GameDir = 'C:\Program Files (x86)\Steam\steamapps\common\Sprocket',
+    [Parameter(Mandatory = $true)][string]$Cpp2ILDir,
     [Parameter(Mandatory = $true)][string]$Output
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -Path (Join-Path $GameDir 'BepInEx\core\Mono.Cecil.dll')
-$dummyDir = Join-Path $GameDir 'MLLoader\MelonLoader\Dependencies\Il2CppAssemblyGenerator\Cpp2IL\cpp2il_out'
+$dummyDir = (Resolve-Path -LiteralPath $Cpp2ILDir).Path
+$dummyFiles = @(Get-ChildItem -LiteralPath $dummyDir -Filter '*.dll' | Sort-Object Name)
+if (-not $dummyFiles.Count) { throw "No Cpp2IL DLLs in $dummyDir" }
+$assemblyEvidence = [Collections.Generic.List[object]]::new()
 $native = [Collections.Generic.List[object]]::new()
 $dummyTypes = [Collections.Generic.List[object]]::new()
 $interopTypes = [Collections.Generic.List[object]]::new()
@@ -44,16 +48,23 @@ function Export-Types($types, $rows, [bool]$dummy) {
         if ($t.HasNestedTypes) { Export-Types $t.NestedTypes $rows $dummy }
     }
 }
-foreach ($file in Get-ChildItem -LiteralPath $dummyDir -Filter '*.dll' | Sort-Object Name) {
+foreach ($file in $dummyFiles) {
+    $before = $native.Count
     $asm = [Mono.Cecil.AssemblyDefinition]::ReadAssembly($file.FullName)
     try { Export-Types $asm.MainModule.Types $dummyTypes $true } finally { $asm.Dispose() }
+    $assemblyEvidence.Add([pscustomobject]@{
+        file=$file.Name; sha256=(Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash
+        nativeRecords=$native.Count - $before
+    })
 }
+if (-not $native.Count) { throw 'No native AddressAttributes; regenerate Cpp2IL with attributeinjector' }
 foreach ($file in Get-ChildItem -LiteralPath (Join-Path $GameDir 'BepInEx\interop') -Filter 'Sprocket*.dll' | Sort-Object Name) {
     $asm = [Mono.Cecil.AssemblyDefinition]::ReadAssembly($file.FullName)
     try { Export-Types $asm.MainModule.Types $interopTypes $false } finally { $asm.Dispose() }
 }
 [pscustomobject]@{
     gameSha256=(Get-FileHash -LiteralPath (Join-Path $GameDir 'GameAssembly.dll') -Algorithm SHA256).Hash
+    cpp2ILDir=$dummyDir; assemblies=@($assemblyEvidence.ToArray())
     dummyTypes=@($dummyTypes.ToArray()); interopTypes=@($interopTypes.ToArray()); native=@($native.ToArray())
 } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $Output -Encoding utf8
 Write-Output "Cecil metadata: $($dummyTypes.Count) native types; $($interopTypes.Count) interop types; $($native.Count) cross-assembly addresses -> $Output"

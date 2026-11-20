@@ -237,11 +237,14 @@ internal static class Draw
         if (string.IsNullOrEmpty(text)) return t.fontSize * 1.3f;
         try { return MathF.Ceiling(t.GetPreferredValues(text, width, 0).y); } catch { return t.fontSize * 1.4f * (1 + text.Length * t.fontSize * .55f / MathF.Max(1, width)); }
     }
+    private sealed class TextCache { internal string? Value; }
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<TextMeshProUGUI, TextCache> textCache = new();
     internal static void SetText(TextMeshProUGUI? t, string? text)
     {
         if (t == null) return;
         text ??= "";
-        if (t.text != text) t.text = text;
+        var cached = textCache.GetValue(t, static _ => new TextCache());
+        if (cached.Value != text) { t.text = text; cached.Value = text; }
     }
     internal static void SetColor(Graphic? g, Rgba c)
     {

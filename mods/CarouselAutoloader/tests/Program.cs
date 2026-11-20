@@ -1,6 +1,14 @@
 using SprocketCarouselAutoloader;
 int count = 0;
 void Check(bool condition, string label) { count++; if (!condition) throw new Exception(label); }
+// Focused HUD runner: does not execute unrelated model/refill suites.
+if (args.Contains("--hud"))
+{
+    HudLayoutTests.Run(Check);
+    BeltTests.Hud(Check);
+    Console.WriteLine($"HUD ALL PASS: {count} assertions.");
+    return;
+}
 // Per-mechanism dates from ERA-MAP. Day-before, on-date and sentinel are the
 // same contract the runtime/UI uses; saved state is never deleted by the gate.
 Check(!CarouselDatePolicy.Allows(new DateTime(1951, 12, 31), CarouselDatePolicy.BustleDate), "Bustle unavailable one day early");
@@ -545,4 +553,8 @@ SafetyTests.Run(Check);
 Console.WriteLine($"0.2.28 safety: restore/time-out, switches, Unity version check, early exit and guards PASS: {count} total assertions.");
 CarouselModelTests.Run(Check);
 Console.WriteLine($"0.2.34 carousel models, lift and ring: OBJ data, style, slot wedges, basket bounds or Simple, nose/charge, visible rounds, Simple = 0.2.28, triangle budget, lift direction/ring turn/place/height, ring turns per shot (f - 1, smooth), version constant, ring parts in Play, lift target cache, lift height at the T-80BVM depth window PASS: {count} total assertions.");
+BeltTests.Run(Check);
+BeltVisualTests.Run(Check);
+RefillRegressionTests.Run(Check);
+MixedAutoloaderTests.Run(Check);
 Console.WriteLine($"ALL PASS: {count} total assertions.");

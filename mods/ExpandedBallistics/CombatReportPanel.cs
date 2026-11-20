@@ -23,6 +23,7 @@ internal static class CombatReportPanel
         try{var m=SprocketExpandedBallistics.Materials.MaterialDatabase.Materials.FirstOrDefault(x=>x.Id==id);return m==null?null:SprocketExpandedBallistics.Materials.MaterialDatabase.MenuLabel(m);}
         catch(Exception){return null;}
     }
+    internal static bool IsOpen=>panel?.IsOpen==true;
     private static Panel? panel;
     private static IReadOnlyList<CombatImpactView> impacts=Array.Empty<CombatImpactView>();
     private static (int Count,int Last) seen=(-1,-1);
@@ -56,6 +57,8 @@ internal static class CombatReportPanel
         if(panel!=null)return;
         var p=UiKit.CreatePanel(BallisticsKeybindMetadata.Owner,"combat-report",CombatReportView.PanelTitle,CombatReportView.PanelSubtitle,1400,820);
         panel=p;
+        p.AllowedContexts=UiContexts.All;
+        p.StayOpenWhilePaused=true;
         var c=p.Columns(0)[0];
         var head=c.Section(CombatReportView.SectionTitle,()=>countText);
         head.Label(CombatReportView.HelpText,TextStyle.Small).Wrap();
@@ -77,7 +80,7 @@ internal static class CombatReportPanel
         var b=impact.Block;var key=impact.Key;
         var card=s.Card().Stripe(()=>b.Colour).OnClick(()=>{if(!expanded.Add(key))expanded.Remove(key);}).MinHeight(52);
         var st=card.Stack(4);
-        if(impact.Forensic is {} forensic)st.Row(8).Button("Forensic",()=>CombatForensicPanel.Open(forensic),ButtonStyle.Quiet).Tooltip(CombatReportView.ForensicTooltip);
+        if(impact.Forensic is {} forensic)st.Row(8).Button("Forensic",()=>CombatForensicPanel.Open(forensic,Current()),ButtonStyle.Quiet).Tooltip(CombatReportView.ForensicTooltip);
         // 0.22.7, one header line: #11 OUT · ammunition → target · 530 → 406 mm · [PENETRATED]  ... show layers.
         // The result and TANK DESTROYED chips have a fixed width that holds their longest word, so nothing is cut off.
         var head=st.Row(8);

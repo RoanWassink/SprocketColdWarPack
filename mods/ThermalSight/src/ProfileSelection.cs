@@ -17,12 +17,38 @@ internal static class ProfileStateHooks
     internal static string? Selection(VehicleComponent component) => Choices.TryGetValue(component.Pointer, out var choice) ? choice.Id : null;
     internal static void Select(VehicleComponent component, string id)
     {
+        // 0.5.4: an old saved id (or a legacy part id) selects its modern replacement and keeps alias polarity.
+        bool aliasBlackHot = Runtime.AliasBlackHot(id);
+        id = Runtime.MapProfile(id) ?? id;
         var profile = Runtime.Profiles.FirstOrDefault(p => p.ComponentId == id);
         if (profile == null || !ThermalEraAccess.Allowed(component, profile)) return;
         Choices[component.Pointer] = new(component, id);
+        if (aliasBlackHot && !PolarityState.Seen(component.Pointer.ToInt64())) Runtime.SetBlackHot(component.Pointer.ToInt64(), true);
         component.RequestRebuild();
         Runtime.Deactivate();
         Plugin.Instance.Log.LogInfo($"[Thermal] Sight {component.VUID.Value} selected {id}.");
+    }
+    // Explicit choice for the blueprint object state (sprocketThermalProfilesV1); null = part default.
+    internal static string? SavedChoice(VehicleComponent component) =>
+        Runtime.IsThermal(component) && Selection(component) is { } id && ThermalProfileData.ValidId(id) ? id : null;
+    // 0.5.4: a saved id from the old list is mapped on read, so the save format itself stays unchanged.
+    internal static string? SavedId(VehicleComponent component) =>
+        SavedChoice(component) is { } id ? Runtime.MapProfile(id) ?? id : null;
+    // Batch restore after InstantiateStructured: same store as Select, without the era gate or view reset
+    // (a saved choice stays authoritative, like the legacy LoadData path). null clears to the part default.
+    internal static void Restore(VehicleComponent component, string? id)
+    {
+        if (!Runtime.IsThermal(component)) return;
+        Runtime.FindProfile(component, out var before);
+        if (id == null) Choices.Remove(component.Pointer);
+        else
+        {
+            if (Runtime.AliasBlackHot(id) && !PolarityState.Seen(component.Pointer.ToInt64())) Runtime.SetBlackHot(component.Pointer.ToInt64(), true);
+            Choices[component.Pointer] = new(component, Runtime.MapProfile(id) ?? id);
+        }
+        Runtime.FindProfile(component, out var after);
+        // Electronics mass/cost follow the profile; rebuild only when the effective profile changed.
+        if (before?.ComponentId != after?.ComponentId && !component.VehicleObject.Released) component.RequestRebuild();
     }
     [HarmonyPostfix, HarmonyPatch(typeof(VehicleComponent), nameof(VehicleComponent.SaveData))]
     private static void Save(VehicleComponent __instance, SerializationInfo __0)
@@ -30,7 +56,7 @@ internal static class ProfileStateHooks
         if (!Runtime.IsThermal(__instance)) return;
         try
         {
-            var id = Selection(__instance);
+            var id = SavedId(__instance);
             if (id == null && Runtime.FindProfile(__instance, out var profile)) id = profile.ComponentId;
             if (id != null) __0.AddValue(Key, id);
         }
@@ -50,7 +76,11 @@ internal static class ProfileStateHooks
             if (key != null)
             {
                 var id = __0.GetString(key);
-                if (!string.IsNullOrWhiteSpace(id)) Choices[__instance.Pointer] = new(__instance, id);
+                if (!string.IsNullOrWhiteSpace(id))
+                {
+                    if (Runtime.AliasBlackHot(id) && !PolarityState.Seen(__instance.Pointer.ToInt64())) Runtime.SetBlackHot(__instance.Pointer.ToInt64(), true);
+                    Choices[__instance.Pointer] = new(__instance, Runtime.MapProfile(id) ?? id);
+                }
             }
         }
         catch (Exception ex) { Runtime.Warn("Load profile: " + ex); }
@@ -98,9 +128,9 @@ internal static class ProfileInspector
                         catch (Exception ex) { Runtime.Warn("Select profile: " + ex); }
                     }))!, "Saved separately on this sight. Profiles come from thermal-models.json.");
                 ui.InfoField($"works from {ThermalEraAccess.WorksFrom(sight, current)}", 2);
-                ui.InfoField($"{current.Width} x {current.Height} | {current.RefreshHz:0.#} Hz | {current.Palette}", 2);
+                ui.InfoField($"{current.Width} x {current.Height} | {current.RefreshHz:0.#} Hz | {current.EffectivePalette(Runtime.EffectiveBlackHot(sight.Pointer.ToInt64(), current, sight.ComponentID))}", 2);
                 ui.InfoField($"Electronics: +{current.ExtraMassKg:0.#} kg | +{current.ExtraAssemblyCost:0.#} assembly cost", 2);
-                ui.InfoField("Controls: Settings / keybinds - Thermal / Toggle", 2);
+                ui.InfoField("Controls: Settings / keybinds - Thermal / Toggle, Thermal / Polarity", 2);
             }
             finally { __0.EndAllDropdowns(); }
         }

@@ -14,13 +14,15 @@ namespace SprocketStabilization;
 /// route other mods on Sprocket 0.2.56.2 use successfully.
 ///
 /// This class is a separate Harmony owner from the boost, editor and legacy
-/// component-state owners: in 0.7.0 a single bad postfix signature (Clone
-/// returning Il2CppSystem.Object while the postfix declared Blueprint) made
-/// Harmony's PatchAll fail and silently disabled every persistence hook. The
-/// live log showed:
-///   Failed to patch virtual Il2CppSystem.Object Sprocket.Blueprints.Blueprint::Clone():
-///   Cannot assign method return type Il2CppSystem.Object to __result type Sprocket.Blueprints.Blueprint
-/// so the Clone postfix now takes Il2CppSystem.Object and casts it.
+/// component-state owners: in 0.7.0 a single bad postfix signature made
+/// Harmony's PatchAll fail and silently disabled every persistence hook, so
+/// each owner patches independently.
+///
+/// The Blueprint.Clone postfix is gone as of 0.7.4: its native address
+/// (RVA 0x1A4F000) is shared through ICF with Object.MemberwiseClone,
+/// Array.Clone, Delegate.Clone and nine other methods, so the postfix ran on
+/// every object clone in the game. Duplication keeps the flag through the
+/// Blueprint.Copy postfix below, which sits on a unique address.
 /// </summary>
 [HarmonyPatch]
 internal static class StabilizerBlueprintPersistence
@@ -48,20 +50,12 @@ internal static class StabilizerBlueprintPersistence
         => LoadBlueprint(__instance, __0);
 
     // Structured duplication/instantiation must carry the flag to the new
-    // blueprint identity. Copy is a static two-argument native method.
+    // blueprint identity. Copy is a static two-argument native method on a
+    // unique address; it is the only duplication hook since 0.7.4.
     [HarmonyPostfix]
     [HarmonyPatch(typeof(Blueprint), nameof(Blueprint.Copy))]
     private static void BlueprintCopyPostfix(Blueprint __0, Blueprint __1)
         => StabilizerState.CopyBlueprintFlag(__0, __1);
-
-    // Clone is virtual and its interop signature returns Il2CppSystem.Object.
-    [HarmonyPostfix]
-    [HarmonyPatch(typeof(Blueprint), nameof(Blueprint.Clone))]
-    private static void BlueprintClonePostfix(Blueprint __instance, Il2CppSystem.Object __result)
-    {
-        try { StabilizerState.CopyBlueprintFlag(__instance, __result?.TryCast<Blueprint>()); }
-        catch (Exception ex) { Warn("blueprint clone", ex); }
-    }
 
     private static void SaveBlueprint(Il2CppObjectBase? blueprint, IBlueprintSerializer? serializer)
     {

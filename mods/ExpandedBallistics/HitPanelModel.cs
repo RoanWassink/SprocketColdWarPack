@@ -56,6 +56,7 @@ internal static class HitResultRule
 internal static class HitBlockBuilder
 {
     internal const string Penetrated="PENETRATED",Stopped="STOPPED",StoppedSpall="STOPPED · spall damage",Ricochet="RICOCHET",NoArmour="NO ARMOUR",Unknown="?";
+    internal const string StoppedBlast="STOPPED · blast damage"; // 0.22.86 HE
     internal const string Grey="#A5ADB5";
     internal const int AmmoColumns=30,DetailColumns=120,LineColumns=100,MaxBreakdown=16;
     private static string N(double? v)=>v is {} x&&double.IsFinite(x)?Math.Round(x).ToString("0",CultureInfo.InvariantCulture):"?";
@@ -83,7 +84,9 @@ internal static class HitBlockBuilder
         if((result==Stopped||shown==StoppedSpall)&&CombatForensics.EnvelopePerforated(shot))shown=Penetrated;
         var values=result==Ricochet||result==NoArmour?$"{N(before)} mm":result==Unknown?$"{N(before)} → ? mm":$"{N(before)} → {N(after)} mm";
         var colour=shown is Unknown or NoArmour?Grey:shown==StoppedSpall?CombatHitSummaryModel.Category(shot.Events).Colour:shown!=result?HitResultRule.PenetratedColour(shot.Events):CombatHitSummaryModel.Category(shot.Events).Colour;
+        if(shown==StoppedSpall&&HeReportText.OutsideBlast(shot.Events))shown=StoppedBlast; // 0.22.86 HE
         var tokens=Tokens(shot.Events,main);
+        if(HeReportText.Token(shot.Events) is {} heToken)tokens.Add(heToken); // 0.22.86 HE
         var end=EndToken(result,main.LastOrDefault(v=>!CombatZeroSpan.Is(v))??last); // 0.22.41: never name a hidden 0 mm layer
         if(end!=null)tokens.Add(end);
         if(tokens.Count==0)tokens.Add(result==Unknown?"outcome not measured":"no measured layer loss");
@@ -289,3 +292,35 @@ internal sealed class HitPanelBuffer
     internal string PinnedText{get{Texts();return texts.Pinned;}}
     internal string LifetimeText{get{Texts();return texts.Lifetime;}}
 }
+// 0.22.86 HE begin
+/// <summary>
+/// 0.22.86: the hit panel's short form of the HE lines (the report shows them in full in the Reaction column of the layer they belong to). A shot without an
+/// HE line is never touched.
+/// </summary>
+internal static class HeReportText
+{
+    private static readonly System.Text.RegularExpressions.Regex Perforated=new(@"^HE perforated (\d+) mm .*; (\d+) fragments$",System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+    private static readonly System.Text.RegularExpressions.Regex Shock=new(@"shock of ([\d.]+) % of the blast$",System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+    /// <summary>True when the HE round detonated outside the armour of this shot (no perforation).</summary>
+    internal static bool OutsideBlast(IReadOnlyList<CombatReportEvent> events)
+    {
+        foreach(var e in events)if(e?.Kind=="materialNote"&&HeSpaced.Is(e.Text))return true; // 0.22.89: HE in the gap of spaced armour is a blast outside the armour too
+        foreach(var e in events)if(e?.Kind=="materialNote"&&e.Text.StartsWith(HeRules.OutsidePrefix,StringComparison.Ordinal))return true;
+        return false;
+    }
+    /// <summary>"HE perforated 15 mm, 32 fragments" or "HE outside the armour, shock 9.2 %"; null for a shot without an HE line.</summary>
+    internal static string? Token(IReadOnlyList<CombatReportEvent> events)
+    {
+        foreach(var e in events)
+        {
+            if(e?.Kind!="materialNote")continue;
+            if(HeSpaced.Is(e.Text))return HeSpaced.Token(e.Text); // 0.22.89
+            if(e.Text.StartsWith(HeRules.PerforationPrefix,StringComparison.Ordinal))
+            {var m=Perforated.Match(e.Text);return m.Success?$"HE perforated {m.Groups[1].Value} mm, {m.Groups[2].Value} fragments":"HE perforated the armour";}
+            if(e.Text.StartsWith(HeRules.OutsidePrefix,StringComparison.Ordinal))
+            {var m=Shock.Match(e.Text);return m.Success?$"HE outside the armour, shock {m.Groups[1].Value} %":"HE outside the armour";}
+        }
+        return null;
+    }
+}
+// 0.22.86 HE end

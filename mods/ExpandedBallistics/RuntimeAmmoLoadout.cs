@@ -59,6 +59,7 @@ internal static partial class RuntimeAmmoLoadout
     private static readonly Dictionary<(IntPtr Vehicle,int Vuid,string Profile),Registration> Registrations=new();
     private static readonly HashSet<string> Reported=new();
     private static readonly HashSet<(IntPtr Vehicle,int Vuid)> Waited=new();
+    private static readonly Dictionary<(IntPtr Vehicle,int Vuid),(string Text,float Until)> SwitchFeedback=new();
     // Every battle cannon seen by its native load task (with or without a mix): the HUD picks the active one.
     private static readonly Dictionary<(IntPtr Vehicle,int Vuid),Cannon> Live=new();
     private static CannonEditor? pendingInspector;
@@ -116,6 +117,8 @@ internal static partial class RuntimeAmmoLoadout
         if(!Reported.Add(text)||Reported.Count>64)return;
         Plugin.ModLog.LogWarning("[Ammo loadout] "+text);
     }
+    internal static void PrepareForExternalLoader(LoadTask task)=>Guard("External loader request",()=>Stock(task));
+    private static void SetFeedback((IntPtr Vehicle,int Vuid) key,string text){SwitchFeedback[key]=(text,Time.unscaledTime+2.5f);AmmoLoadoutHud.RefreshNow();}
     private static void Detail(string text)
     {
         if(diagnostics?.Value==true)Plugin.ModLog.LogInfo("[Ammo loadout] "+text);
@@ -176,8 +179,9 @@ internal static partial class RuntimeAmmoLoadout
         try
         {
             if(watch.Inspector.Component?.Pointer!=watch.Cannon.Pointer){capacityWatch=null;return;}
-            var ready=CarouselCapacity(watch.Cannon);
-            var capacity=ready+ScanRacks(watch.Cannon,false).Sum(r=>ConservativeRackCapacity(watch.Cannon,r.Rack));
+            var settledRacks=ScanRacks(watch.Cannon,false);
+            var ready=CarouselCapacity(watch.Cannon)+settledRacks.Where(r=>IsReadyMagazine(watch.Cannon,r.Rack)).Sum(r=>ConservativeRackCapacity(watch.Cannon,r.Rack));
+            var capacity=CarouselCapacity(watch.Cannon)+settledRacks.Sum(r=>ConservativeRackCapacity(watch.Cannon,r.Rack));
             if(capacity==watch.Capacity&&ready==watch.Ready)return;
             if(capacityTraceCount++<16)Plugin.ModLog.LogInfo($"[Ammo capacity trace] cannon={watch.Cannon.VUID.Value} settled={capacity} ready={ready} ordinary={capacity-ready} previous={watch.Capacity}; retry={watch.Attempt}/3.");
             watch.Capacity=capacity;watch.Ready=ready;
@@ -250,19 +254,32 @@ internal static partial class RuntimeAmmoLoadout
             if(reconciled.Selection!=null&&reconciled.Selection!=RuntimeShellSelection.StoredSelection(blueprint))
             {RuntimeShellSelection.SetDesignSelection(blueprint,reconciled.Selection);blueprint.MarkModified();Detail("native selection follows the mix: "+reconciled.Selection);}
             var racks=ScanRacks(cannon,false);
-            var capacities=new List<int>();var readyCapacity=CarouselCapacity(cannon);
-            if(readyCapacity>0)capacities.Add(readyCapacity);
-            capacities.AddRange(racks.Select(r=>ConservativeRackCapacity(cannon,r.Rack)));
+            var capacities=new List<int>();
+            var carouselCapacity=CarouselCapacity(cannon);
+            if(carouselCapacity>0)capacities.Add(carouselCapacity);
+            var readyRackCapacity=0;
+            foreach(var r in racks)
+            {
+                var rackCap=ConservativeRackCapacity(cannon,r.Rack);
+                capacities.Add(rackCap);
+                if(IsReadyMagazine(cannon,r.Rack))readyRackCapacity+=rackCap;
+            }
+            var readyCapacity=carouselCapacity+readyRackCapacity;
             var capacity=capacities.Sum();
             var total=AmmoLoadoutRules.Total(entries);
             WatchCapacity(__instance,cannon,capacity,readyCapacity,entries);
             var available=RuntimeShellEra.Selectable(RuntimeShellSelection.Profiles,cannon.Vehicle,entries.Select(e=>e.ProfileId),cannon);
             var starting=AmmoInspectorPolicy.StartingProfile(entries,RuntimeShellSelection.StoredSelection(blueprint));
 
-            // War Thunder-style summary: carried / capacity, then one row per type.
+            // War Thunder-style summary: carried / capacity, then load order, then one row per type.
             ui.InfoField(total==0&&entries.Count==0
                 ? "Ammunition: native racks, selected shell only. Add shell types below for a carried mix."
                 : $"Ammunition {total} / {capacity}   ({readyCapacity} ready, {Math.Max(0,capacity-readyCapacity)} reserve)",2);
+            if(entries.Count>0&&total>0)
+            {
+                var orderLine=AmmoInspectorPolicy.FormatLoadOrder(entries,starting,Label);
+                if(orderLine.Length>0)ui.InfoField(orderLine,2);
+            }
             if(!LoaderSupportsMix(out var loaderReason))ui.InfoField(loaderReason!,3);
             if(racks.Count==0&&readyCapacity==0)ui.InfoField("No ammunition rack on this vehicle matches this cannon's shell size.",2);
             else if(capacity==0&&total>0)ui.InfoField("The longest carried round does not fit these racks. Set it to 0 or remove it, or enlarge the racks.",2);
@@ -297,11 +314,12 @@ internal static partial class RuntimeAmmoLoadout
                 // this type's envelope included) minus the other types. Dragging to
                 // the end fills exactly the free room; the total can never exceed it.
                 var fits=ShellGeometryApi.GetLoaderGeometryForProfile(cannon,id,out var p,out var c,out var d)==1;
-                var own=fits?readyCapacity+racks.Sum(r=>RackCapacity(r.Rack,p,c,d)):0;
+                var ownReady=fits?CarouselCapacityForGeometry(cannon,p,c,d):0;
+                var own=fits?ownReady+racks.Sum(r=>RackCapacity(cannon,r.Rack,p,c,d)):0;
                 var others=total-entries[i].Count;
                 var room=capacity>0?Math.Min(own,capacity):own;
                 var max=Math.Max(0,room-others);
-                ui.Slider($"{i+1}. {Label(id)}{(id==starting?"  (loads first)":"")}",Math.Clamp(entries[i].Count,0,max),0,Math.Max(max,1),FloatSlider(value=>Guard("Set carried rounds",()=>
+                ui.Slider($"{i+1}. {(id==starting?"[1st] ":"")}{Label(id)}",Math.Clamp(entries[i].Count,0,max),0,Math.Max(max,1),FloatSlider(value=>Guard("Set carried rounds",()=>
                 {
                     var current=Stored(blueprint);
                     var index=AmmoLoadoutRules.IndexOf(current,id);
@@ -320,8 +338,11 @@ internal static partial class RuntimeAmmoLoadout
                     ui.InfoField(fits?$"Does not fit these racks ({p:0}+{c:0} mm long, {d:0} mm wide)."
                         :"Shell geometry unavailable for this cannon; cannot be stocked.",2);
                 // Native tab rows need a valid selected tab: tab 0 is this row's own
-                // label (always selected, no action); the actions follow it.
-                var actions=new Il2CppStringArray(new[]{$"#{i+1}",id==starting?"Loads first":"Load first","Fill","Remove"});
+                // badge (always selected, no action); the actions follow it.
+                var multi=entries.Count>1;
+                var actions=new Il2CppStringArray(multi
+                    ?new[]{id==starting?$"#{i+1} 1st":$"#{i+1}","First","\u2191","\u2193","Fill","Remove"}
+                    :new[]{"#1 1st","Fill","Remove"});
                 var ownCapacity=own;
                 try{ui.TabGroup(DelegateSupport.ConvertDelegate<Il2CppSystem.Action<int>>((Action<int>)(action=>Guard("Ammunition row action",()=>
                 {
@@ -329,17 +350,50 @@ internal static partial class RuntimeAmmoLoadout
                     var index=AmmoLoadoutRules.IndexOf(current,id);
                     if(index<0)return;
                     var next=current.ToList();
+                    if(!multi)
+                    {
+                        switch(action)
+                        {
+                            case 1:
+                                var singleRoom=capacity>0?Math.Min(capacity,ownCapacity):ownCapacity;
+                                var singleFree=Math.Max(0,singleRoom-AmmoLoadoutRules.Total(current));
+                                next[index]=current[index] with {Count=current[index].Count+singleFree};
+                                Loadouts[blueprint.Pointer]=next;Message=singleFree==0?"No free rack space.":null;break;
+                            case 2:
+                                next.RemoveAt(index);Loadouts[blueprint.Pointer]=next;Message=null;break;
+                        }
+                        Rebuild();
+                        return;
+                    }
                     switch(action)
                     {
                         case 1:
                             if(current[index].Count<=0){Message=$"{Label(id)} has no rounds; give it rounds before loading it first.";break;}
+                            next=AmmoInspectorPolicy.MoveFirst(current,index).ToList();
+                            Loadouts[blueprint.Pointer]=next;
                             RuntimeShellSelection.SetDesignSelection(blueprint,id);cannon.RequestRebuild();Message=null;break;
                         case 2:
-                            var fillRoom=Math.Min(capacity,ownCapacity);
+                            if(index==0){Message=$"{Label(id)} is already #1 in load order.";break;}
+                            next=AmmoInspectorPolicy.Move(current,index,-1).ToList();
+                            Loadouts[blueprint.Pointer]=next;
+                            var upFirst=next.FirstOrDefault(e=>e.Count>0)?.ProfileId;
+                            var prevUpFirst=current.FirstOrDefault(e=>e.Count>0)?.ProfileId;
+                            if(upFirst!=null&&(upFirst!=prevUpFirst||index==1)){RuntimeShellSelection.SetDesignSelection(blueprint,upFirst);cannon.RequestRebuild();}
+                            Message=null;break;
+                        case 3:
+                            if(index>=current.Count-1){Message=$"{Label(id)} is already last in load order.";break;}
+                            next=AmmoInspectorPolicy.Move(current,index,1).ToList();
+                            Loadouts[blueprint.Pointer]=next;
+                            var downFirst=next.FirstOrDefault(e=>e.Count>0)?.ProfileId;
+                            var prevDownFirst=current.FirstOrDefault(e=>e.Count>0)?.ProfileId;
+                            if(downFirst!=null&&(downFirst!=prevDownFirst||index==0)){RuntimeShellSelection.SetDesignSelection(blueprint,downFirst);cannon.RequestRebuild();}
+                            Message=null;break;
+                        case 4:
+                            var fillRoom=capacity>0?Math.Min(capacity,ownCapacity):ownCapacity;
                             var free=Math.Max(0,fillRoom-AmmoLoadoutRules.Total(current));
                             next[index]=current[index] with {Count=current[index].Count+free};
                             Loadouts[blueprint.Pointer]=next;Message=free==0?"No free rack space: lower another type first.":null;break;
-                        case 3:
+                        case 5:
                             next.RemoveAt(index);Loadouts[blueprint.Pointer]=next;Message=null;break;
                     }
                     Rebuild();
@@ -380,10 +434,14 @@ internal static partial class RuntimeAmmoLoadout
     }
     // Last action result shown in the panel (e.g. why a type cannot be filled).
     private static string? Message;
-    private static int RackCapacity(AmmoRack rack,double projectile,double charge,double diameter)
+    private static int RackCapacity(Cannon cannon,AmmoRack rack,double projectile,double charge,double diameter)
     {
+        if(TryLoaderRackCapacity(cannon,rack,projectile,charge,diameter,out var loaderCap))
+            return Math.Clamp(loaderCap,0,ushort.MaxValue);
         var b=rack.Blueprint;if(b==null||projectile+charge>ushort.MaxValue||diameter>ushort.MaxValue||diameter<=0)return 0;
-        return Math.Clamp(AmmoRackUtils.CalculateCapacity(b.Width,b.Height,b.Length,(ushort)Math.Ceiling(diameter),(ushort)Math.Ceiling(projectile+charge)),0,ushort.MaxValue);
+        var s=rack.spacing;var a=rack.minPadding;var p=rack.maxPadding;
+        return AmmoRackGrid.Capacity(b.Width,b.Height,b.Length,(int)Math.Ceiling(diameter),(int)Math.Ceiling(projectile+charge),
+            s.x,s.y,s.z,a.x,a.y,a.z,p.x,p.y,p.z);
     }
 
     // -------------------------------------------------------------- rack stocking
@@ -394,7 +452,9 @@ internal static partial class RuntimeAmmoLoadout
         var vehicle=cannon.Vehicle;
         var items=vehicle?.ObjectReader?.Items;
         if(items==null)return found;
-        var sizeId=cannon.ShellSizeBlueprintID;
+        var shell=cannon.ShellBlueprint; // 0.22.90 replaced: part I, the projectile size of the cannon's shell, as the load request
+        if(shell==null)return found; // 0.22.90: no shell design, no projectile size to match (an empty list, as when no rack matches)
+        var sizeId=ProjectileSizeID.FromPropellantLength(shell.Diameter,shell.PropellantLength).Value; // 0.22.90
         for(var i=0;i<Count(items);i++)
         {
             var parts=items[i].Components;
@@ -403,26 +463,33 @@ internal static partial class RuntimeAmmoLoadout
             {
                 var rack=parts[j].TryCast<AmmoRack>();
                 if(rack==null||rack.Vehicle?.Pointer!=vehicle!.Pointer)continue;
-                if(rack.ShellSizeBlueprintID!=sizeId)continue;
+                if(rack.projectileSizeID.Value!=sizeId)continue; // 0.22.90 replaced: part I, match the projectile size, not the physical slot (EB-FOLLOWUP)
+                var ready=IsReadyMagazine(cannon,rack);
                 var behaviour=rack.behaviour;
                 if(live)
                 {
                     if(behaviour==null)continue;
                     var capacity=(int)behaviour.Capacity;
                     if(capacity<=0)capacity=rack.Capacity;
-                    if(capacity<=0)continue;
+                    if(capacity<=0&&(!ready||ConservativeRackCapacity(cannon,rack)<=0))continue;
                     found.Add(new RackInfo(rack,behaviour,capacity));
                 }
                 else
                 {
-                    if(rack.Capacity<=0)continue;
-                    found.Add(new RackInfo(rack,null,rack.Capacity));
+                    var capacity=rack.Capacity;
+                    if(capacity<=0&&(!ready||ConservativeRackCapacity(cannon,rack)<=0))continue;
+                    found.Add(new RackInfo(rack,null,capacity));
                 }
             }
         }
-        found.Sort((a,b)=>a.Rack.VUID.Value!=b.Rack.VUID.Value
-            ?a.Rack.VUID.Value.CompareTo(b.Rack.VUID.Value)
-            :a.Rack.Pointer.ToInt64().CompareTo(b.Rack.Pointer.ToInt64()));
+        found.Sort((a,b)=>
+        {
+            var readyCmp=IsReadyMagazine(cannon,b.Rack).CompareTo(IsReadyMagazine(cannon,a.Rack));
+            if(readyCmp!=0)return readyCmp;
+            return a.Rack.VUID.Value!=b.Rack.VUID.Value
+                ?a.Rack.VUID.Value.CompareTo(b.Rack.VUID.Value)
+                :a.Rack.Pointer.ToInt64().CompareTo(b.Rack.Pointer.ToInt64());
+        });
         return found;
     }
 
@@ -466,7 +533,10 @@ internal static partial class RuntimeAmmoLoadout
     private static Distribution? Define(Cannon cannon,LoadTask task,List<AmmoLoadoutEntry> entries,IntPtr vehiclePointer)
     {
         if(!LoaderSupportsMix(out var loaderReason))return Freeze(cannon,loaderReason!);
+        var designRacks=ScanRacks(cannon,false);
         var racks=ScanRacks(cannon,true);
+        if(racks.Count<designRacks.Count&&designRacks.Any(r=>r.Rack.IsInstalled&&r.Rack.behaviour==null)
+            &&Waited.Add((vehiclePointer,cannon.VUID.Value)))return null;
         var carousel=CarouselStore(cannon);
         if(racks.Count==0&&carousel.Aggregate==null)return Freeze(cannon,"No physical ammunition storage is available.");
         if(racks.Any(r=>Stores.ContainsKey(r.Behaviour!.Pointer))||carousel.Aggregate!=null&&Stores.ContainsKey(carousel.Aggregate.Pointer))
@@ -579,8 +649,8 @@ internal static partial class RuntimeAmmoLoadout
         if(stored==null||!dist.Types.ContainsKey(stored)||!Allowed(cannon,stored))stored=entries[0].ProfileId;
         // 0.22.7: the pure rule (AmmoSelection.Choose): keep the preference while it has rounds; when it has run out, the next carried type
         // with rounds, which loads normally; with nothing left, no request (the gun stays empty and cannot fire).
-        var preferredHasRounds=Usable(cannon,dist,task,stored)&&Remaining(dist,task,stored)>0;
-        var choice=AmmoSelection.Choose(entries,stored,id=>Usable(cannon,dist,task,id)?Remaining(dist,task,id):0);
+        var preferredHasRounds=Usable(cannon,dist,stored)&&ReachableRemaining(cannon,dist,stored,out _)>0;
+        var choice=AmmoSelection.Choose(entries,stored,id=>Usable(cannon,dist,id)?ReachableRemaining(cannon,dist,id,out _):0);
         EmptyEvent(cannon,key,stored,preferredHasRounds,choice);
         if(choice.Type==null)return null;
         if(!Switched.TryGetValue(key,out var current)||current!=choice.Type)Switched[key]=choice.Type;
@@ -600,8 +670,8 @@ internal static partial class RuntimeAmmoLoadout
         return null;
     }
 
-    private static bool Usable(Cannon cannon,Distribution dist,LoadTask task,string id)=>
-        dist.Types.ContainsKey(id)&&Remaining(dist,task,id)>0&&Allowed(cannon,id);
+    private static bool Usable(Cannon cannon,Distribution dist,string id)=>
+        dist.Types.ContainsKey(id)&&Allowed(cannon,id)&&ReachableRemaining(cannon,dist,id,out _)>0;
 
     private static bool Allowed(Cannon cannon,string id)
     {
@@ -610,11 +680,29 @@ internal static partial class RuntimeAmmoLoadout
         return profile!=null&&RuntimeShellEra.Allowed(profile,cannon.Vehicle);
     }
 
+    private static int StoredRemaining(Distribution dist,string id)=>
+        dist.Stores.Sum(s=>!s.Destroyed&&s.Views.TryGetValue(id,out var view)?(int)view.AmountStored:0);
+
+    private static int ReachableRemaining(Cannon cannon,Distribution dist,string id,out string? restriction)
+    {
+        restriction=null;
+        if(TryGetReachableStorage(cannon,out var readyAgg,out var why)&&readyAgg!=null)
+        {
+            var readyStore=dist.Stores.FirstOrDefault(s=>s.Aggregate.Pointer==readyAgg.Pointer);
+            if(readyStore!=null)
+            {
+                restriction=why;
+                return !readyStore.Destroyed&&readyStore.Views.TryGetValue(id,out var view)?(int)view.AmountStored:0;
+            }
+        }
+        return StoredRemaining(dist,id);
+    }
+
     /// <summary>Rounds of one carried type: its racks, the chambered round and any
     /// other native source the load task currently uses for the same type.</summary>
     private static int Remaining(Distribution dist,LoadTask task,string id)
     {
-        var sum=dist.Stores.Sum(s=>s.Views.TryGetValue(id,out var view)?(int)view.AmountStored:0);
+        var sum=StoredRemaining(dist,id);
         if(Chambered(dist,task)==id)sum++;
         return sum;
     }
@@ -689,23 +777,42 @@ internal static partial class RuntimeAmmoLoadout
             return;
         }
         var hasMix=dist!=null&&task!=null;
-        var remaining=(string id)=>hasMix?Remaining(dist!,task!,id):Planned(entries,id);
+        int AvailableForNext(string id)=>hasMix
+            ?(Allowed(cannon,id)?ReachableRemaining(cannon,dist!,id,out _):0)
+            :(Allowed(cannon,id)?Planned(entries,id):0);
         var current=Switched.TryGetValue(key,out var switched)?switched:RuntimeShellSelection.StoredSelection(blueprint);
         string? next;
         if(press.Command==KeyCommand.Slot)
         {
             next=AmmoLoadoutRules.Slot(entries,press.Slot);
-            if(next!=null&&remaining(next)<=0){Detail($"slot {press.Slot+1} ({Label(next)}) is empty.");return;}
+            if(next!=null&&!Allowed(cannon,next)){SetFeedback(key,$"{Label(next)}: unavailable in this era.");return;}
+            if(next!=null&&AvailableForNext(next)<=0)
+            {
+                if(hasMix)
+                {
+                    ReachableRemaining(cannon,dist!,next,out var why);
+                    var inReserve=StoredRemaining(dist!,next);
+                    if(inReserve>0&&!string.IsNullOrEmpty(why))SetFeedback(key,$"{Label(next)}: 0 ready ({inReserve} in reserve - {why}).");
+                    else if(Chambered(dist!,task!)==next)SetFeedback(key,$"{Label(next)}: 0 in storage (last round in gun).");
+                    else SetFeedback(key,$"{Label(next)}: empty.");
+                }
+                else SetFeedback(key,$"{Label(next)}: empty.");
+                Detail($"slot {press.Slot+1} ({Label(next)}) has no loadable rounds.");return;
+            }
         }
-        else next=AmmoLoadoutRules.Step(entries,remaining,current,press.Command==KeyCommand.Next?1:-1);
+        else next=AmmoLoadoutRules.Step(entries,AvailableForNext,current,press.Command==KeyCommand.Next?1:-1);
         if(next==null||next==current)
         {
+            SetFeedback(key,"No other carried type available.");
             Detail($"cannon {cannon.VUID.Value}: no other carried type has rounds; nothing switched.");
             return;
         }
         Switched[key]=next;
         BeginSwitchTrace(cannon,task,next);
-        Plugin.ModLog.LogInfo($"[Ammo loadout] cannon {cannon.VUID.Value} next load: {Label(next)} ({remaining(next)} rounds); any chambered round keeps its identity.");
+        var left=AvailableForNext(next);
+        var busyLoading=task!=null&&task.State==LoadState.Loading&&task.currentRequest!=LoadRequest.Consumed;
+        SetFeedback(key,busyLoading?$"After current load: {Label(next)} ({left})":$"Next load: {Label(next)} ({left})");
+        Plugin.ModLog.LogInfo($"[Ammo loadout] cannon {cannon.VUID.Value} next load: {Label(next)} ({left} ready/loadable); any chambered round keeps its identity.");
     }
 
     private static int Planned(List<AmmoLoadoutEntry> entries,string id)
@@ -799,12 +906,27 @@ internal static partial class RuntimeAmmoLoadout
             if(task!=null&&!HoldsRound(task))
             {
                 var preferred=Switched.TryGetValue((instance.Pointer,cannon.VUID.Value),out var last)?last:RuntimeShellSelection.StoredSelection(blueprint);
-                var empty=AmmoSelection.OutNotice(entries,preferred,id=>Usable(cannon,dist,task,id)?Remaining(dist,task,id):0,Label);
-                if(empty.Length>0)return empty;
+                string? reserveReason=null;
+                var empty=AmmoSelection.OutNotice(entries,preferred,id=>Usable(cannon,dist,id)?ReachableRemaining(cannon,dist,id,out reserveReason):0,Label);
+                if(empty.Length>0)
+                {
+                    if(entries.Any(e=>StoredRemaining(dist,e.ProfileId)>0)&&TryGetReachableStorage(cannon,out _,out var why)&&!string.IsNullOrEmpty(why))
+                        return $"Ready magazine empty ({why}).";
+                    return empty;
+                }
             }
-            if(off.Count==0)return "";
-            var text=$"{Label(off[0])}{(off.Count>1?$" +{off.Count-1}":"")}: not available in this era, skipped.";
-            Report(text);return text;
+            if(off.Count>0)
+            {
+                var text=$"{Label(off[0])}{(off.Count>1?$" +{off.Count-1}":"")}: not available in this era, skipped.";
+                Report(text);return text;
+            }
+            var key=(instance.Pointer,cannon.VUID.Value);
+            if(SwitchFeedback.TryGetValue(key,out var fb))
+            {
+                if(Time.unscaledTime<=fb.Until)return fb.Text;
+                SwitchFeedback.Remove(key);
+            }
+            return "";
         }
         var stored=RuntimeShellSelection.StoredSelection(blueprint);
         if(stored!=null&&AmmoLoadoutRules.IndexOf(entries,stored)<0){Report("Mix inactive: selected shell not in mix ("+Label(stored)+").");return "Mix inactive: selected shell not in mix.";}

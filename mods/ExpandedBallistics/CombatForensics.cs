@@ -12,8 +12,14 @@ internal sealed record ForensicLayer(int Number,string HitId,string Stage,string
     IReadOnlyList<CombatLayerPart> Parts,bool Combined,double? GapMm,double? Before,double? After,
     double? AbsorbedMm,double? Percent,string Era,double StartMm,double? PathMm,string Colour,
     IReadOnlyList<CompositeSublayer>? Sublayers=null,double? EraMm=null,string Plate="",
-    IReadOnlyList<ForensicArrayPlate>? Plates=null,int ArrayFirst=0,string Module="",IReadOnlyList<string>? PaidIntervals=null,LayerStop? PlateStop=null,[property:System.Text.Json.Serialization.JsonIgnore] string ModuleOutcome="")
+    IReadOnlyList<ForensicArrayPlate>? Plates=null,int ArrayFirst=0,string Module="",IReadOnlyList<string>? PaidIntervals=null,LayerStop? PlateStop=null,[property:System.Text.Json.Serialization.JsonIgnore] string ModuleOutcome="",[property:System.Text.Json.Serialization.JsonIgnore] bool Solid=false,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<ForensicModuleLayer>? ModuleLayers=null,
+    [property:System.Text.Json.Serialization.JsonIgnore] bool PathFromIntervals=false)
 {
+    // 0.22.91: ModuleLayers: the constituents of a layered module (VARMA, a side module) front to back, from the confirmed intervals of its hit (CombatModuleLayers). Written to the JSON
+    // only when present, so the JSON of every other layer equals 0.22.90.
+    /// <summary>0.22.91: the reduction the confirmed intervals of a layered module add up to (mm RHA-eq); null for any other layer.</summary>
+    internal double? ModuleIntervalsMm=>ModuleLayers is {Count:>0} m?m.Sum(x=>x.RhaMm):null;
     /// <summary>Several armour plates in one native group: a layer of a composite array.</summary>
     internal bool Array=>GapMm==null&&Parts.Count(p=>p.Armour)>1;
     /// <summary>0.22.43: the layer holds an internal module (crew position, engine, fuel tank, ammunition stowage, transmission ...); <see cref="Module"/> is its readable name.</summary>
@@ -22,6 +28,7 @@ internal sealed record ForensicLayer(int Number,string HitId,string Stage,string
     /// <summary>0.22.43: an internal module in one native group with a plate. The layer keeps the plate's name, band and constituents (measured armour
     /// is never hidden); the module is an indented row and a grey marker band of its own.</summary>
     internal bool Grouped=>Internal&&Parts.Any(p=>p.Armour);
+    // 0.22.81: Solid: one passage through a plate marked [Solid block] (front skin, cavity, back skin merged by LayeredPlateReport). Presentation only; not serialised, so the JSON of a model equals 0.22.80.
     /// <summary>"296 mm at 65.4°" per plate with a measured normal thickness and obliquity; "54.5 mm" for an air gap.</summary>
     internal string Geometry=>GapMm is {} g?$"{CombatForensics.N(g)} mm":
         string.Join(" / ",Parts.Where(p=>p.Armour&&p.ThicknessMm!=null&&p.AngleDegrees!=null).Select(p=>$"{CombatForensics.N(p.ThicknessMm)} mm at {CombatForensics.N(p.AngleDegrees)}°"));
@@ -94,8 +101,26 @@ internal static class CombatForensics
     /// <summary>"composite array", "air gap" or the layer's material: the short name in the context line and in sentences.</summary>
     internal static string Short(ForensicLayer l)=>l.GapMm!=null?"air gap":l.Array?"composite array":l.Name;
     internal static string Ref(ForensicLayer l)=>$"layer {l.Number} ({Short(l)})";
-    /// <summary>0.22.69: where a shot stopped: the layer, and for a plate in layers the layer of its recipe ("layer 3 (T-90A welded turret), layer 5 of 13 of the plate").</summary>
-    internal static string StopRef(ForensicLayer l)=>Ref(l)+(l.PlateStop is {} s?$", layer {s.Group} of {s.Groups} of the plate":"");
+    internal static CompositeSublayer? StopSublayer(ForensicLayer l)
+    {
+        if(l.PlateStop is not {} s||l.Sublayers is not {Count:>0} subs)return null;
+        if(s.Groups==subs.Count&&s.Group>=1&&s.Group<=subs.Count)return subs[s.Group-1];
+        double at=0;
+        foreach(var sub in subs){at+=sub.Fraction;if(at>=s.Fraction-1e-9&&!sub.Air)return sub;}
+        return subs.LastOrDefault(x=>!x.Air);
+    }
+    /// <summary>0.22.69/0.22.98: where a shot stopped: the layer, and for a plate in layers or composite plate the sublayer of its recipe ("layer 3 (T-90A welded turret), layer 5 of 13 of the plate (Cast Armour)").</summary>
+    internal static string StopRef(ForensicLayer l)
+    {
+        if(l.PlateStop is not {} s)return Ref(l);
+        var sub=StopSublayer(l);
+        return Ref(l)+$", layer {s.Group} of {s.Groups} of the plate"+(sub!=null?$" ({sub.Label})":"");
+    }
+    private static PaidMaterialPiece[] PaidEntityPieces(IEnumerable<CombatReportEvent> events,int entity)=>
+        events.Where(x=>x.Kind is "materialReaction" or "materialStop"&&x.PaidIntervals!=null)
+            .SelectMany(x=>x.PaidIntervals!)
+            .Where(p=>p!=null&&p.Entity==entity&&p.EndM>p.StartM&&double.IsFinite(p.Factor)&&p.Factor>0)
+            .GroupBy(p=>(p.StartM,p.EndM,p.Factor)).Select(g=>g.First()).ToArray();
     internal static string LayerList(IReadOnlyList<ForensicLayer> list)=>list.Count==1?"layer "+list[0].Number:
         "layers "+string.Join(", ",list.Take(list.Count-1).Select(l=>l.Number))+" and "+list[^1].Number;
     /// <summary>The measured ERA statement of a layer ("ERA element initiated"), empty when the layer holds no ERA.</summary>
@@ -161,6 +186,16 @@ internal static class CombatForensics
                 double? total=owner.Before is {} entry&&exit is {} left?entry-left:owner.AbsorbedMm;
                 var merged=owner with{After=exit,AbsorbedMm=total,Percent=main&&initial is >0&&total!=null?100*total/initial:owner.Percent,
                     Era=owner.Era.Length>0?owner.Era:era,EraMm=owner.EraMm??eraMm};
+                if(stop&&merged.PlateStop==null&&merged.Sublayers is {Count:>0}&&merged.Before is >0)
+                {
+                    var ownerArmour=merged.Parts.Where(p=>p.Armour).ToArray();
+                    if(ownerArmour.Length==1)
+                    {
+                        var ownerPaid=PaidEntityPieces(shot.Events.Where(x=>x.Stage==merged.Stage&&(x.HitId==merged.HitId||x.HitId==(e.HitId??info.Id))),ownerArmour[0].Entity);
+                        if(ownerPaid.Length>0&&LayeredPlateReport.LocateComposite(ownerArmour[0].MaterialId,ownerPaid,Math.Max(0,merged.Before.Value-(merged.EraMm??0))) is {} ownerStop)
+                            merged=merged with{PlateStop=ownerStop};
+                    }
+                }
                 layers[^1]=merged;
                 if(main)
                 {
@@ -185,9 +220,23 @@ internal static class CombatForensics
                 else if(info.AirGapMm==null&&armour.Length==0)name+=crossing;
             }
             var sub=constituents&&info.AirGapMm==null&&armour.Length==1?CombatCompositeLayers.For(armour[0]):null;
+            // 0.22.91: a layered module (merged by LayeredPlateReport.Apply): its confirmed intervals are its constituents, drawn in its band like recipe layers.
+            var moduleLayers=info.AirGapMm==null&&armour.Length==1?CombatModuleLayers.Sublayers(events,shot.Events,before,after):null;
+            if(moduleLayers!=null)sub=constituents?CombatModuleLayers.Drawing(moduleLayers,events):null;
+            bool isSolidMerged=events.Any(LayeredPlateReport.IsSolidMerged);
+            var ownPaid=info.AirGapMm==null&&armour.Length==1?PaidEntityPieces(events,armour[0].Entity):Array.Empty<PaidMaterialPiece>();
+            bool pathFromIntervals=false;
+            if(info.AirGapMm==null&&armour.Length==1&&moduleLayers==null&&!isSolidMerged&&ownPaid.Length>0)
+            {
+                double paidMm=ownPaid.Sum(p=>p.LengthMm);
+                if(path is {} facePath&&paidMm>facePath*2&&paidMm-facePath>=10){path=paidMm;pathFromIntervals=true;}
+            }
+            var plateStop=events.Select(LayeredPlateReport.ReadStop).FirstOrDefault(x=>x!=null);
+            if(plateStop==null&&stop&&info.AirGapMm==null&&armour.Length==1&&sub is {Count:>0}&&moduleLayers==null&&before is >0&&ownPaid.Length>0)
+                plateStop=LayeredPlateReport.LocateComposite(armour[0].MaterialId,ownPaid,Math.Max(0,before.Value-(eraMm??0)));
             var layer=new ForensicLayer(layers.Count+1,e.HitId??info.Id,e.Stage,name,info.Parts,info.Combined,info.AirGapMm,before,after,loss,
                 main&&initial is >0&&loss!=null?100*loss/initial:null,era,position,path,
-                info.AirGapMm!=null?"#4d5965":module.Length>0&&armour.Length==0?CombatEnvelope.Grey:MaterialColour(armour.FirstOrDefault()?.MaterialId),sub,eraMm,plate,Module:module,PaidIntervals:events.Where(MaterialIntervalDisplay.Is).SelectMany(x=>MaterialIntervalDisplay.Sublayers(x,info,events)).ToArray(),PlateStop:events.Select(LayeredPlateReport.ReadStop).FirstOrDefault(x=>x!=null),ModuleOutcome:module.Length>0?ModuleOutcomeOf(shot.Events,info.Parts):"");
+                info.AirGapMm!=null?"#4d5965":module.Length>0&&armour.Length==0?CombatEnvelope.Grey:MaterialColour(armour.FirstOrDefault()?.MaterialId),sub,eraMm,plate,Module:module,PaidIntervals:events.Where(MaterialIntervalDisplay.Is).SelectMany(x=>MaterialIntervalDisplay.Sublayers(x,info,events)).ToArray(),PlateStop:plateStop,ModuleOutcome:module.Length>0?ModuleOutcomeOf(shot.Events,info.Parts):"",Solid:isSolidMerged,ModuleLayers:moduleLayers,PathFromIntervals:pathFromIntervals);
             layers.Add(layer);
             position+=path??0;
             if(main)
@@ -291,8 +340,11 @@ internal static class CombatForensics
             findings.Add((a.Layers.Count==1?$"Layer {a.First} is a composite array":$"{Capital(LayerList(a.Layers))} form one composite array")+
                 $" of {a.Plates.Count} plates, front to back: {string.Join(", ",a.Plates.Select(p=>p.Material))}; "+
                 (a.Layers.Count==1?"its reduction is stated for the plates together.":"each layer states the reduction of its plates together."));
-        foreach(var l in layers.Where(l=>l.Sublayers is {Count:>0}))
-            findings.Add($"Layer {l.Number} ({l.Name}): {l.Sublayers!.Count} constituent layers of the composer preset, scaled to the {N(l.Parts.First(p=>p.Armour).ThicknessMm)} mm normal thickness of the plate.");
+        // 0.22.91: a layered module: its constituents, the measured reduction and the sum of its confirmed intervals (the division over the constituents is derived).
+        foreach(var l in layers.Where(l=>l.ModuleLayers is {Count:>0}))findings.Add(ModuleFinding(l));
+        foreach(var l in layers.Where(l=>l.Sublayers is {Count:>0}&&l.ModuleLayers==null))
+            findings.Add(l.Solid?$"Layer {l.Number} ({l.Name}): solid block, {N(l.PathMm)} mm along the shot line from the entry of its front skin to the exit of its back skin; {l.Sublayers!.Count} constituent layers of the composer preset over that length, in the proportion of the preset (air as air).": // 0.22.81
+                $"Layer {l.Number} ({l.Name}): {l.Sublayers!.Count} constituent layers of the composer preset, scaled to the {N(l.Parts.First(p=>p.Armour).ThicknessMm)} mm normal thickness of the plate.");
         foreach(var a in arrays)foreach(var p in a.Plates.Where(p=>p.Sublayers is {Count:>0}))
         {
             // The layers whose rows list these constituents (a plate without a measured thickness in a layer lists none there).
@@ -352,6 +404,16 @@ internal static class CombatForensics
             }
         }
         return text;
+    }
+    /// <summary>0.22.91: the finding of a layered module: its constituents front to back, the measured reduction and the sum of the confirmed intervals; the division is labelled derived.</summary>
+    internal static string ModuleFinding(ForensicLayer l)
+    {
+        var m=l.ModuleLayers!;double sum=m.Sum(x=>x.RhaMm);
+        string text=$"Layer {l.Number} ({l.Name}): {m.Count} constituent layers along the shot line, front to back: {string.Join(", ",m.Select(x=>$"{x.Label} {N(x.PathMm)} mm"))}";
+        if(l.AbsorbedMm is {} drop&&l.Before is {} b&&l.After is {} a)
+            text+=$"; measured reduction {N(drop)} mm RHA-eq ({N(b)} → {N(a)}); the confirmed intervals add up to {N(sum)} mm RHA-eq, {N(Math.Abs(sum-drop))} mm {(sum>=drop?"more":"less")} than measured; the reduction per constituent layer is derived in proportion to its RHA equivalent";
+        else text+=$"; the confirmed intervals add up to {N(sum)} mm RHA-eq";
+        return text+".";
     }
     /// <summary>The material name of a plate as the user gave it in the composer, else its readable part name.</summary>
     internal static string PlateMaterial(CombatLayerPart p)=>CombatReportLanguage.Material(p) is {Length:>0} m?m:CombatReportView.ModuleName(p);

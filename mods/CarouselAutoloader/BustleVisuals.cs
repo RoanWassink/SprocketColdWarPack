@@ -85,6 +85,7 @@ internal static class BustleVisuals
         {
             if(__result?.PartGuid==SemiAutoloader.PartGuid) __result.Icon=Icon(assisted:true);
             else if(__result?.PartGuid==BustleRuntime.RevolverPartGuid) __result.Icon=Icon(BustleRuntime.RevolverPartGuid);
+            else if(__result?.PartGuid==Belt.PartGuid) __result.Icon=BeltIcon.Icon();
             else if(__result?.PartGuid==BustleRuntime.PartGuid) __result.Icon=Icon();
         }
         catch (Exception ex) { HookGuard.Warn("PartDefinitionCardFactory.CreateCard icon", -1, ex); }

@@ -11,6 +11,8 @@ using UnityEngine;
 namespace SprocketExpandedBallistics;
 
 // Reuses the native AssignedSightVUID save/remap path. References below are runtime only.
+// 0.22.87: one sight drives a group of one or more dedicated launchers (the
+// primary is the lowest VUID); on a shared native turret the turret does the yaw.
 [HarmonyPatch]
 internal static class RuntimeAtgmGuidanceSight
 {
@@ -22,10 +24,12 @@ internal static class RuntimeAtgmGuidanceSight
     private sealed class Head
     {
         internal readonly GunnerSight Sight;
-        internal readonly Cannon Cannon;
+        internal Cannon[] Group;
+        internal Cannon Cannon=>Group[0];
+        internal bool Turret;
         internal AtgmHeadAngles Angles;
         internal int Revision,Frame=-1;
-        internal Head(GunnerSight sight,Cannon cannon){Sight=sight;Cannon=cannon;Revision=revision;}
+        internal Head(GunnerSight sight,Cannon[] group){Sight=sight;Group=group;Revision=revision;}
     }
     private static readonly Dictionary<IntPtr,Head> heads=new();
     private static readonly Dictionary<IntPtr,int> nativeSights=new();
@@ -34,7 +38,8 @@ internal static class RuntimeAtgmGuidanceSight
     {
         internal readonly ScopeController Scope;
         internal readonly GunnerSight Sight;
-        internal readonly Cannon Cannon;
+        internal Cannon[] Group;
+        internal Cannon Cannon=>Group[0];
         internal Transform? Previous;
         internal readonly AtgmSightReferenceState Reference;
         internal int Revision;
@@ -44,8 +49,8 @@ internal static class RuntimeAtgmGuidanceSight
         internal readonly AtgmSightElevationState Elevation=new();
         internal readonly Dictionary<IntPtr,(GunLayer Layer,IntPtr Axis,Vector3 Direction)> Driven=new();
         internal HashSet<IntPtr> SightAxes;
-        internal Session(ScopeController scope,GunnerSight sight,Cannon cannon,int revision,HashSet<IntPtr> exclusiveAxes)
-        {Scope=scope;Sight=sight;Cannon=cannon;Previous=sight.LinkedWeapon;Reference=new(Previous?.Pointer??IntPtr.Zero);Revision=revision;ExclusiveAxes=exclusiveAxes;SightAxes=RuntimeAtgmSightMount.Axes(sight,cannon);}
+        internal Session(ScopeController scope,GunnerSight sight,Cannon[] group,HashSet<IntPtr> linked,int revision,HashSet<IntPtr> exclusiveAxes)
+        {Scope=scope;Sight=sight;Group=group;Previous=sight.LinkedWeapon;Reference=new(Previous?.Pointer??IntPtr.Zero);Revision=revision;ExclusiveAxes=exclusiveAxes;SightAxes=GroupAxes(sight,group,linked);}
     }
     private static readonly Dictionary<IntPtr,Session> sessions=new();
     private static int revision;
@@ -60,6 +65,7 @@ internal static class RuntimeAtgmGuidanceSight
         maxYaw=config.Bind(section,"HeadMaxYaw",170f,new ConfigDescription("Maximum head yaw relative to the sight part, degrees.",new AcceptableValueRange<float>(0,180)));
         minPitch=config.Bind(section,"HeadMinPitch",-20f,new ConfigDescription("Minimum head elevation relative to the sight part, degrees.",new AcceptableValueRange<float>(-89,0)));
         maxPitch=config.Bind(section,"HeadMaxPitch",60f,new ConfigDescription("Maximum head elevation relative to the sight part, degrees.",new AcceptableValueRange<float>(0,89)));
+        RuntimeAtgmSightHud.Configure(config); // 0.22.92: Scope mask, HUD style and the HUD elements, same section
     }
     private static float Setting(ConfigEntry<float>? entry,float fallback)=>entry!=null&&float.IsFinite(entry.Value)?entry.Value:fallback;
     private static AtgmHeadLimits Limits=>new(Setting(minYaw,-170),Setting(maxYaw,170),Setting(minPitch,-20),Setting(maxPitch,60));
@@ -72,52 +78,129 @@ internal static class RuntimeAtgmGuidanceSight
         for(int i=0;i<Count(objects);i++){var parts=objects[i].Components;
             for(int j=0;j<Count(parts);j++)if(parts[j].TryCast<Cannon>() is {} cannon)yield return cannon;}
     }
-    private static bool Resolve(GunnerSight sight,out Cannon? result,out HashSet<IntPtr> exclusiveAxes)
+    private static IntPtr[] Pointers(IEnumerable<Cannon> group)=>group.Select(c=>c.Pointer).ToArray();
+    // AtgmIndependentSightPolicy.InGroup without an allocation (scope, layer and missile paths run it per frame).
+    private static bool InGroup(Cannon[] group,Cannon? cannon)
     {
-        result=null;exclusiveAxes=new();
+        if(cannon==null||cannon.Pointer==IntPtr.Zero)return false;
+        foreach(var c in group)if(c.Pointer==cannon.Pointer)return true;
+        return false;
+    }
+    private static int[] VuidList(IEnumerable<Cannon> group)=>group.Select(c=>c.VUID.Value).ToArray();
+    private static AtgmAimingAxes AimingAxes(Cannon c)=>new(c.HorizontalAimingMechanism?.Pointer??IntPtr.Zero,c.VerticalAimingMechanism?.Pointer??IntPtr.Zero);
+    // linked: every dedicated launcher assigned to this sight, also one that fell out of the group.
+    private static bool Resolve(GunnerSight sight,out Cannon[] group,out HashSet<IntPtr> exclusiveAxes,out HashSet<IntPtr> linked)
+    {
+        group=Array.Empty<Cannon>();exclusiveAxes=new();var tubesOfSight=new HashSet<IntPtr>();linked=tubesOfSight;
         if(!Enabled||!Own(sight)||sight.Vehicle?.Behaviour==null||!RuntimeAtgm.IsPlayerVehicle(sight.Vehicle.Behaviour.Pointer))return false;
         int matches=0;bool ordinary=false;var all=Cannons(sight).ToArray();
+        var tubes=new List<Cannon>();var candidates=new List<AtgmLinkedLauncher>();
         foreach(var cannon in all)
         {
             if(!cannon.TryGetAssignedSight(out var assigned)||assigned?.Pointer!=sight.Pointer)continue;
-            if(RuntimeAtgmLauncher.IsLauncher(cannon)){matches++;result=cannon;}else ordinary=true;
+            if(RuntimeAtgmLauncher.IsLauncher(cannon))
+            {
+                matches++;tubes.Add(cannon);tubesOfSight.Add(cannon.Pointer);
+                candidates.Add(new(cannon.VUID.Value,cannon.Vehicle?.Pointer==sight.Vehicle?.Pointer,cannon.HealthFraction>0,RuntimeAtgmLauncher.CanLaunch(cannon)));
+            }
+            else ordinary=true;
         }
-        if(!AtgmIndependentSightPolicy.Allows(true,matches,ordinary,result!=null&&RuntimeAtgmLauncher.CanLaunch(result))||result==null||result.HealthFraction<=0)
+        var members=AtgmIndependentSightPolicy.Members(candidates);
+        if(!AtgmIndependentSightPolicy.Allows(true,members.Length,ordinary,members.Length>0))
         {
-            if(warnings.Add("assignment:"+sight.Pointer))Plugin.ModLog.LogWarning($"[ATGM guidance sight] SKIP sight={sight.VUID.Value}: requires exactly one healthy compatible dedicated launcher; launcherMatches={matches} ordinaryShared={ordinary}.");
+            if(warnings.Add("assignment:"+sight.Pointer))Plugin.ModLog.LogWarning(AtgmSightLog.SkipAssignment(sight.VUID.Value,matches,members.Length,ordinary));
             return false;
         }
-        var own=new AtgmAimingAxes(result.HorizontalAimingMechanism?.Pointer??IntPtr.Zero,result.VerticalAimingMechanism?.Pointer??IntPtr.Zero);
-        var owner=result;
-        var others=all.Where(c=>c.Pointer!=owner.Pointer).Select(c=>new AtgmAimingAxes(
-            c.HorizontalAimingMechanism?.Pointer??IntPtr.Zero,c.VerticalAimingMechanism?.Pointer??IntPtr.Zero)).ToArray();
-        if(AtgmGuidanceAxisOwnership.SharedElevation(own,others))
+        var chosen=members.Select(i=>tubes[i]).ToArray();
+        var outsideCannons=all.Where(c=>!tubesOfSight.Contains(c.Pointer)).ToArray();
+        var own=chosen.Select(AimingAxes).ToArray();
+        var others=outsideCannons.Select(AimingAxes).ToArray();
+        if(AtgmGuidanceAxisOwnership.GroupSharedElevation(own,others))
         {
-            if(warnings.Add("shared-elevation:"+sight.Pointer))Plugin.ModLog.LogWarning($"[ATGM guidance sight] SKIP sight={sight.VUID.Value}: launcher shares elevation with another cannon; use a separate elevation mount or a fixed tube.");
+            if(warnings.Add("shared-elevation:"+sight.Pointer))
+            {
+                var unlinked=AtgmGuidanceAxisOwnership.ElevationConflicts(own,others).Select(i=>outsideCannons[i]).Where(RuntimeAtgmLauncher.IsLauncher).Select(c=>c.VUID.Value).ToArray();
+                Plugin.ModLog.LogWarning(AtgmSightLog.SkipSharedElevation(sight.VUID.Value,unlinked));
+            }
             return false;
         }
-        exclusiveAxes=AtgmGuidanceAxisOwnership.ExclusiveAxes(own,others);
-        if(own.Horizontal!=IntPtr.Zero&&!exclusiveAxes.Contains(own.Horizontal)&&warnings.Add("shared-traverse:"+sight.Pointer))
-            Plugin.ModLog.LogInfo($"[ATGM guidance sight] Shared turret traverse retained for sight={sight.VUID.Value}; native yaw commands remain available to other weapons.");
+        exclusiveAxes=AtgmGuidanceAxisOwnership.GroupExclusiveAxes(own,others);
+        var exclusive=exclusiveAxes;
+        if(own.Any(a=>a.Horizontal!=IntPtr.Zero&&!exclusive.Contains(a.Horizontal))&&warnings.Add("shared-traverse:"+sight.Pointer))
+            Plugin.ModLog.LogInfo(AtgmSightLog.SharedTraverse(sight.VUID.Value));
+        group=chosen;
         return true;
+    }
+    // The ring axes this sight drives itself: rings carrying the sight that no
+    // cannon outside the group uses. One tube: the 0.22.86 call.
+    private static HashSet<IntPtr> GroupAxes(GunnerSight sight,Cannon[] group,HashSet<IntPtr> linked)
+    {
+        if(group.Length==1&&linked.Count==1)return RuntimeAtgmSightMount.Axes(sight,group[0]);
+        var result=new HashSet<IntPtr>();
+        foreach(var ring in RuntimeAtgmSightMount.Rings(sight.Vehicle))
+        {
+            var axis=ring.motor?.Behaviour?.TryCast<IReadOnlyAimable>()?.Pointer??IntPtr.Zero;
+            if(axis!=IntPtr.Zero&&RuntimeAtgmSightMount.IsSightAxis(sight,group[0],axis)&&!UsedOutside(sight,linked,axis))result.Add(axis);
+        }
+        return result;
+    }
+    private static bool UsedOutside(GunnerSight sight,HashSet<IntPtr> linked,IntPtr axis)=>
+        Cannons(sight).Any(c=>!linked.Contains(c.Pointer)&&(c.HorizontalAimingMechanism?.Pointer==axis||c.VerticalAimingMechanism?.Pointer==axis));
+    private static string DescribeGroup(GunnerSight sight,Cannon[] group,HashSet<IntPtr> linked)
+    {
+        if(group.Length==1&&linked.Count==1)return RuntimeAtgmSightMount.Describe(sight,group[0]);
+        var parts=new List<string>();
+        foreach(var ring in RuntimeAtgmSightMount.Rings(sight.Vehicle))
+        {
+            var axis=ring.motor?.Behaviour?.TryCast<IReadOnlyAimable>()?.Pointer??IntPtr.Zero;
+            var controlled=ring.motor?.ControlledTransform;
+            if(axis==IntPtr.Zero||!RuntimeAtgmSightMount.Below(sight.VehicleTransform,controlled))continue;
+            string kind=ring.VehicleObject.GUID==RuntimeAtgmSightMount.ElevationGuid?"pitch":"yaw";
+            parts.Add($"{kind}:ring={ring.VUID.Value} axis={axis.ToInt64():X} sightAxis={RuntimeAtgmSightMount.IsSightAxis(sight,group[0],axis)} unshared={!UsedOutside(sight,linked,axis)} launcherBelow={group.Any(c=>RuntimeAtgmSightMount.Below(c.VehicleTransform,controlled))} connected={ring.motor!.Connected}");
+        }
+        return parts.Count==0?"none":string.Join("; ",parts);
+    }
+    // Shared native turret carrying the sight and yawing a tube of the group (see AtgmSharedTurretHead).
+    private static bool SharedTurret(GunnerSight sight,Cannon[] group,HashSet<IntPtr> exclusive)
+    {
+        var rings=new List<AtgmTurretRing>();
+        foreach(var ring in RuntimeAtgmSightMount.Rings(sight.Vehicle))
+        {
+            var motor=ring.motor;var axis=motor?.Behaviour?.TryCast<IReadOnlyAimable>()?.Pointer??IntPtr.Zero;
+            if(motor==null||axis==IntPtr.Zero)continue;
+            rings.Add(new(RuntimeAtgmSightMount.IsSightAxis(sight,group[0],axis),ring.VehicleObject?.GUID==RuntimeAtgmSightMount.ElevationGuid,motor.Connected,
+                group.Any(c=>c.HorizontalAimingMechanism?.Pointer==axis),exclusive.Contains(axis)));
+        }
+        return AtgmSharedTurretHead.Applies(true,rings);
     }
     internal static bool UsesIndependentSight(Cannon? cannon)
     {
         if(!Enabled||!RuntimeAtgmLauncher.IsLauncher(cannon)||cannon==null)return false;
         return cannon.TryGetAssignedSight(out var sight)&&Own(sight?.TryCast<GunnerSight>());
     }
+    // A tube still serves its group: compatible, healthy and assigned to this sight.
+    private static bool Serves(Cannon cannon,GunnerSight sight)=>
+        RuntimeAtgmLauncher.CanLaunch(cannon)&&cannon.HealthFraction>0&&cannon.TryGetAssignedSight(out var assigned)&&assigned?.Pointer==sight.Pointer;
+    private static bool AllServe(Cannon[] group,GunnerSight sight)
+    {
+        foreach(var c in group)if(c.WasCollected||!Serves(c,sight))return false;
+        return true;
+    }
     private static bool Valid(Session s)
     {
         if(!Enabled||!Own(s.Sight)||s.Sight.SightParent==null||s.Cannon.Vehicle?.Pointer!=s.Sight.Vehicle?.Pointer||
-           s.Cannon.Vehicle?.Behaviour==null||!RuntimeAtgm.IsPlayerVehicle(s.Cannon.Vehicle.Behaviour.Pointer)||
-           !RuntimeAtgmLauncher.CanLaunch(s.Cannon)||s.Cannon.HealthFraction<=0||
-           !s.Cannon.TryGetAssignedSight(out var assigned)||assigned?.Pointer!=s.Sight.Pointer)return false;
-        if(s.Revision!=revision)
+           s.Cannon.Vehicle?.Behaviour==null||!RuntimeAtgm.IsPlayerVehicle(s.Cannon.Vehicle.Behaviour.Pointer))return false;
+        var left=false;foreach(var c in s.Group)if(!Serves(c,s.Sight)){left=true;break;}
+        if(left&&s.Group.Length==1)return false;
+        if(s.Revision!=revision||left)
         {
-            if(!Resolve(s.Sight,out var cannon,out var axes)||cannon?.Pointer!=s.Cannon.Pointer)return false;
+            if(!Resolve(s.Sight,out var group,out var axes,out var linked)||!AtgmIndependentSightPolicy.Keeps(Pointers(s.Group),Pointers(group)))return false;
             ClearDriven(s);
+            if(group.Length!=s.Group.Length)
+                Plugin.ModLog.LogInfo(AtgmSightLog.Group(s.Sight.VUID.Value,VuidList(group),VuidList(s.Group.Where(c=>!InGroup(group,c)))));
+            s.Group=group;
             s.ExclusiveAxes=axes;
-            s.SightAxes=RuntimeAtgmSightMount.Axes(s.Sight,s.Cannon);
+            s.SightAxes=GroupAxes(s.Sight,group,linked);
             s.Revision=revision;
         }
         return true;
@@ -131,11 +214,11 @@ internal static class RuntimeAtgmGuidanceSight
             End(scope.Pointer);
         }
         var optical=sight?.TryCast<GunnerSight>();
-        if(optical==null||!Resolve(optical,out var cannon,out var axes)||cannon==null||optical.SightParent==null)return null;
-        var session=new Session(scope,optical,cannon,revision,axes);sessions[scope.Pointer]=session;
+        if(optical==null||!Resolve(optical,out var group,out var axes,out var linked)||group.Length==0||optical.SightParent==null)return null;
+        var session=new Session(scope,optical,group,linked,revision,axes);sessions[scope.Pointer]=session;
         Redirect(session);
-        Plugin.ModLog.LogInfo($"[ATGM guidance sight] BIND launcher={cannon.VUID.Value} sight={optical.VUID.Value}; native ammo/reload retained; optical aim independent from tube.");
-        if(ReleaseDiagnostics.Enabled)try{Plugin.ModLog.LogInfo($"[ATGM guidance sight] AXES sight={optical.VUID.Value} driven={session.SightAxes.Count} exclusive={session.ExclusiveAxes.Count} {RuntimeAtgmSightMount.Describe(optical,cannon)}");}
+        Plugin.ModLog.LogInfo(AtgmSightLog.Bind(VuidList(group),optical.VUID.Value));
+        if(ReleaseDiagnostics.Enabled)try{Plugin.ModLog.LogInfo($"[ATGM guidance sight] AXES sight={optical.VUID.Value} driven={session.SightAxes.Count} exclusive={session.ExclusiveAxes.Count} {DescribeGroup(optical,group,linked)}");}
         catch(Exception ex){Warn("Axis diagnostics",ex);}
         return session;
     }
@@ -145,17 +228,60 @@ internal static class RuntimeAtgmGuidanceSight
         // The native scope mask follows the linked weapon. A gimbal head turns
         // without its part, so link the head's own line of sight instead.
         if(s.SightAxes.Count==0&&TryHead(s.Cannon,out var head)&&head!=null)target=HeadAim(head);
+        else if(s.SightAxes.Count!=0)target=SightAim(s); // 0.22.92: own rings too link EB's aim object, posed on the guidance line every frame
         if(s.Reference.Redirecting(current?.Pointer??IntPtr.Zero,target.Pointer))s.Previous=current;
         s.Sight.LinkedWeapon=target;
     }
     // Detached and kept until Clear/Release, so a linked weapon never dangles.
     private static readonly Dictionary<IntPtr,Transform> aims=new();
+    private static Transform Aim(IntPtr sight)
+    {
+        if(!aims.TryGetValue(sight,out var aim)||aim==null||aim.WasCollected)
+            aims[sight]=aim=new GameObject("ATGM sight head aim"){hideFlags=HideFlags.HideAndDontSave}.transform;
+        return aim;
+    }
     private static Transform HeadAim(Head head)
     {
-        if(!aims.TryGetValue(head.Sight.Pointer,out var aim)||aim==null||aim.WasCollected)
-            aims[head.Sight.Pointer]=aim=new GameObject("ATGM sight head aim"){hideFlags=HideFlags.HideAndDontSave}.transform;
+        var aim=Aim(head.Sight.Pointer);
         aim.SetPositionAndRotation(HeadOrigin(head),Quaternion.LookRotation(HeadDirection(head),head.Sight.SightParent.up));
         return aim;
+    }
+    // 0.22.92 (Scope mask, both choices): the native mask is centred each frame on
+    // LinkedWeapon.position + forward x convergence. EB's own aim object carries the
+    // guidance line (TryAim), so the mask follows the head or the aim while aiming,
+    // not only after a switch. EB writes only this object here, never native state.
+    private static Transform SightAim(Session s)
+    {
+        var aim=Aim(s.Sight.Pointer);var parent=s.Sight.SightParent;
+        // Before the first scoped frame: the part's own line, where the mask was before.
+        if(!PoseMask(s,aim))aim.SetPositionAndRotation(parent.TransformPoint(s.Sight.ObjectiveLensLocalPosition),parent.rotation);
+        return aim;
+    }
+    private static bool PoseMask(Session s,Transform aim)
+    {
+        if(!TryAim(s.Cannon,out var origin,out var direction,out _)||
+           AtgmMaskAim.Pose(RuntimeAtgmSightHud.N(origin),RuntimeAtgmSightHud.N(direction),RuntimeAtgmSightHud.N(s.Sight.SightParent.up)) is not {} pose)return false;
+        aim.SetPositionAndRotation(RuntimeAtgmSightHud.U(pose.Position),Quaternion.LookRotation(RuntimeAtgmSightHud.U(pose.Forward),RuntimeAtgmSightHud.U(pose.Up)));
+        return true;
+    }
+    // Per frame from the existing ProcessInputs hooks; only while EB's object is the link.
+    private static void FollowMask(Session s)
+    {
+        try{if(aims.TryGetValue(s.Sight.Pointer,out var aim)&&aim!=null&&!aim.WasCollected&&s.Sight.LinkedWeapon?.Pointer==aim.Pointer)PoseMask(s,aim);}
+        catch(Exception ex){Warn("Mask follow",ex);}
+    }
+    // 0.22.92: read-only view of the session that is the active, scoped sight now (HUD and mask).
+    internal static bool TryActiveView(out ScopeController? scope,out GunnerSight? sight,out Cannon[] group)
+    {
+        scope=null;sight=null;group=Array.Empty<Cannon>();
+        if(!Enabled)return false;
+        foreach(var s in sessions.Values)
+        {
+            if(!s.Initialized||!s.Scope.Scoped||!s.Scope.HasActive||s.Scope.ControlledScope?.Pointer!=s.Sight.Pointer||
+               s.Cannon.Vehicle?.Behaviour==null||!RuntimeAtgm.IsPlayerVehicle(s.Cannon.Vehicle.Behaviour.Pointer))continue;
+            scope=s.Scope;sight=s.Sight;group=s.Group;return true;
+        }
+        return false;
     }
     private static void DropAim(IntPtr sight)
     {if(aims.Remove(sight,out var aim)&&aim!=null&&!aim.WasCollected)UnityEngine.Object.Destroy(aim.gameObject);}
@@ -174,6 +300,8 @@ internal static class RuntimeAtgmGuidanceSight
         catch(Exception ex){Warn("Restore camera limits",ex);}
         try{if(s.Sight!=null&&s.Reference.CanRestore(s.Sight.LinkedWeapon?.Pointer??IntPtr.Zero))s.Sight.LinkedWeapon=s.Previous!;}
         catch(Exception ex){Warn("Restore sight",ex);}
+        // 0.22.92: every end path (switch, Dispose, PlayerChanged, Release, Clear) brings a hidden mask back and removes the HUD.
+        try{RuntimeAtgmSightHud.SessionEnded(controller);}catch(Exception ex){Warn("Restore scope mask",ex);}
     }
     private static void ClearDriven(Session s)
     {
@@ -183,7 +311,7 @@ internal static class RuntimeAtgmGuidanceSight
             catch(Exception ex){Warn("Release sight motor",ex);}
         s.Driven.Clear();
     }
-    internal static void Clear(){foreach(var key in sessions.Keys.ToArray())End(key);heads.Clear();foreach(var key in aims.Keys.ToArray())DropAim(key);nativeSights.Clear();warnings.Clear();revision++;}
+    internal static void Clear(){foreach(var key in sessions.Keys.ToArray())End(key);try{RuntimeAtgmSightHud.Clear();}catch(Exception ex){Warn("Clear sight HUD",ex);}heads.Clear();foreach(var key in aims.Keys.ToArray())DropAim(key);nativeSights.Clear();warnings.Clear();revision++;}
     private static void Warn(string area,Exception ex){if(warnings.Add(area))Plugin.ModLog.LogWarning($"[ATGM guidance sight] {area}: {ex.Message}");}
     private static bool Finite(Vector3 v)=>float.IsFinite(v.x)&&float.IsFinite(v.y)&&float.IsFinite(v.z);
     private static bool TryHead(Cannon cannon,out Head? head)
@@ -194,20 +322,25 @@ internal static class RuntimeAtgmGuidanceSight
            !cannon.TryGetAssignedSight(out var assigned)||assigned?.TryCast<GunnerSight>() is not {} sight||sight.WasCollected||
            sight.SightParent==null||sight.Vehicle?.Pointer!=cannon.Vehicle?.Pointer)return false;
         if(nativeSights.TryGetValue(sight.Pointer,out var nativeRevision)&&nativeRevision==revision)return false;
-        if(heads.TryGetValue(sight.Pointer,out var prior)&&prior.Cannon.Pointer==cannon.Pointer&&prior.Revision==revision){head=prior;return true;}
-        if(!Resolve(sight,out var owner,out _)||owner?.Pointer!=cannon.Pointer)
+        if(heads.TryGetValue(sight.Pointer,out var prior)&&InGroup(prior.Group,cannon)&&prior.Revision==revision&&
+           (prior.Group.Length==1||AllServe(prior.Group,sight))){head=prior;return true;}
+        if(!Resolve(sight,out var group,out var exclusive,out var linked)||!InGroup(group,cannon))
         {heads.Remove(sight.Pointer);return false;}
-        if(RuntimeAtgmSightMount.Axes(sight,cannon).Count!=0)
+        if(GroupAxes(sight,group,linked).Count!=0)
         {nativeSights[sight.Pointer]=revision;heads.Remove(sight.Pointer);return false;}
-        head=prior!=null&&prior.Cannon.Pointer==cannon.Pointer?prior:new Head(sight,cannon);
+        // The head (and its angles) belongs to the sight; it stays while tubes come and go.
+        head=prior!=null&&prior.Group.Any(c=>InGroup(group,c))?prior:new Head(sight,group);
+        head.Group=group;head.Turret=SharedTurret(sight,group,exclusive);
+        if(head.Turret&&warnings.Add("turret-follows:"+sight.Pointer))
+            Plugin.ModLog.LogInfo(AtgmSightLog.TurretFollows(sight.VUID.Value));
         head.Revision=revision;heads[sight.Pointer]=head;return true;
     }
     private static bool Gunner(Head head)
     {
-        var op=head.Cannon.operable;
-        var valid=AtgmSightHead.CanMove(op?.OperatorAssigned==true,op?.Valid==true);
+        var crews=head.Group.Select(c=>{var op=c.operable;return (op?.OperatorAssigned==true,op?.Valid==true);}).ToArray();
+        var valid=AtgmIndependentSightPolicy.HeadMoves(crews);
         if(!valid&&warnings.Add("gunner:"+head.Cannon.Pointer))
-            Plugin.ModLog.LogInfo($"[ATGM guidance sight] No gunner on launcher {head.Cannon.VUID.Value}: sight head locked");
+            Plugin.ModLog.LogInfo(AtgmSightLog.NoGunner(VuidList(head.Group)));
         return valid;
     }
     // Gimbal centre in the part frame: above the pedestal, mid-length of the head
@@ -243,6 +376,8 @@ internal static class RuntimeAtgmGuidanceSight
         var local=Quaternion.Inverse(head.Sight.SightParent.rotation)*direction.normalized;
         var command=new AtgmHeadAngles(Mathf.Atan2(local.x,local.z)*Mathf.Rad2Deg,
             Mathf.Atan2(local.y,Mathf.Sqrt(local.x*local.x+local.z*local.z))*Mathf.Rad2Deg);
+        // On a shared native turret the turret does the yaw: the head only elevates.
+        command=AtgmSharedTurretHead.Command(command,head.Turret);
         head.Angles=AtgmSightHead.Slew(head.Angles,command,Setting(headYawRate,60),Setting(headPitchRate,40),dt,gunner,Limits);
         if(aims.ContainsKey(head.Sight.Pointer))HeadAim(head);
     }
@@ -259,13 +394,13 @@ internal static class RuntimeAtgmGuidanceSight
                     var cannon=pair.Value;
                     if(cannon.WasCollected){launchers.Remove(pair.Key);continue;}
                     if(cannon.Vehicle?.Behaviour?.Pointer!=vehicle||!TryHead(cannon,out var head)||head==null)continue;
-                    if(sessions.Values.Any(s=>s.Cannon.Pointer==cannon.Pointer&&s.Initialized&&s.Scope.Scoped&&s.Scope.HasActive&&s.Scope.ControlledScope?.Pointer==s.Sight.Pointer))continue;
+                    if(sessions.Values.Any(s=>InGroup(s.Group,cannon)&&s.Initialized&&s.Scope.Scoped&&s.Scope.HasActive&&s.Scope.ControlledScope?.Pointer==s.Sight.Pointer))continue;
                     if(RuntimeAtgm.TryPlayerAim(vehicle,out var direction))Step(head,direction,Time.deltaTime);
                 }
                 catch(Exception ex){launchers.Remove(pair.Key);Warn("Head launcher",ex);}
             }
             foreach(var pair in heads.ToArray())
-                if(!TryHead(pair.Value.Cannon,out var current)||current!=pair.Value)heads.Remove(pair.Key);
+                if(!pair.Value.Group.ToArray().Any(c=>TryHead(c,out var current)&&current==pair.Value))heads.Remove(pair.Key);
         }
         catch(Exception ex){Warn("Head aim",ex);}
     }
@@ -288,12 +423,13 @@ internal static class RuntimeAtgmGuidanceSight
             if(TryHead(cannon,out var head)&&head!=null)
             {
                 origin=HeadOrigin(head);direction=HeadDirection(head);range=300;
-                foreach(var session in sessions.Values)if(session.Cannon.Pointer==cannon.Pointer&&session.Scope.Scoped){range=session.Scope.GunConverganceDistance;break;}
+                foreach(var session in sessions.Values)if(InGroup(session.Group,cannon)&&session.Scope.Scoped){range=session.Scope.GunConverganceDistance;break;}
                 return Finite(origin)&&Finite(direction)&&direction.sqrMagnitude>.5f;
             }
             foreach(var s in sessions.Values)
             {
-                if(s.Cannon.Pointer!=cannon.Pointer||!Valid(s)||!s.Initialized||!s.Scope.Scoped||!s.Scope.HasActive||
+                // Valid may let a broken tube leave the group: ask again after it.
+                if(!InGroup(s.Group,cannon)||!Valid(s)||!InGroup(s.Group,cannon)||!s.Initialized||!s.Scope.Scoped||!s.Scope.HasActive||
                    s.Scope.ControlledScope?.Pointer!=s.Sight.Pointer)continue;
                 var camera=s.Scope.controller;if(camera==null)continue;
                 origin=s.Sight.SightParent.TransformPoint(s.Sight.ObjectiveLensLocalPosition);
@@ -303,6 +439,22 @@ internal static class RuntimeAtgmGuidanceSight
         }
         catch(Exception ex){Warn("Aim",ex);}
         return false;
+    }
+    // RuntimeAtgm launch: does an older sight-guided missile keep its guidance when
+    // another tube of the same sight group fires? Any doubt: no (superseded, as 0.22.86).
+    internal static bool GuidesTogether(Sprocket.Vehicles.Weapons.Cannons.CannonBehaviour? older,string? olderMode,Sprocket.Vehicles.Weapons.Cannons.CannonBehaviour? newer,string? newerMode)
+    {
+        try
+        {
+            if(!Enabled||older==null||newer==null||older.Pointer==newer.Pointer||olderMode!="sight"||newerMode!="sight")return false;
+            var a=older.mount?.TryCast<Cannon>();var b=newer.mount?.TryCast<Cannon>();
+            if(a==null||b==null||a.Pointer==b.Pointer||!UsesIndependentSight(a)||!UsesIndependentSight(b)||
+               !b.TryGetAssignedSight(out var assigned)||assigned?.TryCast<GunnerSight>() is not {} sight||
+               !a.TryGetAssignedSight(out var olderSight)||olderSight?.Pointer!=sight.Pointer)return false;
+            if(!Resolve(sight,out var group,out _,out _))return false;
+            return AtgmIndependentSightPolicy.GuidesTogether(Pointers(group),a.Pointer,olderMode,b.Pointer,newerMode);
+        }
+        catch(Exception ex){Warn("Group launch",ex);return false;}
     }
     [HarmonyPrefix,HarmonyPatch(typeof(ScopeController),nameof(ScopeController.ActivateSight))]
     private static void BeforeActivate(ScopeController __instance,IGunnerSight __0)
@@ -369,6 +521,8 @@ internal static class RuntimeAtgmGuidanceSight
         if(TryAim(s.Cannon,out var origin,out var direction,out var range))
             s.Scope.scopeAimPoint=origin+direction.normalized*(range>1?range:300);
     }
+    // 0.22.92: dead hook. Native inlines SetAimPoint into InternalLateUpdate (0 callers,
+    // SIGHT-ELEVATION-MAP), so this postfix never runs. Kept so the hook count stays 47.
     [HarmonyPostfix,HarmonyPatch(typeof(ScopeController),nameof(ScopeController.SetAimPoint),new[]{typeof(Vector3),typeof(Vector3)})]
     private static void AimPoint(ScopeController __instance)
     {
@@ -388,9 +542,9 @@ internal static class RuntimeAtgmGuidanceSight
     private static void Released(Cannon __instance)
     {
         revision++;launchers.Remove(__instance.Pointer);
-        var released=heads.Where(p=>p.Value.Cannon.Pointer==__instance.Pointer).Select(p=>p.Key).ToArray();
+        var released=heads.Where(p=>InGroup(p.Value.Group,__instance)).Select(p=>p.Key).ToArray();
         foreach(var key in released)heads.Remove(key);
-        foreach(var pair in sessions.Where(p=>p.Value.Cannon.Pointer==__instance.Pointer).ToArray())End(pair.Key);
+        foreach(var pair in sessions.Where(p=>InGroup(p.Value.Group,__instance)).ToArray())End(pair.Key);
         foreach(var key in released)DropAim(key);
     }
     private static bool Hold(GunLayer layer)
@@ -400,7 +554,9 @@ internal static class RuntimeAtgmGuidanceSight
         {
             if(!Valid(s)||!s.Initialized||!s.Scope.Scoped||s.Scope.ControlledScope?.Pointer!=s.Sight.Pointer)continue;
             if(s.SightAxes.Contains(target.Pointer))return false;
-            if(s.Cannon.HorizontalAimingMechanism?.Pointer!=target.Pointer&&s.Cannon.VerticalAimingMechanism?.Pointer!=target.Pointer)continue;
+            var tube=false;
+            foreach(var c in s.Group)if(c.HorizontalAimingMechanism?.Pointer==target.Pointer||c.VerticalAimingMechanism?.Pointer==target.Pointer){tube=true;break;}
+            if(!tube)continue;
             // Shared yaw belongs to the native controller. Hold only an axis proved
             // exclusive after the latest native build/assignment/lifecycle change.
             return s.ExclusiveAxes.Contains(target.Pointer);
@@ -462,8 +618,9 @@ internal static class RuntimeAtgmGuidanceSight
                     ApplyLimits(s);
                     // Discard any pending camera lead before native input. The
                     // same-target postfix bounds the freshly consumed mouse delta.
-                    if(s.SightAxes.Count==0&&TryHead(s.Cannon,out var head)&&head!=null)HeadCamera(head,__instance);
-                    SightAimPoint(s);Diagnose(s,__instance,__1);return;
+                    // A turret-follows head leaves the native world aim alone.
+                    if(s.SightAxes.Count==0&&TryHead(s.Cannon,out var head)&&head!=null&&AtgmSharedTurretHead.WritesCamera(head.Turret))HeadCamera(head,__instance);
+                    SightAimPoint(s);FollowMask(s);Diagnose(s,__instance,__1);return;
                 }
         }
         catch(Exception ex){Warn("Camera elevation",ex);}
@@ -477,16 +634,19 @@ internal static class RuntimeAtgmGuidanceSight
             foreach(var s in sessions.Values)
             {
                 if(s.Camera?.Pointer!=__instance.Pointer||!s.Initialized||!s.Scope.Scoped||!s.Scope.HasActive||
-                   s.Scope.ControlledScope?.Pointer!=s.Sight.Pointer||!Valid(s)||s.SightAxes.Count!=0||!TryHead(s.Cannon,out var head)||head==null)continue;
+                   s.Scope.ControlledScope?.Pointer!=s.Sight.Pointer||!Valid(s))continue;
+                if(s.SightAxes.Count!=0){FollowMask(s);return;} // 0.22.92: the aim after this frame's native input
+                if(!TryHead(s.Cannon,out var head)||head==null)continue;
                 var euler=ScopeCameraController.CameraAngleToEuler(__instance.targetAngles);
                 var before=head.Angles;var stepped=head.Frame!=Time.frameCount;
                 Step(head,Quaternion.Euler(euler.x,euler.y,0)*Vector3.forward,Time.deltaTime);
                 if(ReleaseDiagnostics.Enabled&&headScopeLogs<30&&Time.realtimeSinceStartup>=nextHeadScopeLog)
                 {
                     nextHeadScopeLog=Time.realtimeSinceStartup+1;headScopeLogs++;
-                    Plugin.ModLog.LogInfo($"[ATGM guidance sight] HEADSCOPE arg={__0:0.####} dt={Time.deltaTime:0.####} stepped={stepped} gunner={Gunner(head)} target={euler} head={before.Yaw:0.0}/{before.Pitch:0.0}->{head.Angles.Yaw:0.0}/{head.Angles.Pitch:0.0} linked={s.Sight.LinkedWeapon?.name} linkedForward={s.Sight.LinkedWeapon?.forward} cameraForward={__instance.TargetRotation*Vector3.forward}");
+                    Plugin.ModLog.LogInfo($"[ATGM guidance sight] HEADSCOPE arg={__0:0.####} dt={Time.deltaTime:0.####} stepped={stepped} gunner={Gunner(head)} target={euler} head={before.Yaw:0.0}/{before.Pitch:0.0}->{head.Angles.Yaw:0.0}/{head.Angles.Pitch:0.0} linked={s.Sight.LinkedWeapon?.name} linkedForward={s.Sight.LinkedWeapon?.forward} cameraForward={__instance.TargetRotation*Vector3.forward}{(head.Turret?" turretFollows=True":"")}");
                 }
-                HeadCamera(head,__instance);SightAimPoint(s);return;
+                if(AtgmSharedTurretHead.WritesCamera(head.Turret))HeadCamera(head,__instance);
+                SightAimPoint(s);FollowMask(s);return;
             }
         }
         catch(Exception ex){Warn("Head camera",ex);}

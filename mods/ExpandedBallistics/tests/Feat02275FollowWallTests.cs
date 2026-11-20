@@ -6,7 +6,7 @@ using System.Text.Json.Nodes;
 namespace SprocketExpandedBallistics;
 internal static class Feat02275FollowWallTests
 {
-    internal static bool IsPlanned(string rel)=>new[]{"ComposerFill.cs","CompositePlate.cs","CassetteComposerModel.cs","CassetteComposerPanel.cs","RuntimeComposerFill.cs","RuntimeCompositePlateEdit.cs","Plugin.cs","SprocketExpandedBallistics.csproj","RELEASE-NOTES.md"}.Contains(rel)||Feat02277SolidBlockTests.IsPlanned(rel); // 0.22.77: its planned files count too
+    internal static bool IsPlanned(string rel)=>new[]{"ComposerFill.cs","CompositePlate.cs","CassetteComposerModel.cs","CassetteComposerPanel.cs","RuntimeComposerFill.cs","RuntimeCompositePlateEdit.cs","Plugin.cs","SprocketExpandedBallistics.csproj","RELEASE-NOTES.md"}.Contains(rel)||Feat02277SolidBlockTests.IsPlanned(rel); // 0.22.78: its planned files count too
     static double Area(Vector3[] p)=>CheekShellFill.Newell(p).Length()*.5;
     internal static void Run(Action<bool,string> sink)
     {
@@ -62,7 +62,7 @@ internal static class Feat02275FollowWallTests
                 Check(again.ConvertedFaces>0,"reapply different recipe after blueprint round-trip");
                 var model=new CassetteComposerModel(new CassetteComposer(materials,reactions,"","",_=>false),Array.Empty<ComposerMaterial>(),Array.Empty<ComposerMaterial>(),()=>Array.Empty<CassettePreset>());
                 model.SetTarget(new("test",176,"ebCassette_t80u","T80U",true,20,20,ConvertBlocker:null,FrontNote:LayerFaces.SelectionNote(json,selected)));model.SetApplyChoice(ComposerApplyChoice.ConvertToLayers);
-                Check(model.ApplyNote.Contains("Front: "+selected.Count(x=>x)+" selected faces in 2 closed pieces")&&model.ApplyChoiceHelp.Contains("With faces selected, those are the front and the layers follow them inward."),"window note/help carry selection meaning");
+                Check(model.ApplyNote.Contains("Front: "+selected.Count(x=>x)+" selected faces in 2 closed pieces")&&model.ApplyChoiceHelp.Contains("With faces selected, those are the front and the layers follow them inward") /* 0.22.80: the sentence goes on (to the back, or to the Thickness) */,"window note/help carry selection meaning");
                 foreach(var cv in coverage)
                 {
                     int side=cv.cheek;var indices=Enumerable.Range(0,polys.Length).Where(i=>selected[i]&&polys[i][0].X*side>0).ToArray();var converted=r.Sources.Where(s=>s.Converted).Select(s=>s.Index).ToHashSet();
@@ -86,8 +86,9 @@ internal static class Feat02275FollowWallTests
         ComposerFillBlueprintEvidence.FollowWallBoxes(Recipe("t80u_hull"),Density,Check);
         // B: the real folded faces are downgraded; deliberately choosing the entire closed surface exceeds one third and must refuse atomically.
         Check(single.SelectedWalls>0&&single.SelectedWallReasons!.Contains("face "),"B: bad selected faces become counted/logged steel walls");
-        string refusal="";try{LayerFaces.Convert(json,Recipe("t80u_hull"),null,Density,Vector3.UnitY,5,null,Enumerable.Repeat(true,polys.Length).ToArray());}catch(InvalidOperationException e){refusal=e.Message;}
-        Check(refusal.Contains("None of the selected faces"),"B: no selected face can form layers refuses without plan");
+        // 0.22.80: the entire closed surface selected has no back: its corners run to the chosen thickness inside the shape, so it converts; the refusal when no face can get layers is tested in FEAT80 (a pentagon).
+        string refusal="";LayerConversion? whole=null;try{whole=LayerFaces.Convert(json,Recipe("t80u_hull"),null,Density,Vector3.UnitY,5,null,Enumerable.Repeat(true,polys.Length).ToArray());}catch(InvalidOperationException e){refusal=e.Message;}
+        Check(whole!=null&&whole.Sources.Any(x=>x.Converted)&&refusal.Length==0,"B: the whole closed surface selected converts instead of refusing (0.22.80)");
         File.WriteAllText(Path.Combine(output,"OBJECT292-MEASUREMENTS.tsv"),rows.ToString());
         File.WriteAllText(Path.Combine(output,"OBJECT292-MEASUREMENTS.json"),JsonSerializer.Serialize(new{method="12 mm fixed lattice; seed 0, cell offset (.37,.43,.61); parity in original closed surface, union of tetrahedralized full front/back prisms including air plus native solid prisms; each inside point counted once",cases=measurements},new JsonSerializerOptions{WriteIndented=true}));
         File.WriteAllText(Path.Combine(output,"FEAT75-RESULT.json"),JsonSerializer.Serialize(new{passed=failures==0,checks,failures,liveNativeTested=false}));

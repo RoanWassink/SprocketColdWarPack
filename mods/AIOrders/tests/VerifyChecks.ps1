@@ -42,7 +42,7 @@ foreach ($name in @('SprocketUiKit.dll','SprocketKeybinds.dll')) {
     Remove-Item -LiteralPath $bad
 }
 $badSource = Join-Path $source 'Bad.cs'
-foreach ($snippet in @('GUI.Button(rect, "bad");','Cursor.lockState = lockMode;', 'Cursor.visible = true;',
+foreach ($snippet in @('[HarmonyPatch(typeof(CommanderAI), "Other")] class Extra {}', 'GUI.Button(rect, "bad");','Cursor.lockState = lockMode;', 'Cursor.visible = true;',
     '[HarmonyPatch(typeof(VehicleInputSystemInputs), "Fire")] class Block {}', 'class MapInputBlock {}', 'bool MapOwnsMouse;', 'void OnGUI() {}', 'GUI.Label(rect, "bad");', 'GUIStyle style;',
     'class PanelPlacement {}', 'class MapInputPolicy {}', 'var mouse = Mouse.current;',
     'var panel = UiKit.CreatePanel(Plugin.Guid, "menu", "x", null, 10, 10);',
@@ -55,6 +55,14 @@ foreach ($snippet in @('GUI.Button(rect, "bad");','Cursor.lockState = lockMode;'
     Check-Verify "forbidden source rejected: $snippet" $false
 }
 Remove-Item -LiteralPath $badSource
+$patchPath = Join-Path $source 'Patches.cs'
+$patchOriginal = [IO.File]::ReadAllBytes($patchPath)
+[IO.File]::WriteAllText($patchPath, ([IO.File]::ReadAllText($patchPath).Replace('UpdateFormationTasks','OtherMethod')))
+Check-Verify 'changed existing patch rejected with count still three' $false
+[IO.File]::WriteAllBytes($patchPath, $patchOriginal)
+[IO.File]::WriteAllText($patchPath, ([IO.File]::ReadAllText($patchPath).Replace('[HarmonyPatch(typeof(CommanderAI), nameof(CommanderAI.UpdateFormationTasks))]', '')))
+Check-Verify 'missing patch rejected' $false
+[IO.File]::WriteAllBytes($patchPath, $patchOriginal)
 $obsolete = Join-Path $source 'PanelPlacement.cs'
 Set-Content -LiteralPath $obsolete -Value '// empty obsolete file'
 Check-Verify 'obsolete PanelPlacement file rejected even without class' $false

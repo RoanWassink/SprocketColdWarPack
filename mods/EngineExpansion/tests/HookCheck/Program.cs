@@ -20,7 +20,7 @@ foreach(var type in asm.MainModule.GetTypes())
             m.CustomAttributes.Any(a=>a.AttributeType.Name=="HarmonyPatch"&&a.ConstructorArguments.Count<2));
     if(unsupported){Console.WriteLine("FAIL unsupported Harmony target declaration: "+type.FullName);bad++;}
 }
-using var native=new NativeAudit(interop,args.Length>=4?args[3]:Path.Combine(Path.GetDirectoryName(plugin)!,"ICF-CHECK.md"));
+using var native=new NativeAudit(interop,args.Length>=4?args[3]:Path.Combine(Path.GetDirectoryName(plugin)!,"ICF-CHECK.md"),args.Length>=5?args[4]:null);
 foreach(var owner in asm.MainModule.GetTypes())
 foreach(var patch in owner.Methods)
 foreach(var attr in patch.CustomAttributes.Where(a=>a.AttributeType.Name=="HarmonyPatch"&&a.ConstructorArguments.Count>=2))

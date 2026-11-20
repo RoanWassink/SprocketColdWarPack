@@ -23,5 +23,7 @@ Sprocket 0.2.55.5, Windows x64 and an already-working Sprocket Mod Loader / BepI
 
 Close the game, back up matching files and saves, then merge the ZIP's folders into the game directory. Keep one DLL per plugin and preserve customized configs/catalogues/WAV overrides. See the README for exact use, controls, limitations and uninstall instructions.
 
+[Support my ChatGPT budget and help me reverse engineer Sprocket to make more mods](https://www.paypal.com/donate/?hosted_button_id=7PE3SDBETXFQ6).
+
 [Separate loader installation](https://github.com/Hans21223/Sprocket-Mod-Loader).
 

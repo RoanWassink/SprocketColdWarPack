@@ -1,6 +1,6 @@
 namespace SprocketCarouselAutoloader;
 
-public enum LoaderKind { Bustle, Semi, Revolver }
+public enum LoaderKind { Bustle, Semi, Revolver, Belt }
 
 /// <summary>
 /// One date per loading mechanism/layout. Carousel is an option on a native
@@ -11,6 +11,7 @@ public static class CarouselDatePolicy
 {
     public static readonly DateTime BustleDate = new(1952, 1, 1);
     public static readonly DateTime SemiAutoloaderDate = new(1953, 1, 1);
+    public static readonly DateTime BeltDate = new(1965, 1, 1);
     public static readonly DateTime RevolverDate = new(1952, 1, 1);
     public static readonly DateTime T64CarouselDate = new(1967, 1, 1);
     public static readonly DateTime T72CarouselDate = new(1973, 1, 1);
@@ -22,6 +23,7 @@ public static class CarouselDatePolicy
     {
         LoaderKind.Semi => SemiAutoloaderDate,
         LoaderKind.Revolver => RevolverDate,
+        LoaderKind.Belt => BeltDate,
         _ => BustleDate
     };
 

@@ -23,6 +23,7 @@ public abstract class Element
     internal Func<string?>? TooltipGetter;
     // 0.1.4 (#18): Where and per-frame Guard site names are cached, so polling allocates no strings
     private string? where; private string?[]? sites;
+    private string? enabledSite, visibleSite;
     internal string Where => where ??= $"{Panel?.Key ?? "?"}:{GetType().Name}";
     /// <summary>Cached "Where + suffix" for a Guard call that runs every frame; <paramref name="slot"/> 0..3 per class.</summary>
     internal string Site(int slot, string suffix) { sites ??= new string?[4]; return sites[slot] ??= Where + suffix; }
@@ -30,7 +31,7 @@ public abstract class Element
     /// <summary>True when this element is laid out and visible.</summary>
     public bool IsVisible => Visible;
 
-    internal virtual void Attach(Panel panel, Element? parent) { Panel = panel; Parent = parent; where = null; sites = null; }
+    internal virtual void Attach(Panel panel, Element? parent) { Panel = panel; Parent = parent; where = null; sites = null; enabledSite = visibleSite = null; }
     internal void BuildIn(RectTransform parent)
     {
         Rt = Draw.Node(GetType().Name, parent);
@@ -60,8 +61,8 @@ public abstract class Element
     /// <summary>Evaluate visibility/enabled (and error/alpha, 0.1.2); returns true when visibility changed (layout dirty).</summary>
     internal bool Evaluate()
     {
-        Enabled = EnabledGetter == null || Guard.Get(Where + ".EnabledWhen", EnabledGetter, true);
-        bool v = VisibleGetter == null || Guard.Get(Where + ".VisibleWhen", VisibleGetter, true);
+        Enabled = EnabledGetter == null || Guard.Get((enabledSite ??= Where + ".EnabledWhen"), EnabledGetter, true);
+        bool v = VisibleGetter == null || Guard.Get((visibleSite ??= Where + ".VisibleWhen"), VisibleGetter, true);
         if (ErrorGetter != null && v) EvaluateError();
         if (AlphaGetter != null && Rt != null && v) ApplyAlpha();
         if (v == Visible) return false;
@@ -147,7 +148,7 @@ public static class ElementExtensions
 }
 
 /// <summary>Element that holds children and offers the component factories.</summary>
-public abstract class Container : Element
+public abstract partial class Container : Element
 {
     internal readonly List<Element> Children = new();
     internal float Gap;
@@ -160,6 +161,7 @@ public abstract class Container : Element
     }
     /// <summary>uGUI parent for children (a scroll view's content node, otherwise this element).</summary>
     internal virtual RectTransform? ChildRoot => Rt;
+    /// <summary>Build retained Unity views when the element is first shown.</summary>
     protected override void Build() { foreach (var c in Children) c.BuildIn(ChildRoot!); }
     internal override void Unbuild() { foreach (var c in Children) c.Unbuild(); base.Unbuild(); }
 
@@ -182,8 +184,11 @@ public abstract class Container : Element
         if (Kit.Hover == element || Kit.Pressed == element) Kit.ForgetElement();
         MarkDirty();
     }
+    /// <summary>Set container padding in Kit units and request layout.</summary>
     public Container Padding(float all) => Padding(all, all, all, all);
+    /// <summary>Set container padding in Kit units and request layout.</summary>
     public Container Padding(float top, float right, float bottom, float left) { PadT = top; PadR = right; PadB = bottom; PadL = left; MarkDirty(); return this; }
+    /// <summary>Set the gap between children in Kit units and request layout.</summary>
     public Container Spacing(float gap) { Gap = gap; MarkDirty(); return this; }
 
     internal override void Refresh(float now)
@@ -210,15 +215,25 @@ public abstract class Container : Element
     internal override IEnumerable<Element> Kids => Children;
 
     // ---------- Factories (each adds the new element to this container) ----------
+    /// <summary>Add a nodegraph control to this container.</summary>
     public NodeGraph NodeGraph() => Add(new NodeGraph());
+    /// <summary>Add a label control to this container.</summary>
     public Label Label(string text, TextStyle style = TextStyle.Value) => Add(new Label(text, null, style));
+    /// <summary>Add a label control to this container.</summary>
     public Label Label(Func<string> text, TextStyle style = TextStyle.Value) => Add(new Label("", text, style));
+    /// <summary>Add a button control to this container.</summary>
     public Button Button(string text, Action onClick, ButtonStyle style = ButtonStyle.Normal) => Add(new Button(text, onClick, style));
+    /// <summary>Add a iconbutton control to this container.</summary>
     public IconButton IconButton(Icon icon, Action onClick, string? tooltip = null) => Add(new IconButton(icon, onClick)).Tooltip(tooltip);
+    /// <summary>Add a segmented control to this container.</summary>
     public SegmentedButtons Segmented(IReadOnlyList<string> options, Func<int> selected, Action<int> select) => Add(new SegmentedButtons(options, selected, select));
+    /// <summary>Add a stepper control to this container.</summary>
     public Stepper Stepper(Func<double> value, Action<double> set, double min, double max, double step, string? unit = null) => Add(new Stepper(value, set, min, max, step, unit));
+    /// <summary>Open a closed panel or close an open panel.</summary>
     public Toggle Toggle(Func<bool> value, Action<bool> set) => Add(new Toggle(value, set));
+    /// <summary>Add a dropdown control to this container.</summary>
     public Dropdown Dropdown(IReadOnlyList<string> options, Func<int> selected, Action<int> select) => Add(new Dropdown(() => options, selected, select));
+    /// <summary>Add a dropdown control to this container.</summary>
     public Dropdown Dropdown(Func<IReadOnlyList<string>> options, Func<int> selected, Action<int> select) => Add(new Dropdown(options, selected, select));
     /// <summary>Dropdown with grouped options: a heading is shown for each new <see cref="Choice.Group"/>.</summary>
     public Dropdown Dropdown(Func<IReadOnlyList<Choice>> choices, Func<int> selected, Action<int> select) => Add(new Dropdown(choices, selected, select, true));
@@ -230,9 +245,13 @@ public abstract class Container : Element
     public ScrollView ScrollView() => Add(new ScrollView());
     /// <summary>One block per item, rebuilt when the item list changes.</summary>
     public Repeat<T> Repeat<T>(Func<IReadOnlyList<T>> items, Action<T, Stack> build, float gap = 6) => Add(new Repeat<T>(items, build, gap));
+    /// <summary>Add a textfield control to this container.</summary>
     public TextField TextField(Func<string> value, Action<string> commit, string placeholder = "") => Add(new TextField(value, commit, placeholder));
+    /// <summary>Add a tabs control to this container.</summary>
     public Tabs Tabs(IReadOnlyList<string> tabs, Func<int> selected, Action<int> select) => Add(new Tabs(() => tabs, selected, select));
+    /// <summary>Add a tabs control to this container.</summary>
     public Tabs Tabs(Func<IReadOnlyList<string>> labels, Func<int> selected, Action<int> select) => Add(new Tabs(labels, selected, select));
+    /// <summary>Add a list control to this container.</summary>
     public ListView<T> List<T>(Func<IReadOnlyList<T>> items, Action<T, ListRow> template) => Add(new ListView<T>(items, template));
     /// <summary>Aligned data table; columns keep their x positions at every size (0.1.6).</summary>
     public Table<T> Table<T>(Func<IReadOnlyList<T>> rows) => Add(new Table<T>(rows));
@@ -240,16 +259,25 @@ public abstract class Container : Element
     public LineChart LineChart(float height = 220) => Add(new LineChart { FixedH = height });
     /// <summary>Bar chart or floating waterfall (0.1.7), fixed height, full column width.</summary>
     public BarChart BarChart(float height = 220) => Add(new BarChart { FixedH = height });
+    /// <summary>Add a lamp control to this container.</summary>
     public Lamp Lamp(Func<bool> on, string? label = null) => Add(new Lamp(on, label));
+    /// <summary>Add a progress control to this container.</summary>
     public ProgressBar Progress(Func<float> value) => Add(new ProgressBar(value));
     /// <summary>Circular progress (0.1.8): diameter in Kit units, optional centre text, fill 0..1.</summary>
     public RadialProgress Radial(Func<float> value, float size = 48, Func<string?>? centre = null) => Add(new RadialProgress(value, size, centre));
+    /// <summary>Add a chip control to this container.</summary>
     public Chip Chip(string text, ChipStyle style = ChipStyle.Neutral) => Add(new Chip(text, null, style));
+    /// <summary>Add a chip control to this container.</summary>
     public Chip Chip(Func<string> text, ChipStyle style = ChipStyle.Neutral) => Add(new Chip("", text, style));
+    /// <summary>Add a warning control to this container.</summary>
     public WarningRow Warning(string text) => Add(new WarningRow(text, null));
+    /// <summary>Add a warning control to this container.</summary>
     public WarningRow Warning(Func<string> text) => Add(new WarningRow("", text));
+    /// <summary>Add a stack control to this container.</summary>
     public Stack Stack(float gap = Tok.SectionGap) => Add(new Stack { Gap = gap });
+    /// <summary>Add a row control to this container.</summary>
     public Row Row(float gap = 8) => Add(new Row { Gap = gap });
+    /// <summary>Add a spacer control to this container.</summary>
     public Spacer Spacer(float size = -1) => Add(new Spacer(size));
     /// <summary>Row with a label on the left; add the control to the returned row (it is right-aligned).</summary>
     public Row FieldRow(string label)
@@ -328,6 +356,9 @@ public class Stack : Container
 /// <summary>Horizontal container: fixed/intrinsic widths first, flexible children share the rest; vertically centred.</summary>
 public sealed class Row : Container
 {
+    internal SettingBinding? SettingBinding;
+    internal override void Refresh(float now) { SettingBinding?.Refresh(now); base.Refresh(now); }
+    internal override void Unbuild() { SettingBinding?.Flush(); base.Unbuild(); }
     private bool shrink;
     /// <summary>
     /// When the content is wider than the row, shrink labels and chips (ellipsis) instead of
@@ -419,7 +450,8 @@ public sealed class Column : Stack
     }
 }
 
-/// <summary>Columns side by side, separated by 1 px dividers; fills the remaining panel height.</summary>
+/// <summary>Not part of the public contract. Retained column layout implementation; use Container.Columns.</summary>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public sealed class ColumnSet : Element
 {
     internal readonly Column[] Columns;
@@ -479,7 +511,8 @@ public sealed class ColumnSet : Element
     }
 }
 
-/// <summary>Section heading (15 px caps, accent) with an optional note on the right, then the body.</summary>
+/// <summary>Not part of the public contract. Retained section wrapper; use Column.Section.</summary>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public sealed class Section : Stack
 {
     internal readonly Stack Body;

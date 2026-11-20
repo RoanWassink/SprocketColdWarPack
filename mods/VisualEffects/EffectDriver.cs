@@ -69,7 +69,7 @@ public sealed class EffectDriver:MonoBehaviour
     private bool[] active=Array.Empty<bool>();
     private VolumetricRenderer? volume;
     private int mainThread;
-    private int scene=-1,reports,loadingSkips;
+    private int scene=-1,reports,impactReports,loadingSkips;
     private bool attempted,rendererAttempted,disposed;
     // 0 = volumetric bundle loading, 1 = volumetric, 2 = billboard, 3 = none.
     private int mode;
@@ -95,7 +95,9 @@ public sealed class EffectDriver:MonoBehaviour
         try
         {
             var p=Plugin.Instance;
-            volume=new VolumetricRenderer(transform,path,p.RaymarchSteps.Value,p.MaxVolumes.Value,p.Distance.Value,p.VolumetricDensity.Value,p.VolumetricScale.Value,p.MuzzleLight.Value,p.GroundDust.Value,p.LegacyVolumeSmoke.Value,p.MaxPuffs.Value,p.WindSpeed.Value,p.WindDirection.Value,new PuffTuning(p.SmokeAmount.Value,p.SmokeSize.Value,p.SmokeLifetime.Value,p.SmokeBrightness.Value,p.DustAmount.Value));
+            var imp=new ImpactTuning(p.ImpactsEnabled.Value,p.ImpactSparks.Value,p.ImpactShockwaves.Value,p.ImpactLights.Value,p.CookoffEffects.Value,p.ImpactScaleMultiplier.Value,p.SparkIntensity.Value,p.ExplosionFireballIntensity.Value,p.ImpactMaxDistance.Value);
+            var spk=new SparkTuning(p.SparkIntensity.Value,p.ImpactScaleMultiplier.Value);
+            volume=new VolumetricRenderer(transform,path,p.RaymarchSteps.Value,p.MaxVolumes.Value,p.Distance.Value,p.VolumetricDensity.Value,p.VolumetricScale.Value,p.MuzzleLight.Value,p.GroundDust.Value,p.LegacyVolumeSmoke.Value,p.MaxPuffs.Value,p.WindSpeed.Value,p.WindDirection.Value,new PuffTuning(p.SmokeAmount.Value,p.SmokeSize.Value,p.SmokeLifetime.Value,p.SmokeBrightness.Value,p.DustAmount.Value),p.MuzzleFireIntensity.Value,p.MuzzleSparks.Value,p.MuzzleShockwave.Value,p.MaxSparks.Value,p.MaxImpactVolumes.Value,imp,spk);
             var size=File.Exists(path)?new FileInfo(path).Length.ToString()+" bytes":"missing";
             p.Log.LogInfo($"Renderer=Volumetric loading bundle={path} size={size} (async LoadFromFileAsync + LoadAllAssetsAsync(Type), every call guarded; SelfTest lines follow)");
             if(volume.BeginLoad()){mode=0;Ready=true;return;}
@@ -111,7 +113,7 @@ public sealed class EffectDriver:MonoBehaviour
         if(volume.State==VolumetricRenderer.LoadState.Ready)
         {
             mode=1;
-            Plugin.Instance.Log.LogInfo($"Renderer=Volumetric READY bundle={volume.BundlePath} size={volume.BundleBytes} bytes loaded in {volume.LoadSeconds:F2} s shader={volume.LoadedShaderName} supported={volume.ShaderSupported} material={volume.MaterialName} volumes={volume.Capacity} steps={volume.Steps} density=x{volume.DensityFactor:F2} (base {EffectMath.HeavyDensity:F1}) scale=x{volume.ScaleFactor:F2} lifetime={EffectMath.HeavyLifetime:F1}s muzzleLight={volume.LightEnabled} groundDust={volume.DustEnabled} puffs={volume.PuffStatus} legacySmoke={volume.LegacySmoke}");
+            Plugin.Instance.Log.LogInfo($"Renderer=Volumetric READY bundle={volume.BundlePath} size={volume.BundleBytes} bytes loaded in {volume.LoadSeconds:F2} s shader={volume.LoadedShaderName} supported={volume.ShaderSupported} material={volume.MaterialName} volumes={volume.Capacity} steps={volume.Steps} density=x{volume.DensityFactor:F2} (base {EffectMath.HeavyDensity:F1}) scale=x{volume.ScaleFactor:F2} lifetime={EffectMath.HeavyLifetime:F1}s muzzleLight={volume.LightEnabled} groundDust={volume.DustEnabled} puffs={volume.PuffStatus} sparks={volume.SparkStatus} waves={volume.WaveStatus} legacySmoke={volume.LegacySmoke}");
             if(loadingSkips>0)Plugin.Instance.Trace($"{loadingSkips} shot(s) before the bundle finished loading were not drawn");
         }
         else if(volume.State==VolumetricRenderer.LoadState.Failed)VolumetricFailed(volume.FailureReason);
@@ -201,6 +203,20 @@ public sealed class EffectDriver:MonoBehaviour
         births[i]=Time.time;active[i]=true;
         Render(shot,camera,0);
         reports++;Plugin.Instance.Trace($"Shot #{reports} Renderer=Billboard calibre={calibre}mm slot={i} world=({origin.x:F2},{origin.y:F2},{origin.z:F2}) scale={shot.Scale:F2} (ScaleMultiplier; atlas opacity, no density)");
+    }
+    internal void EmitImpact(ImpactKind kind,Vector3 pos,Vector3 normal,Vector3 velocity,float calibreMm)
+    {
+        if(!Ready||disposed||!IsMainThread||mode!=1||volume==null)return;
+        var desc=volume.EmitImpact(kind,pos,normal,velocity,calibreMm);
+        if(desc!=null&&Plugin.Instance.Detailed.Value&&impactReports++<80)
+            Plugin.Instance.Trace($"Impact #{impactReports} {desc} world=({pos.x:F2},{pos.y:F2},{pos.z:F2})");
+    }
+    internal void EmitCookoff(Vector3 pos,float mass,float impulse)
+    {
+        if(!Ready||disposed||!IsMainThread||mode!=1||volume==null)return;
+        var desc=volume.EmitCookoff(pos,mass,impulse);
+        if(desc!=null&&Plugin.Instance.Detailed.Value&&impactReports++<80)
+            Plugin.Instance.Trace($"Cookoff #{impactReports} {desc} world=({pos.x:F2},{pos.y:F2},{pos.z:F2})");
     }
     // Static and hidden from Il2Cpp: the private Shot parameter is not an Il2Cpp
     // type, which made class injection warn about an unsupported parameter.

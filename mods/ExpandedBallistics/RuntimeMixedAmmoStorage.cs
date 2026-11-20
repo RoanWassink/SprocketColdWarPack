@@ -15,6 +15,7 @@ public static class AmmoLoadoutApi
     public static void NotifyStorageDestroyed(AmmoRackBehaviour aggregate)=>ClearStorage(aggregate);
     public static int GetAvailable(Cannon cannon,AmmoRackBehaviour aggregate,int type)=>RuntimeAmmoLoadout.AvailableIn(cannon,aggregate,type);
     public static int TryTransfer(Cannon cannon,AmmoRackBehaviour source,AmmoRackBehaviour target,int type)=>RuntimeAmmoLoadout.Transfer(cannon,source,target,type);
+    public static void PrepareRequest(LoadTask task)=>RuntimeAmmoLoadout.PrepareForExternalLoader(task);
 }
 
 internal static partial class RuntimeAmmoLoadout
@@ -44,19 +45,56 @@ internal static partial class RuntimeAmmoLoadout
     private static int ConservativeRackCapacity(Cannon cannon,AmmoRack rack)
     {
         var status=ShellGeometryApi.GetLoaderGeometry(cannon,out var projectile,out var charge,out var diameter);
-        if(status==0)return Math.Clamp(rack.Capacity,0,ushort.MaxValue);
+        if(status==0)
+        {
+            var shell=cannon.ShellBlueprint;
+            if(cannon.Blueprint!=null&&shell!=null)
+            {
+                diameter=cannon.Blueprint.Caliber;
+                projectile=3*diameter;
+                charge=shell.PropellantLength;
+                if(TryLoaderRackCapacity(cannon,rack,projectile,charge,diameter,out var loaderCap))
+                    return Math.Clamp(loaderCap,0,ushort.MaxValue);
+            }
+            return Math.Clamp(rack.Capacity,0,ushort.MaxValue);
+        }
         if(status!=1)return 0;
-        var b=rack.Blueprint;if(b==null||projectile+charge>ushort.MaxValue||diameter>ushort.MaxValue)return 0;
-        return Math.Clamp(AmmoRackUtils.CalculateCapacity(b.Width,b.Height,b.Length,(ushort)Math.Ceiling(diameter),(ushort)Math.Ceiling(projectile+charge)),0,ushort.MaxValue);
+        return RackCapacity(cannon,rack,projectile,charge,diameter);
+    }
+    private static int CarouselCapacityForGeometry(Cannon cannon,double p,double c,double d)
+    {
+        var method=CarouselApi?.GetMethod("GetCarouselCapacityForGeometry");if(method==null)return 0;
+        object?[] args={cannon,p,c,d,0};return method.Invoke(null,args) is int result&&result==1?Math.Clamp((int)args[4]!,0,ushort.MaxValue):0;
+    }
+    private static bool TryLoaderRackCapacity(Cannon cannon,AmmoRack rack,double p,double c,double d,out int capacity)
+    {
+        capacity=0;
+        var method=CarouselApi?.GetMethod("GetRackCapacityForGeometry");if(method==null)return false;
+        object?[] args={cannon,rack,p,c,d,0};
+        if(method.Invoke(null,args) is int result&&result==1){capacity=Math.Clamp((int)args[5]!,0,ushort.MaxValue);return true;}
+        return false;
+    }
+    private static bool IsReadyMagazine(Cannon cannon,AmmoRack rack)
+    {
+        var method=CarouselApi?.GetMethod("IsReadyMagazine");if(method==null)return false;
+        return method.Invoke(null,new object?[]{cannon,rack}) is bool ready&&ready;
+    }
+    private static bool TryGetReachableStorage(Cannon cannon,out AmmoRackBehaviour? readyOnlyAggregate,out string? reason)
+    {
+        readyOnlyAggregate=null;reason=null;
+        var method=CarouselApi?.GetMethod("GetReachableStorage");if(method==null)return false;
+        object?[] args={cannon,null,null};
+        if(method.Invoke(null,args) is int result&&result==1&&args[1] is AmmoRackBehaviour agg)
+        {readyOnlyAggregate=agg;reason=args[2] as string;return true;}
+        return false;
     }
     private static int CarouselCapacity(Cannon cannon)
     {
-        if(CarouselApi is not {} api)return 0;
+        if(CarouselApi==null)return 0;
         var status=ShellGeometryApi.GetLoaderGeometry(cannon,out var p,out var c,out var d);
         if(status==0)status=ShellGeometryApi.GetLoaderGeometryForProfile(cannon,ShellProfiles.Vanilla,out p,out c,out d);
         if(status!=1)return 0;
-        var method=api.GetMethod("GetCarouselCapacityForGeometry");if(method==null)return 0;
-        object?[] args={cannon,p,c,d,0};return method.Invoke(null,args) is int result&&result==1?Math.Clamp((int)args[4]!,0,ushort.MaxValue):0;
+        return CarouselCapacityForGeometry(cannon,p,c,d);
     }
     private static (AmmoRackBehaviour? Aggregate,int Vuid,int Capacity) CarouselStore(Cannon cannon)
     {

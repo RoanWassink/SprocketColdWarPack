@@ -8,8 +8,9 @@ using Object = UnityEngine.Object;
 namespace SprocketGunSights;
 
 /// <summary>
-/// Shows the scope picture along the sight's real optical axis, so the view follows
-/// the turret and gun instead of the mouse. The mouse still commands the native aim:
+/// "Sight stays static" (per sight, 0.3.0): shows the scope picture along the sight part's
+/// own optical axis instead of the native view that follows the gun. Only sights whose
+/// "Sight follows gun" box is off (or the [View] default) get this. The mouse still commands the native aim:
 /// only the camera's render view matrix is overridden; its transform, which game
 /// systems read for aiming, is never changed. The native dynamic crosshair
 /// (where the gun points relative to the mouse aim) is hidden while this is active.
@@ -45,12 +46,22 @@ internal static class TurretView
         catch (Exception ex) { Warn("Turret view reset", ex); }
     }
 
-    private static bool Active =>
-        Plugin.FollowTurret && ScopeRuntime.Scoped && ScopeRuntime.ActiveSight is { } sight &&
-        !string.Equals(sight.VehicleObject?.GUID, SightCatalogue.AtgmGuidanceSightGuid, StringComparison.OrdinalIgnoreCase);
+    private static IntPtr loggedSight;
+
+    // Decided per active sight every frame, so switching sights or clicking the box applies at once.
+    private static bool Active
+    {
+        get
+        {
+            if (!ScopeRuntime.Scoped || ScopeRuntime.ActiveSight is not { } sight) { loggedSight = IntPtr.Zero; return false; }
+            if (sight.Pointer != loggedSight) { loggedSight = sight.Pointer; SightChoices.LogActivation(sight); }
+            return SightChoices.Static(sight);
+        }
+    }
 
     private static void BeforeRender()
     {
+        try { SightPersistence.Flush(); } catch (Exception ex) { Warn("Save log", ex); }
         try
         {
             var active = Active;

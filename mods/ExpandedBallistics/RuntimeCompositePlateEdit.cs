@@ -38,6 +38,38 @@ internal static class RuntimeCompositePlateEdit
         if(Eligibility(editor.Component) is {} blocker){message=blocker;return false;}
         return Run(editor,materialId,depthMm,mode,false,"Convert to composite plate","Converted to a composite plate.",out message);
     }
+    /// <summary>
+    /// 0.22.82 (Apply "Solid block"): the recipe as material and the mark [Solid block] in the mesh name, in the one existing CreateOp step (Run): the mesh copy keeps every
+    /// point and every corner thickness, so the shape stays as the user drew it. A plate that is not composite yet is converted in the same step (Undo leaves a normal plate).
+    /// Refused, with nothing changed: a plate in layers (Back to box first), and a plate whose pieces are not all closed (the open edges are named).
+    /// </summary>
+    internal static bool TrySolidBlock(PlateStructureEditor editor,string materialId,bool convert,out string message)
+    {
+        message="Select a Composite armour plate.";
+        if(editor==null||editor.Component==null)return false;
+        var plate=editor.Component;var wasComposite=RuntimeCompositePlate.Is(plate);
+        if(!wasComposite)
+        {
+            if(!convert)return false;
+            if(Eligibility(plate) is {} cannot){message=SolidBlockApply.Label+": "+cannot;return false;}
+        }
+        SolidShapeResult shape;(int Faces,int MaxMm) thick;
+        try
+        {
+            if(PlateMeshAccess.Read(plate,"solid block",SnapshotUse.Fresh)==null){message=PlateMeshAccess.Busy;return false;}
+            if(CompositePlate.LayoutFromName(plate.Mesh.ToMeshBlueprint(false)?.Name)!=null){message=SolidBlockApply.Label+": "+SolidBlockApply.InLayers;return false;}
+            var json=plate.Mesh.ToJson(true);shape=SolidShape.FromJson(json);thick=SolidShape.ThickFaces(json);
+        }
+        catch(Exception ex){message=SolidBlockApply.Label+": the plate could not be read ("+ex.Message+"). Nothing changed.";return false;}
+        if(!shape.Closed){message=SolidBlockApply.Label+": "+shape.Refusal;Plugin.ModLog.LogInfo("[Solid block] Apply refused on plate #"+plate.VUID.Value+": "+shape.Refusal);return false;}
+        var ok=Run(editor,materialId,null,ThicknessMode.SolidBlock,wasComposite,SolidBlockApply.Label,"",out message);
+        if(!ok)return false;
+        double? density=RuntimeArmourResponses.Snapshot.Cassettes?.TryGetValue(materialId,out var model)==true&&model!=null?model.Passive.Density:null;
+        message=SolidBlockApply.Label+": "+(wasComposite?"":"converted to a composite plate; ")+SolidBlockApply.Shape(shape.Pieces,shape.VolumeM3,density)+" "+SolidBlockApply.ColliderSummary+(thick.Faces>0?" "+SolidBlockApply.Thick(thick.Faces,thick.MaxMm):"");
+        if(thick.Faces>0)Plugin.ModLog.LogWarning("[Solid block] plate #"+plate.VUID.Value+": "+SolidBlockApply.Thick(thick.Faces,thick.MaxMm));
+        Plugin.ModLog.LogInfo(string.Create(System.Globalization.CultureInfo.InvariantCulture,$"[Solid block] Applied to plate #{plate.VUID.Value} with {materialId}: {shape.Pieces} closed pieces, {shape.VolumeM3:0.######} m3 ({string.Join(" + ",shape.PieceVolumesM3.Select(v=>v.ToString("0.######",System.Globalization.CultureInfo.InvariantCulture)))}), {shape.ReversedFaces} faces turned for the volume; density {density?.ToString("0.#",System.Globalization.CultureInfo.InvariantCulture)??"unknown"} kg/m3."));
+        return true;
+    }
     /// <summary>Null when the plate can be converted; otherwise the reason (<see cref="CompositeConversion.Blocker"/>).</summary>
     internal static string? Eligibility(PlateStructure plate)
     {
@@ -105,9 +137,27 @@ internal static class RuntimeCompositePlateEdit
         // 0.22.74: a plate that is not composite yet is converted by the same step (OldWasComposite false: the mesh gets the composite name, Undo leaves a normal plate).
         var wasComposite=RuntimeCompositePlate.Is(editor.Component);
         if(!wasComposite&&Eligibility(editor.Component) is {} cannot){message=prepared.Plan.Label+": "+cannot;return false;}
-        return Run(editor,prepared.Material,null,prepared.Mode,wasComposite,prepared.Plan.Label,"",out message,prepared);
+        CopyRefusal=null;
+        bool retryable=prepared.Plan.CopyRetry!=null;
+        var ok=Run(editor,prepared.Material,null,prepared.Mode,wasComposite,prepared.Plan.Label,"",out message,prepared,!retryable);
+        if(ok||!retryable||CopyRefusal is not {} refusal)return ok;
+        CopyRefusal=null;
+        // 0.22.80: the game did not keep the planned layer faces. The dump gets the planned net and the copy of the game; then one more plan with the faces that differ
+        // as wall (or left out) is applied. Only when that one is refused too, nothing changed.
+        var different=LayerFaces.CopyDifferences(prepared.Plan.Json,refusal.Json);
+        if(prepared.Plan.FollowWall is {} attempt)RuntimeComposerFill.ReportFollowWall(editor.Component,attempt with{PlannedJson=prepared.Plan.Json,GameJson=refusal.Json,CopyProblem=refusal.Problem,DifferentFaces=different.Select(i=>i+1).ToArray(),Summary="The game did not keep the planned faces ("+refusal.Problem+"); "+attempt.Summary},true);
+        ComposerMeshPlan? second=null;
+        try{second=prepared.Plan.CopyRetry!(refusal.Json);}catch(Exception ex){Plugin.ModLog.LogWarning("[Layer faces] Convert to layers: the second plan failed: "+ex.Message);}
+        if(second==null){if(prepared.Plan.FollowWall is {} first)RuntimeComposerFill.ReportFollowWall(editor.Component,first,true);return false;}
+        Plugin.ModLog.LogWarning($"[Layer faces] Convert to layers: the game did not keep {different.Length} planned faces; trying once more with their source faces as wall.");
+        var again=prepared with{Plan=second};
+        ok=Run(editor,again.Material,null,again.Mode,wasComposite,again.Plan.Label,"",out message,again);
+        if(!ok)message+=" (second plan; the first: "+refusal.Problem+")";
+        return ok;
     }
-    private static bool Run(PlateStructureEditor editor,string materialId,double? depthMm,ThicknessMode mode,bool oldWasComposite,string opName,string done,out string message,PreparedComposerFill? prepared=null)
+    /// <summary>0.22.80: the copy of the game and the reason, when the copy check of a prepared plan refused it (set in Change, read once by TryPrepared).</summary>
+    private static (string Json,string Problem)? CopyRefusal;
+    private static bool Run(PlateStructureEditor editor,string materialId,double? depthMm,ThicknessMode mode,bool oldWasComposite,string opName,string done,out string message,PreparedComposerFill? prepared=null,bool report=true)
     {
         Change? change=null;
         try
@@ -145,7 +195,8 @@ internal static class RuntimeCompositePlateEdit
         }
         finally
         {
-            if(prepared?.Plan.FollowWall is {} attempt)RuntimeComposerFill.ReportFollowWall(editor.Component,attempt,change?.Applied!=true);
+            // 0.22.80: a refused first plan that gets a second one (TryPrepared) is reported there, with the copy of the game.
+            if(prepared?.Plan.FollowWall is {} attempt&&(report||change?.Applied==true))RuntimeComposerFill.ReportFollowWall(editor.Component,attempt,change?.Applied!=true);
         }
     }
     private sealed class Change
@@ -215,7 +266,8 @@ internal static class RuntimeCompositePlateEdit
                     throw new InvalidOperationException("Native mesh copy did not preserve topology.");
                 var copy=PlateMeshAccess.ReadOwn(fresh,out var copyReason)??throw new InvalidOperationException("Native mesh copy unreadable: "+copyReason);
                 // 0.22.57: only a plan with ribs (Cheek fill (shell)) sets CopyCheck; it compares the copy's saved helper points, rib edges and tm/te with the plan before anything is replaced.
-                if(prepared?.Plan.CopyCheck is {} copyCheck&&copyCheck(fresh.ToJson(true)) is {} copyProblem)throw new InvalidOperationException(copyProblem);
+                // 0.22.80: the copy the game gave back is kept for the dump and the one retry of Convert to layers (TryPrepared).
+                if(prepared?.Plan.CopyCheck is {} copyCheck){var copyJson=fresh.ToJson(true);if(copyCheck(copyJson) is {} copyProblem){CopyRefusal=(copyJson,copyProblem);throw new InvalidOperationException(copyProblem);}}
                 // Pin an explicitly authored saved-front packet to the real native copy, after
                 // serializer/rebuild normalization. Inherited names on later edits keep their old
                 // fingerprint so those edits cannot be silently restored away.
@@ -354,6 +406,7 @@ internal static class RuntimeCompositePlateEdit
                 throw new InvalidOperationException("Composite plate thickness mode could not be stored on the native mesh.");
             if(previous!=IntPtr.Zero)RuntimeCompositePlate.Invalidate(previous);
             RuntimeCompositePlate.Invalidate(mesh.Pointer);
+            try{component.Vehicle?.RaiseDirtyFlags(VehicleDirtyFlags.DamageModel);}catch(Exception){}
             // Undo may run after the original editor has been recreated. Refresh only currently active editors for this component, without
             // changing selection. 0.22.24: one frame later, never inside the native operation (CRASH-MAP.md D).
             var pointer=component.Pointer;var owner=applicationEditor;
@@ -405,6 +458,7 @@ internal static class RuntimeCompositePlateEdit
                 if(released||!Resolve())return;
                 if(component.HasMesh&&Applied&&!EnsureSavedName(component.Mesh,mode))throw new InvalidOperationException("Saved front name was not retained.");
                 RuntimeCompositePlate.Invalidate(component);
+                try{component.Vehicle?.RaiseDirtyFlags(VehicleDirtyFlags.DamageModel);}catch(Exception){}
             }
             catch(Exception ex){Plugin.ModLog.LogWarning("Composite plate identity refresh failed: "+ex.Message);}
         }

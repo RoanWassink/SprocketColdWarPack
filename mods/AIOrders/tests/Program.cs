@@ -119,4 +119,5 @@ Check(MapPolicy.DashCount(1e9f, 1e-3f) == MapPolicy.MaxDashes, "Huge route is ca
 Check(MapPolicy.DashCount(float.PositiveInfinity, 8) == 0 && MapPolicy.DashCount(100, float.NaN) == 0 && MapPolicy.DashCount(100, 0) == 0, "Broken lengths never loop");
 
 MapTests.Run();
-if (args.Length == 2) AssemblyChecks.Run(args[0], args[1]);
+if (args.Length >= 2) AssemblyChecks.Run(args[0], args[1]);
+if (args.Length >= 3) KeybindApiChecks.Run(args[2]);

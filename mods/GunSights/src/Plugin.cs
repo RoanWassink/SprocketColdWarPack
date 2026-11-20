@@ -10,13 +10,13 @@ namespace SprocketGunSights;
 public sealed class Plugin : BasePlugin
 {
     internal const string Guid = "sprocket.gunsights";
-    internal const string Version = "0.2.4";
+    internal const string Version = "0.3.0";
     internal static new ManualLogSource Log = null!;
     internal static bool Enabled;
     internal static bool HideStockReticle;
     internal static float ReferenceFov;
     internal static float MinimumLinePixels;
-    internal static bool FollowTurret;
+    internal static bool DefaultSightFollowsGun;
     internal static bool ShowAmmunition;
     private readonly List<Harmony> owners = new();
 
@@ -27,18 +27,19 @@ public sealed class Plugin : BasePlugin
         HideStockReticle = Config.Bind("General", "HideStockReticle", true, "Hide the game's own scope reticle while a period sight is shown.").Value;
         ReferenceFov = Math.Clamp(Config.Bind("Optics", "ReferenceFieldOfView", 60f, "Vertical field of view (degrees) that counts as 1x. Magnification m gives tan(fov/2) = tan(reference/2) / m.").Value, 20f, 100f);
         MinimumLinePixels = Math.Clamp(Config.Bind("Optics", "MinimumLinePixels", 1.6f, "Thinnest reticle stroke on screen, so low-power sights stay readable.").Value, .8f, 6f);
-        FollowTurret = Config.Bind("View", "ScopeFollowsTurret", true, "Show the scope picture along the sight's real axis, so it follows the turret and gun; the mouse still commands the aim. Hides the moving aim circle. The ATGM guidance sight keeps its free view.").Value;
+        // 0.3.0: the old global [View] ScopeFollowsTurret is no longer read; the view is chosen per sight
+        // (right-click > Gun sight > "Sight follows gun") and saved in the blueprint.
+        DefaultSightFollowsGun = Config.Bind("View", "DefaultSightFollowsGun", true, "For sights without a saved choice: true = the game's own view that follows the gun (aims up and down). false = the view stays along the sight part and hides the moving aim circle. Each sight can override this with its 'Sight follows gun' checkbox. The ATGM guidance sight always keeps its free view.").Value;
         ShowAmmunition = Config.Bind("View", "ShowAmmunition", true, "Show the loaded and next round from Sprocket Expanded Ballistics in the sight.").Value;
         if (!Enabled) { Log.LogInfo("Sprocket Gun Sights disabled by configuration."); return; }
 
         Install("sprocket.gunsights.choices", typeof(SightChoices), "Per-sight country and variant menu with saving", required: true);
         Install("sprocket.gunsights.scope", typeof(ScopeRuntime), "Optics, wheel switching and stock reticle hiding", required: true);
+        // Optional: without it the choices still work this session but are not stored in the blueprint.
+        Install("sprocket.gunsights.persistence", typeof(SightPersistence), "Saving sight choices in the blueprint (sprocketGunSightsV1)", required: false);
         AddComponent<SightHud>();
-        if (FollowTurret)
-        {
-            try { TurretView.Install(); }
-            catch (Exception ex) { FollowTurret = false; Log.LogWarning("[Gun sights] Turret-following view unavailable; native view kept: " + ex.Message); }
-        }
+        try { TurretView.Install(); }
+        catch (Exception ex) { Log.LogWarning("[Gun sights] 'Stays static' view unavailable; every sight uses the native view: " + ex.Message); }
         Log.LogInfo($"Sprocket Gun Sights {Version} loaded: {SightCatalogue.All.Length} sights for {SightCatalogue.Countries.Length} countries.");
     }
 

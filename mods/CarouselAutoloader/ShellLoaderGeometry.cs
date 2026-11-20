@@ -72,7 +72,15 @@ internal static class ShellLoaderGeometry
         if(bp==null) return 0;
         // Let the same native packer decide whether a complete custom round fits.
         // Never change ShellSizeID: it must still match the gun's native request.
-        return Math.Max(0,Math.Min(nativeCapacity,AmmoRackUtils.CalculateCapacity(bp.Width,bp.Height,bp.Length,
-            diameter,length)));
+        return Math.Max(0, Math.Min(nativeCapacity, Grid(rack, diameter, length).Capacity));
+    }
+
+    internal static RackGrid Grid(AmmoRack rack, int diameter, int length)
+    {
+        var bp = rack.Blueprint;
+        if (bp == null) return default;
+        var s = rack.spacing; var a = rack.minPadding; var b = rack.maxPadding;
+        return RackGrid.Of(bp.Width / 1000d, bp.Height / 1000d, bp.Length / 1000d, diameter, length,
+            new(s.x, s.y, s.z), new(a.x, a.y, a.z), new(b.x, b.y, b.z));
     }
 }

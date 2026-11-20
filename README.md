@@ -1,101 +1,141 @@
 # Sprocket Cold War Pack
 
-A Cold War-era expansion for the tank game Sprocket: armour and ammunition, sights and optics, turrets and suspension, a telescopic mast with a signal editor, and a small campaign mode. It is one pack of BepInEx plugins that are meant to be installed together.
+A set of mods for the tank game **Sprocket** that brings the Cold War to the tank designer: new eras, realistic armour and ammunition, period sights, night vision, new turret and loader types, and a few handy tools.
 
-![Part icons of the Expanded Ballistics ERA cassettes](docs/img/era-cassettes.png)
+The mods work on their own, but they are made to be installed together as one pack.
 
-**Status: pre-release (v1.0.0).** Most mods in the pack were tested in the game one by one, at earlier versions. This renamed, combined release has not been tested end to end in the game yet, and several newer features have no in-game result at all. Each mod's README says what was and was not tested. Expect rough edges and please report them.
+![Armour cassettes (ERA) you can place on a tank](docs/img/era-cassettes.png)
 
-Tested with Sprocket 0.2.56.2 and BepInEx 6.0.0-be.788 (installed through the Sprocket Mod Loader, see Installation) on Windows (x64).
+> Every mod was tested in the game. Each mod has its own page (in the `mods` folder) with what it does and how to use it. If something does not work, please open an issue, tell me what you were doing, and attach the file `BepInEx\LogOutput.log`.
 
-## Highlights
+## What is in the pack
 
-### Armour and ammunition
+### Armour and ammunition: Expanded Ballistics
 
-- **Dated shell profiles.** APFSDS (several generations), APCR, APDS, APCBC, APHE, HE, HEAT, tandem HEAT and HESH, chosen by the vehicle date. A shell editor in the cannon inspector lets you define your own, and you can carry a mix of shell types and switch between them in battle.
-- **Guided ATGMs.** SACLOS and MCLOS missiles, a top-attack profile and gun-launched missiles, with a placeable launcher, a gimbal guidance sight and a finite ammunition box.
-- **Placeable ERA.** Kontakt-1, Kontakt-5 (with four size variants), Relikt, Nizh, Duplet, BRAT, ARAT and ROMOR-A. A cell reacts once and is rearmed on the next Edit/Play cycle, and a spent housing shows its open state.
-- **Armour materials and a cassette composer.** A material editor with extra materials (wood, rubber, fabric, glass, ceramics) and layered passive and reactive armour packages, including presets modelled on named vehicles.
-- **Combat report.** The latest impacts with a cross-section drawing per hit ("Forensic"), an optional damage feed, and the last session saved as HTML and JSON.
+The biggest mod in the pack. It changes how shells and armour work, so the way you build a tank starts to matter.
 
-![Kontakt-5 panel variants](docs/img/kontakt5-panels.png)
+- **Shells of the right age.** Several generations of armour-piercing, high-explosive and hollow-charge shells. Which ones you can use depends on the date of your tank. You can design your own shell, and carry a mix of types that you switch between in battle.
+- **Armour you can build up.** Choose materials (steel, composite, ceramics, rubber, wood and more) and stack them in layers to make your own armour packages, or start from presets that follow real tanks.
+- **Reactive armour you can place.** Kontakt-1, Kontakt-5, Relikt, Nizh, Duplet, BRAT, ARAT and more. A block protects you once. After it has gone off you can see it on the tank: the cover is blown open. Go back to the designer and start again, and the block is new.
+- **Guided missiles.** Place a launcher, a guidance sight and a missile box on your tank. You steer the missile to the target yourself, or let it follow the aim point. Some missiles can also be fired from a gun.
+- **See what happened.** After a hit, a report shows a cross-section of your armour with the path of the shell: where it went through, where it stopped, and why.
 
-### Sights and optics
+![A cross-section from the combat report: the shell path through a composite armour block](docs/img/forensic-section-composite.png)
 
-- **Thermal Sight.** Dated sensor profiles from active infrared (1950) and image intensifier (1962) to thermal Gen 2 (1992), a per-vehicle heat model, an IR searchlight and manual and automatic laser rangefinders. Range readings can correct the aim for bullet drop.
-- **Gun Sights.** 33 period gunner's sights for Germany, the Soviet Union, the United States and the United Kingdom, each with its own start date, true optical powers and reticles drawn at true angular size.
+In the designer you can switch on an overlay that shows the armour layers inside a plate.
 
-![Sight and rangefinder part icons](docs/img/sights.png)
+![The armour overlay shows the layers inside a plate](docs/img/armour-overlay-hull-plate.png)
+
+<!-- SCREENSHOT: ballistics-shell-editor.png (the shell editor in the cannon inspector) -->
+<!-- SCREENSHOT: ballistics-atgm.png (a tank with the missile launcher, guidance sight and missile box) -->
+![The combat report after a hit](docs/img/combat-report.webp)
+
+The cassette composer builds armour packages layer by layer and shows how well they protect against each kind of shell.
+
+![The cassette composer](docs/img/cassette-composer.webp)
+
+![Kontakt-5 panels in four sizes](docs/img/kontakt5-panels.png)
+
+![Reactive armour bricks on a T-72](docs/img/era-bricks.webp)
+
+### Sights and night vision
+
+- **Thermal Sight.** Night-vision sights from the early infrared lamp (1950s), through image intensifiers (1960s), to thermal imaging (1990s). Hot engines and barrels light up. Includes an infrared searchlight and laser rangefinders that help your aim.
+- **Gun Sights.** 33 gunner's sights from Germany, the Soviet Union, the United States and the United Kingdom. Each has the right magnification and crosshair for its time. Every sight has a tick box "Sight follows gun", so you can choose whether the view moves with the barrel. Switch it off and you can build Swingfire-style missile carriers.
+
+![Sights and rangefinders](docs/img/sights.png)
+
+![Looking through a thermal sight: a hot tank in white-hot mode, with heading, loaded shell and elevation on screen](docs/img/thermal-view.webp)
+<!-- SCREENSHOT: gunsight-view.png (looking through one of the gun sights) -->
 
 ### Turrets, loaders, suspension and engines
 
-- **Carousel Autoloader.** Bustle, semi-autoloader and revolver parts, plus a carousel option for turret baskets in T-72 and T-64/T-80 style, with a turning ring, a lift, optional two-piece ammunition and a crew loader.
-- **Hydropneumatic suspension.** Raise, lower and pitch the tank while driving, with editor sliders for travel, firmness and damping.
-- **Oscillating Turret.** An oscillating upper turret on a compact elevation drive, and a Heavy Trunnion Mount.
-- **Stabilization.** A stabilizer option for turret drives with rate limits that default to realistic values.
-- **Engine Expansion.** Diesel and gas turbine engines, a smaller transmission and a Powerpack option that fits engine and gearbox as one block.
-- **Smoke Launchers.** A three-tube launcher bank, fired with one key.
+- **Carousel Autoloader.** Four loader types for your tank: bustle, semi-automatic, revolver and belt-fed. There is also a carousel for the turret basket, as in Soviet T-64, T-72 and T-80 tanks. The T-72 style carousel is animated.
+- **Oscillating Turret.** A tilting upper turret on a compact gun drive, and a heavy trunnion mount.
+- **Hydropneumatic suspension.** Raise, lower and tilt your tank while you drive. Travel, stiffness and damping are set in the designer.
+- **Stabilization.** A gun stabiliser for turret drives, with realistic speed limits.
+- **Engine Expansion.** Diesel and gas turbine engines, a smaller gearbox, and a power pack that fits engine and gearbox as one block.
+- **Smoke Launchers.** A bank of three smoke tubes, fired with one key.
 
-### Mast, hinge, rotator and I/O flow
+![The animated T-72 style carousel in a turret basket](docs/img/carousel-t72.webp)
 
-- **Telescopic Mast.** A retractable mast, a hinge (for example a shell-ejector flap that opens when the cannon fires) and a rotator turntable.
-- **I/O Flow editor (F8).** Wire cannon, braking, key and mast signals through AND, OR, NOT, delay, pulse, counter and memory blocks to parts. Other mods add inputs, outputs and part settings through the I/O API.
-- **Emitter** throws spent casings out of the vehicle, **Cupolas** adds a detailed T-90A-style commander cupola, and **Visual Effects** adds volumetric muzzle blast and smoke plus RGB lamp parts that can be switched from the flow.
+<!-- SCREENSHOT: oscillating-turret.png (a tank with the oscillating turret) -->
+<!-- SCREENSHOT: hydropneumatic.png (a tank raised and lowered, or the settings in the designer) -->
+<!-- SCREENSHOT: engines.png (an engine from Engine Expansion in the designer) -->
+<!-- SCREENSHOT: smoke-launchers.png (a tank with the smoke launcher bank) -->
 
-![Mast, hinge, rotator, Emitter and cupola part icons](docs/img/mast-hinge-rotator-emitter-cupola.png)
+### Mast, hinge and signals
 
-### Campaign, tools and shared libraries
+- **Telescopic Mast.** A mast that slides out and back, a hinge (for openable hatches, or a flap that opens when the gun fires) and a turntable.
+- **I/O editor.** Connect events such as "gun fired", "brake pressed" or a key to parts on your tank with simple building blocks. Other mods in the pack plug into it.
+- **Emitter.** Throws things out of your tank on a signal, for example spent shell casings when the gun fires.
+- **Cupolas.** A detailed commander's cupola in the style of the T-90A.
+- **Visual Effects.** Working lamps: lamp parts in any colour that really light up, and that you switch on and off from the I/O editor (for example a brake light). Also muzzle blast and smoke.
 
-- **Expedition.** A campaign run through the installed eras: fight cards, boss fights, items, an era schedule and enemy AI, with a soundtrack per phase.
-- **AI Orders.** Quick orders (F9) and a tactical map (M) for your AI allies.
-- **Sandbox Targets** adds target tanks at set distances to the flat-map sandbox, and **Reference Images** puts a reference picture on a board part in the designer.
-- **Keybinds, UI Kit and JSON Editor** are shared libraries: a keybind menu inside the Settings screen, a common window style with charts, and an editor for JSON entry lists.
-- **Cold War Expansion Pack** (the core) adds the three Cold War eras (Coldwar1 from 1945.09.04, Coldwar2 from 1960 and Coldwar3 from 1975) and its engine and cannon technology data. The game's own Coldwar placeholder is left as it is.
+![Mast, hinge, turntable, emitter and cupola](docs/img/mast-hinge-rotator-emitter-cupola.png)
 
-## Mods in this pack
+![The I/O editor: a cannon signal wired through a delay to a hinge and an emitter](docs/img/io-editor.webp)
 
-Every mod has its own folder under [`mods/`](mods) with a README (features, settings, keys, test status, build notes). "Needs" lists hard dependencies only; a mod that is missing one does not load. Optional partners are named in each mod's README.
+![A hatch that opens on a hinge](docs/img/hinge-hatch.webp)
 
-| Mod | Version | What it does | Needs |
-|---|---|---|---|
-| [Expanded Ballistics](mods/ExpandedBallistics) | 0.22.77 | Dated shell profiles, guided ATGMs, armour materials with placeable ERA, cassette composer, combat report | JSON Editor, UI Kit |
-| [Thermal Sight](mods/ThermalSight) | 0.4.0 | Thermal, image intensifier and active IR sights, IR searchlight, laser rangefinders | Keybinds |
-| [Gun Sights](mods/GunSights) | 0.2.4 | 33 period gunner's sights with true optics and reticles | |
-| [Carousel Autoloader](mods/CarouselAutoloader) | 0.2.34 | Bustle, semi and revolver autoloaders, carousel basket | |
-| [Hydropneumatic](mods/Hydropneumatic) | 0.4.4 | Adjustable hydropneumatic suspension | Keybinds |
-| [Oscillating Turret](mods/OscillatingTurret) | 0.3.1 | Oscillating upper turret and Heavy Trunnion Mount | |
-| [Stabilization](mods/Stabilization) | 0.7.3 | Stabilizer option for turret drives | |
-| [Engine Expansion](mods/EngineExpansion) | 0.5.0 | Diesel and gas turbine engines, smaller transmission, Powerpack | |
-| [Smoke Launchers](mods/SmokeLaunchers) | 0.2.5-datums.2 | Three-tube smoke launcher bank | Keybinds |
-| [Telescopic Mast](mods/TelescopicMast) | 0.9.9 | Mast, hinge and rotator parts, I/O Flow editor and I/O API | Keybinds, UI Kit |
-| [Emitter](mods/Emitter) | 0.1.1 | Cosmetic casing emitter driven by the I/O Flow | |
-| [Cupolas](mods/Cupolas) | 0.1.0 | Detailed T-90A-style commander cupola | |
-| [Visual Effects](mods/VisualEffects) | 0.4.5 | Volumetric muzzle blast, smoke and dust, RGB lamp parts | |
-| [Expedition](mods/Expedition) | 0.3.12 | Campaign mode with fight cards, bosses and enemy AI | UI Kit |
-| [AI Orders](mods/AIOrders) | 0.5.2 | Quick orders and a tactical map for AI allies | UI Kit, Keybinds |
-| [Sandbox Targets](mods/SandboxTargets) | 0.3.2 | Extra target tanks in the flat-map sandbox | |
-| [Reference Images](mods/ReferenceImages) | 0.1.2 | Reference picture board part for the designer | UI Kit, Keybinds |
-| [Cold War Expansion Pack](mods/ColdWarExpansionPack) | 0.2.0 | Coldwar1, Coldwar2 and Coldwar3 eras, engine and cannon technology data | |
-| [Keybinds](mods/Keybinds) | 0.1.9 | Shared keybind menu in the Settings screen | |
-| [UI Kit](mods/UiKit) | 0.1.12 | Shared panel library | Keybinds |
-| [JSON Editor](mods/JsonEditor) | 0.1.5 | Shared in-game JSON list editor | |
+![Working lamps lit on a tank](docs/img/functional-lamps.webp)
 
-The pack has its own version (1.0.0); the mods keep the versions shown above. Install the whole pack: the mods share Keybinds, UI Kit and the Telescopic Mast, and some of the data they ship (for example the Coldwar eras) is used by several mods.
+<!-- SCREENSHOT: visual-effects.png (muzzle blast and smoke in game) -->
 
-## Installation
+### Orders for your allies
 
-1. **Install the mod loader.** The pack runs on BepInEx 6 (IL2CPP). The official BepInEx can hang on a black screen with current Sprocket builds, so use the **Sprocket Mod Loader** by Hans21223, which installs the official BepInEx build `6.0.0-be.788` together with a compatibility patch: <https://github.com/Hans21223/Sprocket-Mod-Loader> (see its Releases page; the "Easy install" with the Mod Manager is the simplest way, and its README also describes a manual install). It is a separate project and is not part of this pack. You only need the BepInEx part, not MLLoader. Start the game once after installing it, so that BepInEx creates its folders; the first start takes a while.
-2. **Install the pack.** Download `SprocketColdWarPack-v1.0.0.zip` from the Releases page of this repository and extract it into the same folder, merging it with the existing `BepInEx` and `Sprocket_Data` folders. The zip only contains files for those two folders.
-3. **Start the game.** Settings are in `BepInEx\config\sprocket.<modname>.cfg` (some mods use a `.json` file, see their README) and are created at the first start. Key bindings are set in Sprocket's Settings screen (Controls), in the mod keybinds panel that Keybinds adds.
+- **AI Orders.** Give quick orders to your AI allies (move, follow, halt, attack, retreat), or plan them on a map.
 
-To remove a mod, delete its folder `SprocketXxx` from `BepInEx\plugins`. The release also has a file list (`SprocketColdWarPack-v1.0.0-files.txt`) if you want to remove everything the pack installed. When you update by extracting a newer zip over an older one, files you edited (for example `.cfg` files) are overwritten; keep a copy of them.
+<!-- SCREENSHOT: ai-orders-map.png (the order panel and the map in a battle) -->
 
-## Building from source
+### Eras and shared parts
 
-The folders under `mods/` hold the source of each plugin (C#, .NET), together with the scripts, OpenSCAD files and data they were made from. Building needs the interop assemblies that BepInEx generates for your copy of the game, which is why compiled plugins are only shipped in the releases and not in the repository. A few mods embed audio or mesh files that are not part of the repository; their README says which. Build `mods/Keybinds`, `mods/UiKit`, `mods/JsonEditor` and `mods/TelescopicMast` first, because other plugins build against them.
+- **Cold War Expansion Pack.** Adds three new eras: Coldwar1 (from 1945), Coldwar2 (from 1960) and Coldwar3 (from 1975), with the engine and gun technology of their time.
+- **Keybinds.** A menu for the keys of all mods, inside the game's own Settings screen.
+- **UI Kit** and **JSON Editor** are small helpers that other mods use for their windows and lists. You do not need to do anything with them. Keybinds and UI Kit are also open to other mod makers, see the [framework guide](docs/FRAMEWORK.md).
+
+## The mods
+
+Every mod has a folder in [`mods`](mods) with its own page: what it does, its settings and keys, and what has been tested.
+
+| Mod | Version | In short |
+|---|---|---|
+| [Expanded Ballistics](mods/ExpandedBallistics) | 0.22.99 | Shells, armour, reactive armour, guided missiles, combat report |
+| [Plate Destruction](mods/PlateDestruction) | 0.8.3 | Destructible armour plates, blast dents, holes, and torn edges |
+| [Thermal Sight](mods/ThermalSight) | 0.5.4 | Night vision and thermal sights, searchlight, rangefinders |
+| [Gun Sights](mods/GunSights) | 0.3.0 | 33 period gunner's sights |
+| [Carousel Autoloader](mods/CarouselAutoloader) | 0.3.4 | Bustle, semi, revolver and belt-fed loaders, carousel |
+| [Hydropneumatic](mods/Hydropneumatic) | 0.4.4 | Adjustable suspension |
+| [Oscillating Turret](mods/OscillatingTurret) | 0.3.1 | Tilting turret and heavy trunnion mount |
+| [Stabilization](mods/Stabilization) | 0.7.4 | Gun stabiliser |
+| [Engine Expansion](mods/EngineExpansion) | 0.7.3 | Diesel and gas turbine engines, power pack |
+| [Smoke Launchers](mods/SmokeLaunchers) | 0.2.5 | Smoke launcher bank |
+| [Telescopic Mast](mods/TelescopicMast) | 0.9.9 | Mast, hinge, turntable, signal editor |
+| [Emitter](mods/Emitter) | 0.1.3 | Ejected shell casings |
+| [Cupolas](mods/Cupolas) | 0.1.0 | Commander's cupola |
+| [Visual Effects](mods/VisualEffects) | 0.5.3 | Muzzle blast, smoke, lamps |
+| [AI Orders](mods/AIOrders) | 0.5.4 | Orders and map for AI allies |
+| [Cold War Expansion Pack](mods/ColdWarExpansionPack) | 0.2.0 | Three Cold War eras |
+| [Keybinds](mods/Keybinds) | 0.1.10 | Key menu for all mods |
+| [UI Kit](mods/UiKit) | 0.1.13 | Shared window style |
+| [JSON Editor](mods/JsonEditor) | 0.1.5 | Shared list editor |
+
+Some mods need others to work: Thermal Sight, Hydropneumatic, Smoke Launchers, Telescopic Mast and AI Orders need Keybinds. Expanded Ballistics, Telescopic Mast and AI Orders need UI Kit, and Expanded Ballistics also needs JSON Editor. Install the whole pack and you do not have to think about this.
+
+## How to install
+
+1. **Install the mod loader.** The pack runs on BepInEx 6. Use the **Sprocket Mod Loader** by Hans21223, which installs the right BepInEx version with a fix for Sprocket: <https://github.com/Hans21223/Sprocket-Mod-Loader>. The "Easy install" with the Mod Manager is the simplest way. It is a separate project and not part of this pack. Start the game once afterwards, so it can set itself up. The first start takes a while.
+2. **Install the pack.** Download `SprocketColdWarPack-v1.1.0.zip` from the [Releases](../../releases) page and extract it into the Sprocket game folder (the folder with `Sprocket.exe`). Merge it with the existing `BepInEx` and `Sprocket_Data` folders.
+3. **Start the game.** Settings are in the folder `BepInEx\config`. They are created at the first start. The mods that need keys do not choose them for you: set your own in the game's Settings screen, under Controls.
+
+To remove a mod, delete its `SprocketXxx` folder in `BepInEx\plugins`. If you update by extracting a newer zip over an older one, your edited settings files are overwritten, so keep a copy.
+
+## For mod makers
+
+The source of every mod is in [`mods`](mods), with the scripts and data it was made from. Building needs the interface files that BepInEx generates for your copy of the game, so the finished plugins are only in the releases. Build Keybinds, UI Kit, JSON Editor and Telescopic Mast first, because other plugins build on them.
 
 ## Credits and licence
 
-Author: Nero. The code in this repository is released under the MIT licence (see [LICENSE](LICENSE)).
+Made by Nero. The code is released under the MIT licence (see [LICENSE](LICENSE)).
 
-Built on [BepInEx](https://github.com/BepInEx/BepInEx) and [Harmony](https://github.com/pardeike/Harmony), and run through Hans21223's [Sprocket Mod Loader](https://github.com/Hans21223/Sprocket-Mod-Loader). Expedition adapts a method from Hans21223's Sprocket Battle Editor (MIT; see [`mods/Expedition/THIRD-PARTY-NOTICES.md`](mods/Expedition/THIRD-PARTY-NOTICES.md)). The Expedition soundtrack (six tracks) and the sounds embedded in Carousel Autoloader and Expanded Ballistics were created by the author with his own Suno account. Expanded Ballistics uses a particle texture set by Kenney (CC0, see [`mods/ExpandedBallistics/vfx/KENNEY-LICENSE.txt`](mods/ExpandedBallistics/vfx/KENNEY-LICENSE.txt)).
+Built on [BepInEx](https://github.com/BepInEx/BepInEx) and [Harmony](https://github.com/pardeike/Harmony), and run through Hans21223's [Sprocket Mod Loader](https://github.com/Hans21223/Sprocket-Mod-Loader). The sounds in Carousel Autoloader and Expanded Ballistics were made by the author. Expanded Ballistics uses a particle texture by Kenney (CC0, see [`mods/ExpandedBallistics/vfx/KENNEY-LICENSE.txt`](mods/ExpandedBallistics/vfx/KENNEY-LICENSE.txt)).

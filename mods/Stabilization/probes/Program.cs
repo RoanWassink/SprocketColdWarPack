@@ -55,8 +55,8 @@ void SaveMotorBlueprint(Sprocket.Vehicles.MotorBlueprint blueprint, Sprocket.Blu
 void LoadMotorBlueprint(Sprocket.Vehicles.MotorBlueprint blueprint, Sprocket.Blueprints.IBlueprintDeserializer deserializer)
     => InvokeResult(typeof(StabilizerBlueprintPersistence), "MotorLoadPostfix", blueprint, deserializer);
 
-void CloneMotorBlueprint(Sprocket.Blueprints.Blueprint source, Il2CppSystem.Object result)
-    => InvokeResult(typeof(StabilizerBlueprintPersistence), "BlueprintClonePostfix", source, result);
+bool HasClonePostfix()
+    => typeof(StabilizerBlueprintPersistence).GetMethod("BlueprintClonePostfix", Hidden) != null;
 
 void Reset()
 {
@@ -483,12 +483,14 @@ var copiedMotorBlueprint = new Sprocket.Vehicles.MotorBlueprint { Pointer = (Int
 StabilizerState.CopyBlueprintFlag(reloadedMotorBlueprint, copiedMotorBlueprint);
 Require(StabilizerState.GetBlueprintFlag(copiedMotorBlueprint), "structured blueprint copy carries the flag");
 
-// Clone is virtual and its interop result is Il2CppSystem.Object; the 0.7.0
-// postfix declared Blueprint and made the whole PatchAll fail. This regression
-// invokes the corrected postfix with the boxed result type.
+// 0.7.4 removed the Blueprint.Clone postfix: its native address is shared
+// (ICF) with Object.MemberwiseClone, Array.Clone and Delegate.Clone, so it ran
+// on every object clone. Duplication must go through Blueprint.Copy only.
+Require(!HasClonePostfix(), "the Blueprint.Clone postfix is gone (ICF-shared address)");
 var clonedMotorBlueprint = new Sprocket.Vehicles.MotorBlueprint { Pointer = (IntPtr)903 };
-CloneMotorBlueprint(reloadedMotorBlueprint, clonedMotorBlueprint);
-Require(StabilizerState.GetBlueprintFlag(clonedMotorBlueprint), "clone postfix accepts the boxed Il2CppSystem.Object result");
+Require(
+    !StabilizerState.GetBlueprintFlag(clonedMotorBlueprint),
+    "a fresh clone identity carries no flag without the Clone hook");
 
 StabilizerState.SetBlueprintFlag(motorBlueprint, false);
 var uncheckedSerializer = new FakeBlueprintSerializer();

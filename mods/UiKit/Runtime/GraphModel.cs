@@ -1,6 +1,7 @@
 using UnityEngine;
 namespace SprocketUiKit;
 
+/// <summary>GraphColours UI data and behavior.</summary>
 public static class GraphColours
 {
     private static readonly Color inColour = new Color32(0x79,0xd8,0xe8,255);
@@ -10,6 +11,7 @@ public static class GraphColours
     public static Color WireOn => Draw.C(Tok.Accent);
     public static Color WireOff => Draw.C(Tok.GraphWireOff);
 }
+/// <summary>GraphNode UI data and behavior.</summary>
 public sealed class GraphNode
 {
     internal readonly NodeGraph Owner;
@@ -49,6 +51,7 @@ public sealed class GraphNode
     internal GraphPort? FindPort(string id)
     { foreach(var p in Inputs) if(p.Id==id) return p; foreach(var p in Outputs) if(p.Id==id) return p; return null; }
 }
+/// <summary>GraphPort UI data and behavior.</summary>
 public sealed class GraphPort
 {
     internal readonly GraphNode Node;
@@ -63,6 +66,7 @@ public sealed class GraphPort
     public string Label { get=>label; set { value??=""; if(label==value)return; label=value; Node.Changes.Mark(GraphDirty.Layout); } }
     internal Vec Point => Node.Bounds.Port(IsOutput,Index);
 }
+/// <summary>GraphWire UI data and behavior.</summary>
 public sealed class GraphWire
 {
     internal readonly NodeGraph Owner;

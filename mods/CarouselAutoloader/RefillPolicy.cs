@@ -5,13 +5,17 @@ namespace SprocketCarouselAutoloader;
 // 0.2.26: magazine refill state, shared by the log, the inspector and the HUD. Pure and allocation-free.
 public enum RefillReason
 {
-    None, Full, Crew, Stationary, WaitingStill, WaitingEmpty, NoCrew, NoReach, CrewIdle, NoReserve, NoBody, NotEligible
+    None, Full, Crew, Stationary, WaitingStill, WaitingEmpty, NoCrew, NoReach, CrewIdle, NoReserve, NoBody, NotEligible, NoCrewTask
 }
 
 public enum RefillMode { None, Full, Crew, Stationary }
 
 public static class RefillPolicy
 {
+    public static RefillReason CrewStatus(bool healthyBreech, bool activeHealthyCrew, bool nativeValid, bool nativeTask) =>
+        !healthyBreech ? RefillReason.NotEligible : !activeHealthyCrew ? RefillReason.NoCrew :
+        !nativeValid ? RefillReason.NoReach : !nativeTask ? RefillReason.NoCrewTask : RefillReason.Crew;
+
     /// <summary>
     /// Which refill path a magazine uses this tick. Bustle (unchanged since 0.2.9): the crew refills from
     /// empty and continues while refilling. Revolver (0.2.26): an assigned, healthy crew loader within the
@@ -35,6 +39,7 @@ public static class RefillPolicy
         RefillReason.WaitingStill => "waiting for the vehicle to stand still",
         RefillReason.WaitingEmpty => "crew refill starts when the magazine is empty",
         RefillReason.NoCrew => "no active healthy crew loader assigned",
+        RefillReason.NoCrewTask => "assigned crew loader has no native loading task",
         RefillReason.NoReach => "crew loader cannot reach the magazine",
         RefillReason.CrewIdle => "crew loader not currently working",
         RefillReason.NoReserve => "no matching reserve ammunition",
@@ -44,7 +49,17 @@ public static class RefillPolicy
     };
 
     public static bool Blocked(RefillReason reason) => reason is RefillReason.NoCrew or RefillReason.NoReach or
-        RefillReason.CrewIdle or RefillReason.NoReserve or RefillReason.NoBody or RefillReason.NotEligible;
+        RefillReason.CrewIdle or RefillReason.NoReserve or RefillReason.NoBody or RefillReason.NotEligible or RefillReason.NoCrewTask;
+
+    public static bool CanTransferFromReserve(bool revolver, bool full, bool hasCrewLoader, bool hasReserve) =>
+        !full && hasReserve && (revolver || hasCrewLoader);
+
+    public static bool ReadyMagazineOnly(bool hasAutoloader, bool isCarousel, bool revolver, bool full, bool hasCrewLoader)
+    {
+        if (!hasAutoloader) return false;
+        if (isCarousel) return !hasCrewLoader;
+        return full || (!revolver && !hasCrewLoader);
+    }
 }
 
 // One HUD row (an autoloader of the player's vehicle). Updated at most 10 times per second; the

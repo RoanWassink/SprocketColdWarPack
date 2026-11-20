@@ -33,6 +33,7 @@ internal static class Fix02247IntervalTests
         check(Math.Abs(total-747.13)<1e-9&&total<880,"conditional T80 total 747.13 including 12 mm frame, below old 880–930 range");
         check(ledger.Plan(-.012,.897,all)!.Factor==0,"repeated block pays nothing");
         check(new MaterialIntervalLedger().Plan(0,1,Array.Empty<MaterialInterval>())!.Factor==0,"uncovered material and air zero");
+        check(BitConverter.SingleToInt32Bits(ProtectionFactorTable.NativeSafe((float)ProtectionFactorTable.NativeRhaFactor(new MaterialIntervalLedger().Plan(0,1,Array.Empty<MaterialInterval>())!.Factor,42,1)))==BitConverter.SingleToInt32Bits(1e-6f),"uncovered: ledger 0, native rhaFactor write 1e-6 (floor, 0.22.90)"); // 0.22.90 adapted (brief D4: native level only)
         var overlap=new MaterialIntervalLedger();var p=overlap.Plan(0,1,new[]{I(2,0,1,.5),I(1,.2,.8,1.5)})!;
         check(p.Ambiguous&&Math.Abs(p.Factor-1.1)<1e-12,"ambiguous overlap highest factor once");overlap.Commit(p);
         check(overlap.Plan(0,1,new[]{I(2,0,1,.5)})!.Factor==0,"losing overlap member cannot be charged later");

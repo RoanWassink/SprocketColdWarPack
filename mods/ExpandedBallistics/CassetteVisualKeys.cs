@@ -20,7 +20,7 @@ internal static class CassetteVisualKeys
             if(api==null)return;
             BallisticsKeybindMetadata.Register(api);
             var register=api.GetMethods(BindingFlags.Public|BindingFlags.Static).Single(m=>m.Name=="RegisterButton"&&m.GetParameters().Length==6);
-            key=register.Invoke(null,new object?[]{"sprocket.expandedballistics",BallisticsKeybindMetadata.Name,"cassette-layers","Show cassette layers","",null});
+            key=register.Invoke(null,new object?[]{"sprocket.expandedballistics",BallisticsKeybindMetadata.Name,"cassette-layers","Show cassette layers","Ctrl+<Keyboard>/l",null}); // 0.22.96: factory default Ctrl+L restored (a saved "" record means "no override" and falls back to this default)
             pressed=key?.GetType().GetProperty("WasPressedThisFrame");
         }
         catch(Exception ex){if(warnings++<3)Plugin.ModLog.LogWarning("[Plate visual] Keybinds unavailable: "+ex.Message);}

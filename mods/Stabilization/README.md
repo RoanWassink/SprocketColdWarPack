@@ -1,49 +1,58 @@
 # Sprocket Stabilization
 
-Adds a stabilizer option to the turret drives in the vehicle designer. A drive that is marked as stabilized gets more torque and a realistic rate limit while it follows the aim point, so the turret can hold the target while the hull moves.
+Stabilization adds a stabilizer option to the turret drives in the vehicle designer. A drive that is marked as stabilized gets more torque and a realistic speed limit while it follows the aim point, so the turret can hold the target while the hull moves.
 
-- Version: 0.7.3
-- Plugin GUID: `sprocket.stabilization`
+- Version: 0.7.4
 - Author: Nero
-- Requires: BepInEx 6 IL2CPP (no other plugin; the mod declares no `BepInDependency`)
-- Optional: Sprocket Oscillating Turret (`sprocket.oscillatingturret`). Its elevation ring carries the `oscillatingElevationDrive` tag that this mod uses to tell an elevation drive from a horizontal one. No code dependency.
+- Needs: no other mod
+- Works with: Sprocket Oscillating Turret. Its elevation ring carries the `oscillatingElevationDrive` tag, which this mod uses to tell an elevation drive from a horizontal one.
 - Game version tested: 0.2.56.2
 
-## Features
+## What it adds
 
-- Adds a "Stabilizer - drive setup" section with one checkbox to the traverse motor inspector: "Horizontal drive stabilized (auto torque)" for an ordinary turret ring, "Elevation drive stabilized (auto torque)" for a ring tagged `oscillatingElevationDrive`.
-- While a marked drive is aiming, the native turret torque multiplier is raised for that call only (default 100) and restored as soon as the call returns. The native controller, crew and aiming logic stay in charge.
-- Realistic limits are on by default: horizontal traverse at most 24 deg/s, elevation at most 6 deg/s, 0.75 s to reach full rate (acceleration = rate / response time). A native limit is never raised above its own value.
-- Optional explicit limits (`OverrideRateLimits`) replace the realistic ones with your own traverse rate, acceleration and brake values.
-- Adds a "Stabilizer - elevation drive strength" field to the laying drive inspector. It shows the drive's native elevation torque multiplier divided by 100. It needs one uniquely connected turret motor; a shared or ambiguous design is left unchanged and the inspector says why.
-- The checkbox is stored in the motor blueprint (`sprocket.stabilization.v1`) and in the legacy component state, so it survives saving and loading a design.
-- Dated: the Technology `sprocketStabilization` starts on 1948.01.01 (the final-era date 9999.12.31 always qualifies). On an earlier vehicle date the controls are hidden; a saved checkbox is kept but not applied, and one warning is logged.
-- The checkbox, boost, component-state and blueprint-state patch groups load independently: if one cannot bind to the game, only that part is lost and an error is logged.
+- A section "Stabilizer - drive setup" with one tick box in the inspector of the traverse motor. The box reads "Horizontal drive stabilized (auto torque)" for an ordinary turret ring and "Elevation drive stabilized (auto torque)" for a ring from Oscillating Turret.
+- Extra torque while a marked drive is aiming. The game's own controller, crew and aiming stay in charge.
+- Realistic limits, on by default: horizontal traverse at most 24 degrees per second, elevation at most 6 degrees per second, and 0.75 seconds to reach full speed. A limit of the game itself is never raised.
+- Optional limits of your own (`OverrideRateLimits`) for traverse rate, acceleration and braking.
+- A field "Stabilizer - elevation drive strength" in the inspector of the laying drive. It shows the native elevation torque of the drive divided by 100. It needs one turret motor that is clearly connected. A shared or unclear design is left unchanged, and the inspector says why.
+- The tick box is saved with the vehicle, so it survives saving and loading a design.
+- A date: the stabilizer is available from 1948.01.01. On an earlier vehicle the controls are hidden, and a saved tick box is kept but not applied, with one warning in the log.
 
-This is an in-game approximation: it boosts drive torque and limits the rate, it does not simulate a gyroscopic stabilizer.
+This is an approximation inside the game. It raises the drive torque and limits the speed, and it does not simulate a gyroscopic stabilizer.
 
-## Settings and keys
+## How to use it
 
-Config file: `BepInEx\config\sprocket.stabilization.cfg`, section `[Stabilizer]`, created by BepInEx on first start.
+1. Open the vehicle designer and place a turret with a traverse motor. Set the vehicle date to 1948 or later.
+2. Select the traverse motor and open its inspector.
+<!-- SCREENSHOT: stabilizer-inspector.png (the "Stabilizer - drive setup" section in the traverse motor inspector) -->
+3. Tick "Horizontal drive stabilized (auto torque)". For the elevation ring of an oscillating turret, tick "Elevation drive stabilized (auto torque)" instead.
+4. For the elevation drive, open the laying drive inspector to read the field "Stabilizer - elevation drive strength".
+5. Start a test drive. The turret holds the aim point while the hull moves, within the speed limits.
 
-| Entry | Default |
-|---|---|
-| `Enabled` | true |
-| `RealisticLimits` | true |
-| `HorizontalMaxTraverseRate` (deg/s) | 24 |
-| `ElevationMaxTraverseRate` (deg/s) | 6 |
-| `ResponseTimeSeconds` | 0.75 |
-| `TorqueMultiplier` | 100 |
-| `OverrideRateLimits` | false |
-| `MaxTraverseRate` / `MaxAcceleration` / `MaxBrakeAcceleration` (only with `OverrideRateLimits`) | 360 / 3600 / 3600 |
+## Settings
 
-No key bindings; the mod does not use Sprocket Keybinds. Shipping data: two Technology files in `Sprocket_Data\StreamingAssets\Technology\` (`SprocketStabilization.json`, `SprocketStabilizationTraverseMotor.json`, both dated 1948.01.01). The plugin folder is `BepInEx\plugins\SprocketStabilization\`.
+The settings file is `BepInEx\config\sprocket.stabilization.cfg`, in the section `[Stabilizer]`. The game creates it on the first start. The mod has no keys.
 
-## Status
+| Entry | Default | What it does |
+|---|---|---|
+| `Enabled` | `true` | Turns the stabilizer on. |
+| `RealisticLimits` | `true` | Uses the speed limits below. |
+| `HorizontalMaxTraverseRate` | `24` | Top traverse speed in degrees per second. |
+| `ElevationMaxTraverseRate` | `6` | Top elevation speed in degrees per second. |
+| `ResponseTimeSeconds` | `0.75` | Time to reach full speed. |
+| `TorqueMultiplier` | `100` | Torque multiplier of a stabilized drive. |
+| `OverrideRateLimits` | `false` | Uses your own values below instead of the realistic limits. |
+| `MaxTraverseRate`, `MaxAcceleration`, `MaxBrakeAcceleration` | `360`, `3600`, `3600` | Your own values, used only with `OverrideRateLimits`. |
 
-Installed for the date change on 2026-11-01. The status notes record no in-game test of the stabilizer or of the 1948 date gate yet ("not yet tested in game"); the open checks are a Coldwar-era vehicle with the option available and a too-early saved design that loads with one warning. Unit checks and regression checks with game doubles (135 and 86 checks) passed when the pack was repacked, but the renamed pack has not been re-tested in game.
+The two data files `SprocketStabilization.json` and `SprocketStabilizationTraverseMotor.json` (both dated 1948.01.01) are in `Sprocket_Data\StreamingAssets\Technology\`. The plugin folder is `BepInEx\plugins\SprocketStabilization\`.
+
+## Known limits
+
+- The stabilizer and the 1948 date limit have not been tested in the game yet. The open checks are a Cold War vehicle where the option is available, and a saved design that is too early and loads with one warning.
+- Unit checks and regression checks with game stand-ins (135 and 86 checks) passed when the pack was repacked.
+- If one of the parts of the mod (tick box, torque boost, or saving) cannot connect to the game, only that part is lost and an error is written to the log.
+- The renamed pack as a whole has not been re-tested in the game yet.
 
 ## Building
 
-.NET project in `src\` (`SprocketStabilization.csproj`, net6.0); it builds against the game's interop assemblies:
-`dotnet build src\SprocketStabilization.csproj -c Release -p:GameDir=<path to Sprocket folder>`. Pure checks are in `tests\Checks.csproj`, game-double regression checks in `probes\Probes.csproj`. History: [CHANGELOG.md](CHANGELOG.md).
+The source is a .NET project in `src\` (`SprocketStabilization.csproj`, net6.0). It builds against the game's interface files: `dotnet build src\SprocketStabilization.csproj -c Release -p:GameDir=<path to Sprocket folder>`. Plain checks are in `tests\Checks.csproj`, and regression checks with game stand-ins are in `probes\Probes.csproj`. History: [CHANGELOG.md](CHANGELOG.md).

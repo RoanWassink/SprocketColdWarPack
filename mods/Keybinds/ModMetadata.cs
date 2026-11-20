@@ -7,6 +7,9 @@ internal sealed record Presentation(string Owner, ModInfo Mod, string GroupKey, 
 // Display metadata never touches input identities, overrides or menu transactions.
 internal sealed class ModMetadata
 {
+    // Read-only access to the exact metadata used by keybind presentation, also before Load.
+    internal static ModMetadata Shared => Keybinds.Metadata;
+    internal event Action? Changed;
     private readonly Dictionary<string, ModInfo> mods = new(StringComparer.Ordinal);
     private readonly Dictionary<string, PackInfo> packs = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> packNames = new(StringComparer.Ordinal);
@@ -27,7 +30,9 @@ internal sealed class ModMetadata
         BindingStore.Identity(owner, "metadata");
         var info = new ModInfo(Display(author), Display(name));
         if (mods.TryGetValue(owner, out var old) && old != info) throw new ArgumentException("Conflicting mod metadata for " + owner);
+        if (mods.TryGetValue(owner, out old) && old == info) return;
         mods[owner] = info;
+        Changed?.Invoke();
     }
     public void RegisterPack(string owner, string packId, string name)
     {
@@ -35,7 +40,9 @@ internal sealed class ModMetadata
         var info = new PackInfo(packId, Display(name));
         if (packs.TryGetValue(owner, out var old) && old != info) throw new ArgumentException("An owner may declare only one primary pack.");
         if (packNames.TryGetValue(packId, out var oldName) && oldName != info.Name) throw new ArgumentException("Conflicting pack display name.");
+        if (packs.TryGetValue(owner, out old) && old == info) return;
         packs[owner] = info; packNames[packId] = info.Name;
+        Changed?.Invoke();
     }
     public Presentation Resolve(string owner, string fallback, bool byPack)
     {

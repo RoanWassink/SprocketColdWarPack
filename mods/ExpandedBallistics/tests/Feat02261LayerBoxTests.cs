@@ -77,7 +77,9 @@ internal static partial class ComposerFillBlueprintEvidence
         foreach(var (tag,json) in new[]{("(f) loose plate",f),("(g) T-80BVM object 280",g)})
         {
             var now=LayerFaces.Convert(json,t80,null,Density,forward);var old=LegacyLayerFaces060.Convert(json,t80,null,Density);
-            Check(now.Box==null&&now.Plan.Json==old.Plan.Json&&now.Inspection==old.Inspection,$"{tag}: not a box; payload and window byte-identical to 0.22.60");
+            // 0.22.80: a loose plate (an open sheet that is no box and no filling of ribs) is the front of a sheet: its layers run to the chosen thickness; a filling keeps 0.22.60.
+            if(tag=="(f) loose plate")Check(now.Inspection.Contains("open sheet: the whole sheet is the front",StringComparison.Ordinal)&&now.Sources.All(x=>x.Converted)&&now.DepthCorners==now.Sources.SelectMany(x=>x.Front).Distinct().Count(),$"{tag}: not a box; the whole sheet is the front and its layers run to the chosen thickness (0.22.80)");
+            else Check(now.Box==null&&now.Plan.Json==old.Plan.Json&&now.Inspection==old.Inspection,$"{tag}: not a box; payload and window byte-identical to 0.22.60");
         }
         Check(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(UserBlueprint)))==userHash,"the user's blueprint was only read");
         // ---------- 3. recognition after save and load, also after a layer moved 10 mm ----------

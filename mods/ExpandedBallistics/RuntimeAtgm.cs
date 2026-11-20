@@ -357,7 +357,7 @@ internal static class RuntimeAtgm
             flight.Dynamics=new AtgmFlightState(AtgmFlightDynamics.Seed(p.ID,p.spawnTime,profile.Id));
             if(flight.Tuning.RangePattern=="hump"&&flight.LaunchRange is null&&Warnings.Add("hump-range"))
                 Plugin.ModLog.LogWarning("[ATGM] Hump profile launched without a fresh exact-sight/AI range; using direct guidance without the long lockout.");
-            foreach(var old in Flights.Values.Where(f=>TopAttackLockPolicy.Supersede(f.Profile.Atgm!.GuidanceMode)&&(f.Weapon.Pointer==weapon.Pointer || flight.Vehicle!=IntPtr.Zero && f.Vehicle==flight.Vehicle)))old.Guide=false;
+            foreach(var old in Flights.Values.Where(f=>TopAttackLockPolicy.Supersede(f.Profile.Atgm!.GuidanceMode)&&(f.Weapon.Pointer==weapon.Pointer || flight.Vehicle!=IntPtr.Zero && f.Vehicle==flight.Vehicle)&&!RuntimeAtgmGuidanceSight.GuidesTogether(f.Weapon,f.Profile.Atgm!.GuidanceMode,weapon,profile.Atgm.GuidanceMode)))old.Guide=false; // 0.22.87 ATGM group replaced
             if(profile.Atgm.GuidanceMode=="topattack")
             {
                 var vehicle=weapon.mount?.TryCast<Cannon>()?.Vehicle?.Behaviour;

@@ -126,7 +126,7 @@ internal static class AmmoHudFormat
         var name = snapshot.ChamberedConfirmed ? snapshot.ChamberedLabel ?? "?" : snapshot.NextLabel ?? "none";
         var code = snapshot.ChamberedConfirmed ? snapshot.ChamberedCode ?? "?" : snapshot.NextCode ?? "?";
         var rows = snapshot.Rounds.Select((r, i) => new AmmoHudRow(r.Requested ? ">" : (i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture),
-            r.Label, r.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + (r.Chambered ? " +gun" : ""), r.Chambered)).ToArray();
+            r.Label, r.Chambered ? $"{Math.Max(0, r.Count - 1)} +1 gun" : r.Count.ToString(System.Globalization.CultureInfo.InvariantCulture), r.Chambered)).ToArray();
         return Make(name, code, Rounds(snapshot.TotalRounds), state, rows, notice);
     }
 }

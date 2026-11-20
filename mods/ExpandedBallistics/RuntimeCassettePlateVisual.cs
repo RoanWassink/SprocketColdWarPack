@@ -311,7 +311,7 @@ internal static class RuntimeCassettePlateVisual
         retries.Remove(plate.Pointer);
         var snapshot=RuntimeArmourResponses.Snapshot;
         CassetteModel? model=null;snapshot.Cassettes?.TryGetValue(plate.armourTechID,out model);
-        string signature=OverlayContent.Signature(snap.Signature,plate.armourTechID,System.Text.Json.JsonSerializer.Serialize(model?.Preset));
+        string signature=OverlayContent.Signature(snap.Signature,plate.armourTechID,System.Text.Json.JsonSerializer.Serialize(model?.Preset))+(CompositePlate.IsSolidBlock(RuntimeLayerFaces.MeshName(plate,true))?SolidBlockOverlay.Mark:""); // 0.22.83: the [Solid block] mark only for a marked plate
         string hash=Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(signature)));
         if(views.TryGetValue(plate.Pointer,out var previous)&&previous.Root!=null&&signatures.TryGetValue(plate.Pointer,out var built)&&OverlayContent.Same(built,signature))
         {

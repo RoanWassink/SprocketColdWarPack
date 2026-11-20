@@ -56,7 +56,7 @@ bool RegisterOutput(string id, string displayName, string componentId,
 - **Bron:** alleen lezen, elke tick. Er komt geen patch voor en er wordt niets in native state geschreven. Kandidaten in de interop (`Sprocket.Vehicles.Powertrains`):
   - het veld `action`/`lastAction` (`DriveAction`, bijvoorbeeld de Brake-stand van `UpdateBrake`);
   - `leftBrakeFraction`/`rightBrakeFraction` van `ClutchBraking`.
-- Zo gebouwd (zie GUIDE.md, `vehicle.braking`): de enumwaarde `Braking` is 7; bij `ClutchBraking` moeten beide remfracties actief en symmetrisch zijn, zodat sturen met één rem niet als remmen telt; een layout zonder bruikbaar veld laat de input uit en logt één regel.
+- Zo gebouwd (zie README, `vehicle.braking`): de enumwaarde `Braking` is 7; bij `ClutchBraking` moeten beide remfracties actief en symmetrisch zijn, zodat sturen met één rem niet als remmen telt; een layout zonder bruikbaar veld laat de input uit en logt één regel.
 
 ## 6. v1.1: opslag per part, beheerde flow-opslag en iconen (gebouwd in mast 0.9.3)
 Gevraagd door Visual Effects voor de tanklamp, zonder nieuwe hooks. Alles is additief: `ApiVersion` blijft 1, en er komt `public const int ApiRevision = 1` bij (oudere masts hebben dat veld niet, dus 0). Een afnemer bindt de nieuwe methodes via reflectie. Ontbreken ze, dan werkt hij zonder opslag en zonder icoon. Ze zitten in mast 0.9.3.

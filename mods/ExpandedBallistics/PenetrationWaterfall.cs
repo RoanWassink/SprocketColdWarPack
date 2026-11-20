@@ -50,6 +50,22 @@ internal static class PenetrationWaterfall
         {
             if(zero)break;
             var name=v.Layer?.AirGapMm!=null?"Air gap":HitBlockBuilder.Part(v);
+            // 0.22.91 (part C, owner review 16-11): a layer the hit list does not show (an engine, a fuel tank: no armour plate, so no row of its own) keeps its own
+            // measured reduction here, from its exit line that the projection moved into this row, instead of "Between layers". Only a reduction that lies within the
+            // gap (in order) is booked; what lies between two of them, or is left at the end, stays "Between layers" (an air gap, a spaced-armour effect). Presentation only.
+            HashSet<string>? hiddenIds=null;
+            if(v.Before is {} gapEnd&&double.IsFinite(gapEnd)&&gapEnd<running-Epsilon)
+                foreach(var r in v.Details.Where(e=>e.Kind is "componentResidual" or "plateResidual"&&e.HitId!=null&&e.HitId!=v.Id&&e.BeforeMm is {} b&&e.AfterMm is {} a&&double.IsFinite(b)&&double.IsFinite(a)&&a<b))
+                {
+                    if(r.AfterMm!.Value<=gapEnd+Epsilon)(hiddenIds??=new(StringComparer.Ordinal)).Add(r.HitId!);
+                    double from=r.BeforeMm!.Value,down=Math.Max(r.AfterMm!.Value,gapEnd);
+                    if(zero||from>running+Epsilon||down>=from)continue;
+                    (hiddenIds??=new(StringComparer.Ordinal)).Add(r.HitId!);
+                    if(running-from>Epsilon)Add("Between layers",from-running,$"Penetration changed by {(from-running).ToString("0.#",CultureInfo.InvariantCulture)} mm between the previous layer and {HiddenName(r)}.",ColourGap);
+                    if(zero)break;
+                    var hidden=HiddenName(r);
+                    Add(hidden,down-running,$"{hidden}: {(running-down).ToString("0.#",CultureInfo.InvariantCulture)} mm of penetration (measured in this layer; it is no armour plate and has no row of its own).",ColourOther);
+                }
             if(v.Before is {} entry&&double.IsFinite(entry))Add("Between layers",entry-running,$"Penetration changed by {(entry-running).ToString("0.#",CultureInfo.InvariantCulture)} mm between the previous layer and {name}.",ColourGap);
             if(zero)break;
             if(v.Status=="Deflected"){endLabel="Ricochet";break;}
@@ -61,11 +77,16 @@ internal static class PenetrationWaterfall
             foreach(var e in v.Details)
             {
                 if(remaining<=Epsilon||zero)break;
-                var kind=Kind(e);
+                if(e.HitId!=null&&hiddenIds!=null&&hiddenIds.Contains(e.HitId))continue;
+                if(e.HitId!=null&&e.HitId!=v.Id&&v.Before is {} vb&&e.BeforeMm is {} eb&&eb>vb+Epsilon)continue;
+                var kind=Kind(e,v);
                 if(kind==null||e.BeforeMm is not {} b||e.AfterMm is not {} a||!double.IsFinite(b)||!double.IsFinite(a))continue;
                 var loss=Math.Min(remaining,Math.Max(0,b-a));
                 if(loss<Epsilon)continue;
-                Add(kind.Value.Label,-loss,CombatReportPresentation.Escape(CombatReportLanguage.Reaction(e.Text)),kind.Value.Colour);remaining-=loss;
+                string tip=e.PaidIntervals is {Length:>0} paid
+                    ?CombatReportPresentation.Escape(CombatReportLanguage.Scrub(string.Join("; ",paid.Select(p=>MaterialIntervalDisplay.Piece(p)))))
+                    :CombatReportPresentation.Escape(CombatReportLanguage.Reaction(e.Text));
+                Add(kind.Value.Label,-loss,tip,kind.Value.Colour);remaining-=loss;
             }
             // 0.22.41: report wording; what the listed reactions do not explain is the plate's own passive resistance.
             if(remaining>Epsilon)Add(v.Status.StartsWith("Stopped",StringComparison.Ordinal)?"Stopped: "+name:name,-remaining,
@@ -75,7 +96,7 @@ internal static class PenetrationWaterfall
         if(zero)endLabel="Stopped";
         return new WaterfallModel(start,steps,running,endLabel,zero);
     }
-    private static (string Label,string Colour)? Kind(CombatReportEvent e)
+    private static (string Label,string Colour)? Kind(CombatReportEvent e,CombatHitView v)
     {
         if(e.BeforeMm==null||e.AfterMm==null)return null;
         if(e.Kind=="eraReaction")return ("ERA",ColourEra);
@@ -91,10 +112,34 @@ internal static class PenetrationWaterfall
             if(e.Text.StartsWith("Cassette ",StringComparison.Ordinal))return ("Composite",ColourCassette);
             // 0.22.28: the protection line of a mod material ("Leopard 2A7 wedge: 552 mm × 0.51 (long rod @66°) = 281 mm RHA").
             if(ProtectionLine.Is(e.Text)){var label=CombatReportLanguage.Material(e.Text[..e.Text.IndexOf(':')].Trim());return (label.Length==0?"Protection":label,ColourCassette);}
+            if(MaterialIntervalDisplay.Is(e))
+            {
+                if(e.PaidIntervals is {Length:>0} paid)
+                {
+                    var primary=paid.OrderByDescending(p=>p.RhaMm).First();
+                    if(primary.Material=="rha")return (HitBlockBuilder.Part(v),ColourSteel);
+                    var label=CombatReportLanguage.Scrub(MaterialIntervalDisplay.Name(primary));
+                    var colour=primary.Material.StartsWith("ebCassette_",StringComparison.Ordinal)?ColourCassette
+                        :primary.Material.StartsWith("native:",StringComparison.Ordinal)?ColourOther:ColourSteel;
+                    return (label.Length==0?HitBlockBuilder.Part(v):label,colour);
+                }
+                const string prefix="Confirmed material intervals:";
+                var rest=e.Text.StartsWith(prefix,StringComparison.Ordinal)?e.Text[prefix.Length..].Trim():e.Text;
+                var cut=rest.IndexOfAny(new[]{'[',':',';'});
+                var fallback=CombatReportLanguage.Scrub((cut>0?rest[..cut]:rest).Trim());
+                return (fallback.Length==0?HitBlockBuilder.Part(v):fallback,ColourOther);
+            }
             var name=CombatReportLanguage.Scrub(e.Text.Split(':',';')[0].Trim());
             return (name.Length==0?"Material":name,ColourOther);
         }
         return null;
+    }
+    /// <summary>0.22.91: the report name of a layer without a row, from its exit line ("Traversed fuelTank; ..." → "fuel tank").</summary>
+    private static string HiddenName(CombatReportEvent residual)
+    {
+        var t=residual.Text.Split(';')[0].Trim();
+        if(t.StartsWith("Traversed ",StringComparison.Ordinal))t=t["Traversed ".Length..].Trim();
+        return t.Length==0?"Layer":CombatReportLanguage.Module(t);
     }
     private static string Fit(string label)=>label.Length<=18?label:label[..17]+"\u2026";
 

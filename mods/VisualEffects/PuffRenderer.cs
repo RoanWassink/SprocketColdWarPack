@@ -83,6 +83,78 @@ internal sealed class PuffRenderer
         root.SetActive(true);
         return $"puffs smoke={keepSmoke} dust={dustCount} lod=x{lod:F2}";
     }
+    internal int EmitExplosion(Vector3 pos,Vector3 normal,float scale,float fireMul,float cameraDistance,float countMul=1f)
+    {
+        if(disposed||countMul<=0f)return 0;
+        var lod=(cameraDistance>700?.35f:cameraDistance>220?.6f:1f)*countMul;
+        Span<Puff> tmp=stackalloc Puff[48];
+        PuffMath.SpawnExplosionPuffs(rng,N(pos),N(normal),scale,Time.time,fireMul,tmp,out var count);
+        return CommitPuffs(tmp,count,lod,Math.Max(2,(int)MathF.Round(4f*countMul)));
+    }
+    internal int EmitEra(Vector3 pos,Vector3 outward,float scale,float fireMul,float cameraDistance,float countMul=1f)
+    {
+        if(disposed||cameraDistance>750||countMul<=0f)return 0;
+        var lod=(cameraDistance>220?.5f:1f)*countMul;
+        Span<Puff> tmp=stackalloc Puff[24];
+        PuffMath.SpawnEraPuffs(rng,N(pos),N(outward),scale,Time.time,fireMul,tmp,out var count);
+        return CommitPuffs(tmp,count,lod,Math.Max(1,(int)MathF.Round(3f*countMul)));
+    }
+    internal int EmitHeat(Vector3 pos,Vector3 outward,float scale,float fireMul,float cameraDistance,float countMul=1f)
+    {
+        if(disposed||cameraDistance>850||countMul<=0f)return 0;
+        var lod=(cameraDistance>240?.55f:1f)*countMul;
+        Span<Puff> tmp=stackalloc Puff[24];
+        PuffMath.SpawnHeatPuffs(rng,N(pos),N(outward),scale,Time.time,fireMul,tmp,out var count);
+        return CommitPuffs(tmp,count,lod,Math.Max(1,(int)MathF.Round(3f*countMul)));
+    }
+    internal int EmitHesh(Vector3 pos,Vector3 outward,float scale,float fireMul,float cameraDistance,float countMul=1f)
+    {
+        if(disposed||countMul<=0f)return 0;
+        var lod=(cameraDistance>700?.35f:cameraDistance>220?.6f:1f)*countMul;
+        Span<Puff> tmp=stackalloc Puff[32];
+        PuffMath.SpawnHeshPuffs(rng,N(pos),N(outward),scale,Time.time,fireMul,tmp,out var count);
+        return CommitPuffs(tmp,count,lod,Math.Max(2,(int)MathF.Round(4f*countMul)));
+    }
+    private int CommitPuffs(Span<Puff> tmp,int count,float lod,int minCount)
+    {
+        var keep=Math.Min(count,Math.Max(minCount,(int)MathF.Round(count*lod)));
+        for(var i=0;i<keep;i++)Put(tmp[i]);
+        root.SetActive(true);
+        return keep;
+    }
+    internal int EmitGroundImpact(Vector3 pos,Vector3 normal,float scale,float cameraDistance)
+    {
+        if(disposed)return 0;
+        var lod=cameraDistance>700?.35f:cameraDistance>220?.6f:1f;
+        Span<Puff> tmp=stackalloc Puff[48];
+        PuffMath.SpawnGroundImpactPuffs(rng,N(pos),N(normal),scale,Time.time,tmp,out var count);
+        var keep=Math.Max(3,(int)MathF.Round(count*lod));
+        for(var i=0;i<keep;i++)Put(tmp[i]);
+        root.SetActive(true);
+        return keep;
+    }
+    internal int EmitArmourImpact(Vector3 pos,Vector3 normal,float scale,bool ricochet,float cameraDistance,float countMul=1f)
+    {
+        if(disposed||cameraDistance>700||countMul<=0f)return 0;
+        var lod=(cameraDistance>220?.55f:1f)*countMul;
+        Span<Puff> tmp=stackalloc Puff[16];
+        PuffMath.SpawnArmourImpactPuffs(rng,N(pos),N(normal),scale,Time.time,ricochet,tmp,out var count);
+        var keep=Math.Min(count,Math.Max(1,(int)MathF.Round(count*lod)));
+        for(var i=0;i<keep;i++)Put(tmp[i]);
+        root.SetActive(true);
+        return keep;
+    }
+    internal int EmitCookoff(Vector3 pos,float scale,float fireMul,float cameraDistance)
+    {
+        if(disposed)return 0;
+        var lod=cameraDistance>800?.4f:cameraDistance>260?.7f:1f;
+        Span<Puff> tmp=stackalloc Puff[48];
+        PuffMath.SpawnCookoffPuffs(rng,N(pos),scale,Time.time,fireMul,tmp,out var count);
+        var keep=Math.Max(6,(int)MathF.Round(count*lod));
+        for(var i=0;i<keep;i++)Put(tmp[i]);
+        root.SetActive(true);
+        return keep;
+    }
     private void Put(in Puff p){pool[next]=p;next=(next+1)%pool.Length;}       // ring: oldest recycled first
     internal void UpdateFrame(float now,Camera? camera)
     {
@@ -117,8 +189,16 @@ internal sealed class PuffRenderer
                 var s=PuffMath.State(p,now,Wind,up)!.Value;
                 var centre=U(s.Center);
                 var br=Tuning.SmokeBrightness;
-                var tint=p.Dust?new Color(EffectMath.PuffDustR,EffectMath.PuffDustG,EffectMath.PuffDustB,s.Dissolve)
-                               :new Color(EffectMath.PuffSmokeR*br,EffectMath.PuffSmokeG*br,EffectMath.PuffSmokeB*br,s.Dissolve);
+                var tint=p.Style switch
+                {
+                    1=>new Color(EffectMath.PuffDustR,EffectMath.PuffDustG,EffectMath.PuffDustB,s.Dissolve),
+                    2=>new Color(EffectMath.PuffSootR,EffectMath.PuffSootG,EffectMath.PuffSootB,s.Dissolve),
+                    3=>new Color(EffectMath.PuffDirtR,EffectMath.PuffDirtG,EffectMath.PuffDirtB,s.Dissolve),
+                    4=>new Color(EffectMath.PuffScorchR,EffectMath.PuffScorchG,EffectMath.PuffScorchB,s.Dissolve),
+                    5=>new Color(EffectMath.PuffCookoffR,EffectMath.PuffCookoffG,EffectMath.PuffCookoffB,s.Dissolve),
+                    _=>p.Dust?new Color(EffectMath.PuffDustR,EffectMath.PuffDustG,EffectMath.PuffDustB,s.Dissolve)
+                             :new Color(EffectMath.PuffSmokeR*br,EffectMath.PuffSmokeG*br,EffectMath.PuffSmokeB*br,s.Dissolve)
+                };
                 var a=Math.Clamp(s.Alpha*Opacity,0,1);
                 for(var c=0;c<4;c++)
                 {

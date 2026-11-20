@@ -813,6 +813,7 @@ GraphTests.Run(Check);
 GraphRenderingTests.Run(Check);
 FocusGraph0111Tests.Run(Check);
 Focus0112Tests.Run(Check);
+Settings0113Tests.Run(Check);
 Console.WriteLine($"ALL PASSED: {passed}");
 
 

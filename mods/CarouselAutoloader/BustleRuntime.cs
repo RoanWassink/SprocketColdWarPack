@@ -16,6 +16,14 @@ internal sealed class BustleState
     internal readonly LoaderKind Kind;
     internal bool Semi => Kind == LoaderKind.Semi;
     internal bool Revolver => Kind == LoaderKind.Revolver;
+    internal bool BeltFeed => Kind == LoaderKind.Belt;
+    internal BeltSourceCache<AmmoRackBehaviour> BeltSupply;
+    internal IAmmoSource? BeltNativeSupply;
+    internal int BeltType = -1;
+    internal BeltCycleClock BeltClock;
+    internal float BeltPendingDt;
+    internal float BeltQuantum;
+    internal bool BeltStationary, BeltCrew;
     internal bool Enabled = true;
     internal bool MirrorFeedArm;
     internal int CannonId = -1;
@@ -24,7 +32,7 @@ internal sealed class BustleState
     internal bool DateAllowed = true;
     internal int DateKey = int.MinValue;
     internal DateTime? VehicleDate;
-    internal bool Active => Enabled && BustleRuntime.Allowed(this);
+    internal bool Active => Enabled && (!BeltFeed || Belt.Enabled) && BustleRuntime.Allowed(this);
     internal VehicleComponentPath? Path;
     internal int PathCannonId = -1;
     internal bool Syncing;
@@ -62,7 +70,7 @@ internal sealed class BustleState
     // 0.2.24: two-piece ammunition (bustle and revolver, saved per rack) and the cached feed arm,
     // recomputed after a rack build, an assignment or a toggle; never per frame.
     internal bool TwoPiece;
-    internal bool TwoPieceActive => TwoPiece && !Semi;
+    internal bool TwoPieceActive => TwoPiece && !Semi && !BeltFeed;
     internal bool FeedValid, FeedKnown;
     internal IntPtr FeedCannon;
     internal FeedArm Feed;
@@ -70,8 +78,7 @@ internal sealed class BustleState
     internal BustleState(AmmoRack rack)
     {
         Rack = rack;
-        Kind = rack.VehicleObject?.GUID == SemiAutoloader.PartGuid ? LoaderKind.Semi :
-            rack.VehicleObject?.GUID == BustleRuntime.RevolverPartGuid ? LoaderKind.Revolver : LoaderKind.Bustle;
+        Kind = LoaderIdentity.Kind(rack.VehicleObject?.GUID);
     }
     internal Rigidbody? VehicleBody()
     {
@@ -96,6 +103,7 @@ internal static class BustleRuntime
         try
         {
             var date = CarouselRuntime.Date(state.Rack);
+            if (state.BeltFeed && date == null) return false;
             int key = date is { } d ? d.Year * 10000 + d.Month * 100 + d.Day : int.MinValue;
             if (state.DateKey == key) return state.DateAllowed;
             state.DateKey = key; state.VehicleDate = date; state.DateAllowed = true;
@@ -105,7 +113,7 @@ internal static class BustleRuntime
                 state.DateAllowed = CarouselDatePolicy.Allows(vehicle, from);
                 if (!state.DateAllowed && Warnings.Add("date " + state.Rack.Pointer + " " + key))
                 {
-                    var label = state.Semi ? "Semi-autoloader" : state.Revolver ? "Revolver" : "Bustle";
+                    var label = state.Semi ? "Semi-autoloader" : state.Revolver ? "Revolver" : state.BeltFeed ? "Belt" : "Bustle";
                     Plugin.ModLog.LogWarning(
                         $"[{label}] Needs {from:yyyy-MM-dd}; vehicle date is " +
                         $"{vehicle:yyyy-MM-dd}. Saved part retained; native manual loading used.");
@@ -135,7 +143,7 @@ internal static class BustleRuntime
         list.Cast<Il2CppSystem.Collections.Generic.IReadOnlyCollection<T>>().Count;
     internal static bool IsPart(AmmoRack rack) =>
         rack.VehicleObject?.GUID == PartGuid || rack.VehicleObject?.GUID == SemiAutoloader.PartGuid ||
-        rack.VehicleObject?.GUID == RevolverPartGuid;
+        rack.VehicleObject?.GUID == RevolverPartGuid || rack.VehicleObject?.GUID == Belt.PartGuid;
     internal static BustleState State(AmmoRack rack)
     {
         if (!States.TryGetValue(rack.Pointer, out var state)) States[rack.Pointer] = state = new(rack);
@@ -153,6 +161,9 @@ internal static class BustleRuntime
             state.RefillRack = null; state.RefillPath = null;
             state.NoLoaderRack = null; state.BodyCache = null;
             state.FeedValid = false;
+            state.BeltSupply.Clear(); state.BeltNativeSupply = null; state.BeltType = -1;
+            state.BeltClock.Reset(); state.BeltPendingDt = 0; state.StillSeconds = 0;
+            state.BeltStationary = state.BeltCrew = false;
         }
     }
     internal static bool Eligible(BustleState state, Cannon cannon)
@@ -161,6 +172,8 @@ internal static class BustleRuntime
         // Live health/installation checks still precede cached spatial checks.
         if (!state.Active || state.CannonId != cannon.VUID.Value) return false;
         if (!state.Rack.IsInstalled || state.Rack.HealthFraction <= 0) return Refuse(state, cannon, 1);
+        // Belt caches the physical fit before repeated hot-path geometry calls. Health stays live.
+        if (state.BeltFeed && state.EligibleFrame == Time.frameCount && state.CachedCannon == cannon.Pointer) return state.CachedEligible;
         if(Capacity(state,cannon)<=0) return Refuse(state, cannon, 2);
         if (state.EligibleFrame == Time.frameCount && state.CachedCannon == cannon.Pointer) return state.CachedEligible;
         state.EligibleFrame = Time.frameCount; state.CachedCannon = cannon.Pointer;
@@ -169,7 +182,8 @@ internal static class BustleRuntime
             state.Rack.ShellSizeBlueprintID != cannon.ShellSizeBlueprintID ? 4 :
             !CarouselRuntime.SameTurret(state.Rack, cannon) ? 5 :
             !(Distance(state, cannon) < FeedLimit(state)) ? 6 :
-            state.Revolver && !RevolverFits(state, cannon) ? 7 : 0;
+            state.Revolver && !RevolverFits(state, cannon) ? 7 :
+            state.BeltFeed && !Belt.Fits(ShellLoaderGeometry.Read(cannon).DiameterMm) ? 8 : 0;
         state.CachedEligible = refusal == 0;
         if (refusal != 0) Refuse(state, cannon, refusal);
         return state.CachedEligible;
@@ -190,9 +204,10 @@ internal static class BustleRuntime
                 4 => "its ammunition slot differs from the cannon's",
                 5 => "it is not in the cannon's turret",
                 6 => $"the feed arm is {state.CachedDistance:0.00} m from the breech, limit {FeedLimit(state):0.00} m (config Bustle.MaxFeedDistance)",
+                8 => "calibre too large (config Belt.MaxCalibre)",
                 _ => "the ammunition is outside the revolver limits",
             };
-            Plugin.ModLog.LogInfo($"[{(state.Revolver ? "Revolver" : "Bustle")}] Rack {state.Rack.VUID.Value} does not load: {text}. " +
+            Plugin.ModLog.LogInfo($"[{(state.Revolver ? "Revolver" : state.BeltFeed ? "Belt" : "Bustle")}] Rack {state.Rack.VUID.Value} does not load: {text}. " +
                 "No manual fallback while this loader is assigned and enabled. Logged once per rack and reason.");
         }
         catch { /* Logging must never change loading. */ }
@@ -222,15 +237,28 @@ internal static class BustleRuntime
     // limited to its single drum (0.2.23) and to its configurable limits (0.2.24: a refused revolver
     // holds nothing, so InvalidAssignedFeed blocks instead of a silent manual fallback). Two-piece
     // racks count complete rounds from pairs of pieces.
-    internal static int Capacity(BustleState state, Cannon cannon)
+    internal static int Capacity(BustleState state, Cannon cannon) =>
+        Capacity(state, cannon, ShellLoaderGeometry.Read(cannon));
+
+    internal static int Capacity(BustleState state, Cannon cannon, LoaderShellSize size)
     {
-        if (state.TwoPieceActive) return TwoPieceCapacity(state, ShellLoaderGeometry.Read(cannon));
-        var native = ShellLoaderGeometry.RackCapacity(state.Rack, cannon, state.NativeCapacity);
-        if (!state.Revolver) return native;
-        var size = ShellLoaderGeometry.Read(cannon);
-        return size.Valid && RevolverPolicy.Fits(size.DiameterMm, size.FullLengthMm) &&
-            LoaderPhysicalFit.NativePackDimensions(size.ProjectileMm, size.ChargeMm, size.DiameterMm, out var d, out var len)
-            ? DrumCapacity(state.Rack, native, d, len) : 0;
+        if (!size.Valid) return 0;
+        if (state.BeltFeed && !Belt.Fits(size.DiameterMm)) return 0;
+        if (state.TwoPieceActive) return TwoPieceCapacity(state, size);
+        int nativeCap = state.NativeCapacity >= 0 ? state.NativeCapacity : state.Rack.Capacity;
+        if (size.Status == 0)
+        {
+            int cap = Math.Max(0, nativeCap);
+            if (!state.Revolver) return cap;
+            return RevolverPolicy.Fits(size.DiameterMm, size.FullLengthMm) &&
+                LoaderPhysicalFit.NativePackDimensions(size.ProjectileMm, size.ChargeMm, size.DiameterMm, out var d, out var len)
+                ? DrumCapacity(state.Rack, cap, d, len) : 0;
+        }
+        if (!LoaderPhysicalFit.NativePackDimensions(size.ProjectileMm, size.ChargeMm, size.DiameterMm, out var pd, out var plen)) return 0;
+        int grid = ShellLoaderGeometry.Grid(state.Rack, pd, plen).Capacity;
+        int resolved = nativeCap > 0 ? Math.Min(nativeCap, grid) : grid;
+        if (!state.Revolver) return Math.Max(0, resolved);
+        return RevolverPolicy.Fits(size.DiameterMm, size.FullLengthMm) ? DrumCapacity(state.Rack, resolved, pd, plen) : 0;
     }
     // floor(pieces / 2) with the longest piece in the native packer (and, for the revolver, in the drum).
     // This may exceed the native full-round capacity: the rack stores complete rounds with its native
@@ -243,7 +271,7 @@ internal static class BustleRuntime
         int longest = TwoPiecePolicy.LongestMm(p, c);
         if (longest <= 0 || longest > ushort.MaxValue) return 0;
         var d = (ushort)Math.Ceiling(size.DiameterMm);
-        int pieces = AmmoRackUtils.CalculateCapacity(bp.Width, bp.Height, bp.Length, d, (ushort)longest);
+        int pieces = ShellLoaderGeometry.Grid(state.Rack, d, longest).Capacity;
         if (state.Revolver)
         {
             if (!RevolverPolicy.Fits(size.DiameterMm, longest)) return 0;
@@ -272,6 +300,7 @@ internal static class BustleRuntime
     internal static double MaximumDistance => CannonBreech.MinimumOperateHandDistance;
     // Feed reach: native crew hand reach, or config Bustle.MaxFeedDistance (> 0) for bustle and revolver.
     internal static double FeedLimit(BustleState state) =>
+        state.BeltFeed ? (Belt.MaxFeedDistance > 0 ? Belt.MaxFeedDistance : MaximumDistance) :
         !state.Semi && Plugin.MaxFeedDistance > 0 ? Plugin.MaxFeedDistance : MaximumDistance;
     private static bool RevolverFits(BustleState state, Cannon cannon)
     {
@@ -322,10 +351,13 @@ internal static class BustleRuntime
         var bp = rack.Blueprint; var d = rack.boundsSize;
         UnityEngine.Vector3 load = default;
         bool known = assigned != null && LoadPoint(rack, assigned, out load);
-        return new Spec(state.Revolver ? "Revolver" : "Bustle", state.Revolver ? ModelKind.Revolver : ModelKind.Bustle,
+        return new Spec(state.Revolver ? "Revolver" : state.BeltFeed ? "Belt" : "Bustle", state.Revolver ? ModelKind.Revolver : ModelKind.Bustle,
             bp != null ? bp.Width / 1000.0 : d.x, bp != null ? bp.Height / 1000.0 : d.y, bp != null ? bp.Length / 1000.0 : d.z,
             shell.DiameterMm, p, c, capacity, state.MirrorFeedArm, state.TwoPieceActive,
-            known ? load.x : double.NaN, known ? load.y : double.NaN, known ? load.z : double.NaN);
+            known ? load.x : double.NaN, known ? load.y : double.NaN, known ? load.z : double.NaN,
+            new(rack.spacing.x, rack.spacing.y, rack.spacing.z),
+            new(rack.minPadding.x, rack.minPadding.y, rack.minPadding.z),
+            new(rack.maxPadding.x, rack.maxPadding.y, rack.maxPadding.z));
     }
     // Cached feed arm (bustle/revolver). The model is built from FeedSpec, so arm and measuring point coincide.
     internal static FeedArm Feed(BustleState state, Cannon? cannon)
@@ -342,6 +374,7 @@ internal static class BustleRuntime
     internal static UnityEngine.Vector3 FeedLocalPosition(AmmoRack rack, Cannon? cannon = null)
     {
         var state = State(rack);
+        if (state.BeltFeed) return rack.LoadLocalPosition;
         if (!state.Semi && cannon != null)
         {
             var feed = Feed(state, cannon);
@@ -386,6 +419,7 @@ internal static class BustleRuntime
         RevolverPolicy.BaseCycleSeconds(RawSeconds(state, cannon), state.TwoPieceActive);
     internal static double Seconds(BustleState state, Cannon cannon)
     {
+        if (state.BeltFeed) return Belt.Cycle(cannon.Blueprint.Caliber);
         if (state.ReloadFrame == Time.frameCount) return state.CachedSeconds;
         state.ReloadFrame = Time.frameCount;
         // Revolver factor (0.2.25: 0.6 x bustle), then two ram strokes per complete round (0.2.24, x 1.25).
@@ -493,7 +527,7 @@ internal static class BustleRuntime
                 }
             }
             state.AddedMechanismMass = state.Active
-                ? (float)(state.Revolver ? RevolverPolicy.MechanismMassKg(__instance.Capacity) : BustleTiming.MechanismMassKg(__instance.Capacity))
+                ? (float)(state.BeltFeed ? Belt.MechanismMassKg(__instance.Capacity) : state.Revolver ? RevolverPolicy.MechanismMassKg(__instance.Capacity) : BustleTiming.MechanismMassKg(__instance.Capacity))
                 : 0;
             __instance.SetMass(__instance.GetMass(Sprocket.Vehicles.MassType.Mechanisms) + state.AddedMechanismMass,
                 Sprocket.Vehicles.MassType.Mechanisms);
@@ -512,6 +546,8 @@ internal static class BustleRuntime
     internal static bool SelectSupply(LoadTask task, Cannon cannon)
     {
         if (task.State == LoadState.Loading || (task.State == LoadState.Loaded && task.currentRequest == LoadRequest.Unused)) return false;
+        // The index is already sorted. Belt selects its single cached source before any LINQ path.
+        if (BeltRuntime.Assigned(task, out var belt)) return BeltRuntime.SelectSupply(task, cannon, belt);
         foreach (var state in Racks(cannon).OrderBy(s => s.Rack.VUID.Value))
         {
             if (!Eligible(state, cannon)) continue;
@@ -527,6 +563,7 @@ internal static class BustleRuntime
             var request = task.Request;
             if (request.TypeID.Value == ProjectileTypeID.Invalid.Value || request.SizeID.Caliber == 0)
             {
+                MagazineRefill.PinNativeType(cannon, request.TypeID.Value, supply.StoredTypeID.Value);
                 request.TypeID = supply.StoredTypeID;
                 request.SizeID = supply.ShellSizeID;
                 request.Destination = cannon.LoadPosition;
@@ -565,7 +602,7 @@ internal static class BustleRuntime
         var cannon = task.target?.TryCast<WeaponBehaviour>()?.mount?.TryCast<Cannon>();
         if (!Mechanical(task, cannon, out var state)) return false;
         var seconds = (float)Seconds(state, cannon!);
-        travelSpeed = 1; handlingSpeed = 1; ramTime = seconds * .2f;
+        travelSpeed = 1; handlingSpeed = 1; ramTime = state.BeltFeed ? 0 : seconds * .2f;
         return true;
     }
     internal static void ApplyTimings(LoadTask task)
@@ -575,6 +612,7 @@ internal static class BustleRuntime
     }
     private static void SetTimings(LoadTask task, BustleState state, Cannon cannon)
     {
+        if (state.BeltFeed) { BeltRuntime.SetTimings(task, state); return; }
         var seconds = (float)Seconds(state, cannon);
         // Distance gates reach only; the established 20/20/40/20 cycle is retained.
         task.pickupTime = seconds * .2f;
@@ -594,7 +632,7 @@ internal static class BustleRuntime
                 var state = State(rack);
                 WriteSettings(__result.State, state.Enabled, state.CannonId, state.MirrorFeedArm);
                 // Written only when set, so racks without two-piece save exactly as before.
-                if (state.TwoPiece && !state.Semi) __result.State.AddValue(TwoPieceKey, true);
+                if (state.TwoPieceActive) __result.State.AddValue(TwoPieceKey, true);
             }
         });
     }
@@ -611,9 +649,12 @@ internal static class BustleRuntime
             state.CannonId = saved.CannonId;
             state.AutoAssign = !saved.HasAssignment;
             state.MirrorFeedArm = ReadMirrorSetting(__0);
-            state.TwoPiece = ReadBool(__0, TwoPieceKey);
+            state.TwoPiece = state.BeltFeed ? Belt.TwoPiece(ReadBool(__0, TwoPieceKey)) : ReadBool(__0, TwoPieceKey);
             state.Path = null;
             state.FeedValid = false;
+            state.BeltSupply.Clear(); state.BeltNativeSupply = null; state.BeltType = -1;
+            state.BeltClock.Reset(); state.BeltPendingDt = 0; state.StillSeconds = 0;
+            state.BeltStationary = state.BeltCrew = false;
         });
     }
     internal static void WriteSettings(SerializationInfo info, bool enabled, int cannonId, bool mirrorFeedArm = false)

@@ -23,7 +23,7 @@ internal static class BustleInspector
             var ui = __0.TryCast<IGUIElementDrawer>();
             if (ui == null) return;
             __0.EndAllDropdowns();
-            __0.BeginDropdown(state.Semi ? "Assisted autoloader" : state.Revolver ? "Revolver autoloader" : "Bustle autoloader", open, Bool(v => open = v));
+            __0.BeginDropdown(state.Semi ? "Assisted autoloader" : state.Revolver ? "Revolver autoloader" : state.BeltFeed ? "Belt feed" : "Bustle autoloader", open, Bool(v => open = v));
             try
             {
                 void Changed() { rack.RequestRebuild(); __instance.RequestRedraw(); }
@@ -34,22 +34,22 @@ internal static class BustleInspector
                         new UnityEngine.Color(.6f, .6f, .6f));
                 }
                 ui.ToggleField(state.Semi ? "Mechanical assistance" : "Automatic loader", state.Enabled, Bool(v => { state.Enabled = v; Changed(); }),
-                    state.Revolver
+                    state.BeltFeed ? "Fires without a crew loader. A healthy assigned loader refills from normal racks only while stationary." : state.Revolver
                         ? "Fast fire from one drum. Without a crew loader the crew refills the drum from the normal racks only while the vehicle stands still."
                         : "Uses a finite ready magazine. An assigned crew loader replenishes it from normal racks after it empties.");
                 var cannons = CarouselRuntime.Cannons(rack);
                 var selected = cannons.FindIndex(c => c.VUID.Value == state.CannonId);
                 // 0.2.24: with an assigned cannon the bustle/revolver arm is placed automatically at the
                 // point nearest the breech; the mirror toggle remains for Semi and for racks without a cannon.
-                bool auto = !state.Semi && selected >= 0 && BustleRuntime.Feed(state, cannons[selected]).Auto && state.FeedKnown;
-                if (!auto)
+                bool auto = !state.Semi && !state.BeltFeed && selected >= 0 && BustleRuntime.Feed(state, cannons[selected]).Auto && state.FeedKnown;
+                if (!auto && !state.BeltFeed)
                     ui.ToggleField("Mirror feed arm", state.MirrorFeedArm, Bool(v =>
                     {
                         state.MirrorFeedArm = v;
                         BustleRuntime.InvalidateRuntimeCaches();
                         Changed();
                     }), state.Semi ? "Place the feed arm on the opposite side." : "Place the feed arm on the opposite side (used while no cannon is assigned).");
-                if (!state.Semi)
+                if (!state.Semi && !state.BeltFeed)
                     ui.ToggleField("Two-piece ammunition", state.TwoPiece, Bool(v =>
                     {
                         state.TwoPiece = v;
@@ -67,7 +67,7 @@ internal static class BustleInspector
                         Changed();
                     }))!, "Cannons in the same turret. This rack follows the assigned cannon's ammunition.");
 
-                if (selected < 0) { ui.InfoField("Place under the same turret and choose its cannon", 2); return; }
+                if (selected < 0) { ui.InfoField(state.BeltFeed ? "Belt feed: other turret or no assigned cannon" : "Place under the same turret and choose its cannon", 2); return; }
                 var assigned = cannons[selected];
                 // Editor only: a moved rack or cannon re-places the arm (rebuild once, nothing per frame in Play).
                 if (auto && state.FeedSpec != null && BustleRuntime.LoadPoint(rack, assigned, out var load) &&
@@ -75,6 +75,8 @@ internal static class BustleInspector
                 { state.FeedValid = false; rack.RequestRebuild(); }
                 var physical=ShellLoaderGeometry.Read(assigned);
                 var capacity=BustleRuntime.Capacity(state,assigned);
+                if (state.BeltFeed && !Belt.Fits(physical.DiameterMm)) ui.InfoField("Belt feed: calibre too large (config Belt.MaxCalibre)", 2);
+                if (state.BeltFeed && !CarouselRuntime.SameTurret(rack, assigned)) ui.InfoField("Belt feed: other turret", 2);
                 if(state.TwoPieceActive && physical.Valid)
                 {
                     var pieces=TwoPiecePolicy.Pieces(physical.Status,physical.ProjectileMm,physical.ChargeMm,physical.DiameterMm);
@@ -86,18 +88,24 @@ internal static class BustleInspector
                 {
                     // Exactly one reason (never "too small" and "too large" together).
                     if(state.Revolver) ui.InfoField(BustleRuntime.CapacityReason(state,assigned),2);
-                    else if(!state.Semi && !state.TwoPieceActive && physical.Valid && rack.Blueprint!=null && Math.Ceiling(physical.FullLengthMm)>rack.Blueprint.Length)
+                    else if(!state.Semi && !state.BeltFeed && !state.TwoPieceActive && physical.Valid && rack.Blueprint!=null && Math.Ceiling(physical.FullLengthMm)>rack.Blueprint.Length)
                         ui.InfoField($"Rack shorter than the round ({Math.Ceiling(physical.FullLengthMm):0} mm): lengthen it or use two-piece",2);
                     ui.InfoField("Disable or unassign the loader to use manual loading.",2);
                 }
                 var distance = BustleRuntime.Distance(state, assigned);
                 var limit = BustleRuntime.FeedLimit(state);
-                ui.InfoField($"Feed arm to breech: {distance:0.00} / {limit:0.00} m", 2);
+                ui.InfoField($"{(state.BeltFeed ? "Feed box" : "Feed arm")} to breech: {distance:0.00} / {limit:0.00} m", 2);
+                if (state.BeltFeed && distance >= limit) ui.InfoField("Belt feed: too far (config Belt.MaxFeedDistance)", 2);
                 if (auto) ui.InfoField("Feed arm placed automatically at the point nearest the breech", 2);
-                if (distance >= limit) ui.InfoField(!state.Semi && Plugin.MaxFeedDistance > 0
+                if (!state.BeltFeed && distance >= limit) ui.InfoField(!state.Semi && Plugin.MaxFeedDistance > 0
                     ? "Outside feed reach (config Bustle.MaxFeedDistance): move the autoloader closer"
                     : "Outside native crew-loader reach: move the autoloader closer", 2);
-                if(state.Semi) ui.InfoField(SemiAutoloader.HasCrew(assigned)?"Crew loader ready":"Requires a healthy crew loader",2);
+                if(state.BeltFeed)
+                {
+                    ui.InfoField($"Belt feed: {Belt.Rpm(assigned.Blueprint.Caliber):0} rpm; complete rounds only", 2);
+                    ui.InfoField(SemiAutoloader.HasCrew(assigned) ? "Refill: crew loader, stationary only" : "Refill: requires a healthy crew loader", 2);
+                }
+                else if(state.Semi) ui.InfoField(SemiAutoloader.HasCrew(assigned)?"Crew loader ready":"Requires a healthy crew loader",2);
                 else if(state.Revolver)
                 {
                     var drum=BustleRuntime.Drum(rack,assigned,state.TwoPieceActive);

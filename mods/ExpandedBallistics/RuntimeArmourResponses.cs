@@ -31,6 +31,9 @@ internal static class RuntimeArmourResponses
         // Computed once per shot in Begin: the ERA threat bucket, the gun calibre
         // and the calibre trigger. Never re-evaluated per block.
         internal string Threat="fragment";internal double CalibreMm;internal bool EraTrigger;
+        internal bool Hesh;internal double HeshAngle=double.NaN; // 0.22.78 HESH
+        internal bool He,HeArmour;internal double HePathMm=double.NaN,HeRha=double.NaN;internal string? HeHit; // 0.22.86 HE
+        internal double HeNextMm=double.PositiveInfinity; // 0.22.89: distance from the exit of the perforated block to the next armour of this vehicle (skirt rule)
     }
     internal static SprocketExpandedBallistics.ExperimentalArmour.ExperimentalArmourCatalogue? Experimental {get;private set;}
     private static ArmourResponseCatalogue? catalogue;
@@ -90,6 +93,7 @@ internal static class RuntimeArmourResponses
         if(CompositeModule.Current.Era.Enabled&&!bindings.TryGetCassette(CompositeModule.ComponentId,out _))
             bindings=new EraPartBindingCatalogue(bindings.Bindings.Append(CompositeModule.Current.Era.Binding).ToList());
         bindings=EraWtVariants.With(bindings); // 0.22.73: exact bindings of the four Kontakt-5 War Thunder variants (the config file is never rewritten)
+        bindings=EraStageCellDefaults.With(bindings); // 0.22.96: built-in stage-cell/experimental bindings only fill gaps; the config file is never rewritten and a user entry wins
         Snapshot=candidate with{Bindings=bindings};catalogue=Snapshot.Catalogue;Experimental=Snapshot.Experimental;
         if(ArmourResponses.LegacyMinimumEraUpgraded)
         {
@@ -243,6 +247,12 @@ internal static class RuntimeArmourResponses
             :fragment.diameter*1000;
         var config=context.ArmourSnapshot is {} captured?captured.Catalogue:catalogue;
         active.EraTrigger=ArmourResponseModel.EraTriggerCalibre(active.CalibreMm,config?.MinimumTriggerCalibreMm??20);
+        // 0.22.78 HESH begin
+        if(context.Behavior=="hesh")HeshBegin(active,context);
+        // 0.22.78 HESH end
+        // 0.22.86 HE begin
+        if(context.Behavior=="he"&&context.LiveImpact&&RuntimeSpall.He.Perforation)active.He=true;
+        // 0.22.86 HE end
     }
     // GetNextMaterialBlock runs after native has cached the parent's kinetic
     // energy. Chemical gap losses must use the same aggregate continuation
@@ -289,6 +299,12 @@ internal static class RuntimeArmourResponses
         catch(Exception ex){if(warnings.Count<32&&warnings.Add("energy:"+ex.Message))Plugin.ModLog.LogWarning("[Armour response] Residual correction unavailable: "+ex.Message);}
         finally
         {
+            // 0.22.78 HESH begin
+            if(current is {Hesh:true})HeshSurface(current);
+            // 0.22.78 HESH end
+            // 0.22.86 HE begin
+            if(current is {He:true})HeEnd(current);
+            // 0.22.86 HE end
             // 0.22.28: the block is done, so a protection-table rhaFactor is restored here (and its report line recorded).
             try{if(current!=null)NativeMaterialReactions.Close(current.Sim,current.Index,current.CountBefore);}
             catch(Exception ex){if(warnings.Count<32&&warnings.Add("restore:"+ex.Message))Plugin.ModLog.LogWarning("[Protection] Restore unavailable: "+ex.Message);}
@@ -300,6 +316,12 @@ internal static class RuntimeArmourResponses
     private static void Layer(MaterialBlock __result,Il2CppStructArray<StructureIntersection> __0,int __1,Il2CppStructArray<MaterialInfo> __5)
     {
         var scope=active;var impact=RuntimeSpall.Impact;
+        // 0.22.78 HESH begin
+        if(scope is {Hesh:true}&&__result.Valid&&__result.MaterialIndex>=0&&RuntimeSpall.Hesh.SurfaceDetonation)HeshAngle(scope,__result,__0,__1);
+        // 0.22.78 HESH end
+        // 0.22.86 HE begin
+        if(scope is {He:true}&&__result.Valid&&__result.MaterialIndex>=0)HeBlock(scope,__result,__0,__1,__5);
+        // 0.22.86 HE end
         if(scope!=null&&impact!=null&&__result.Valid)
         {
             try{ReachedBlock?.Invoke(new(scope.Sim,scope.Index,scope.Structure,__result,__0,__1,impact,__5));}
@@ -704,6 +726,152 @@ internal static class RuntimeArmourResponses
         if(scope.SpeedBefore>0)scope.ResidualSpeedRatio=Math.Clamp(fragment.speed/scope.SpeedBefore,0,1);
         if(diagnostics++<40)if(ReleaseDiagnostics.Enabled)Plugin.ModLog.LogInfo($"[Armour response] {response.ResponseId} VUID={entity} live={context.LiveImpact} angle={angle:0.0} normal={thickness:0.0} gap={gap:0.0} disturbance={shot.State.Disturbance:0.000} retention={retention:0.000} ERAintact={intact}");
     }
+    // 0.22.78 HESH begin
+    private static int heshProbes;private static bool heshWarned;
+    // First contact of a HESH shot (with diagnostics, once per impact, live only, right under the [Chemical] line): the d, mass, apModifier
+    // and budget of the native ricochet rule "no perforation, B <= d and at least 10 degrees".
+    private static void HeshBegin(Scope scope,ShellImpactContext context)
+    {
+        scope.Hesh=true;
+        if(!ReleaseDiagnostics.Enabled||!context.LiveImpact||context.HeshLogged)return;
+        context.HeshLogged=true;
+        try
+        {
+            var f=scope.Sim.fragments[scope.Index];var projectile=scope.Sim.projectileProfiles[f.projectileProfileIndex];
+            var budget=f.GetBasePenetration(projectile.penetratorConstant)*1000*projectile.apModifier;var d=f.diameter*1000;
+            Plugin.ModLog.LogInfo($"[Chemical HESH] profile={context.Profile?.Id??context.ProfileId} calibre={context.GunDiameter*1000:0.#}mm penetrator d={d:0.0}mm ({(context.GunDiameter>0?f.diameter/context.GunDiameter:0):0.000} calibre) mass={f.mass:0.000}kg apModifier={projectile.apModifier:0.000} budget B={budget:0.0}mm (B/d={(d>0?budget/d:0):0.000}); native ricochet: no perforation, B/rha<=d and >=10deg; surface detonation below {RuntimeSpall.Hesh.MinAngleDegrees:0.#}deg.");
+        }
+        catch(Exception ex){Plugin.ModLog.LogWarning("[Chemical HESH] Diagnostic line unavailable: "+ex.Message);}
+    }
+    // The angle from the normal of the solid block this call reaches, the same acos(|direction . normal(entry)|) the native ricochet rule uses.
+    private static void HeshAngle(Scope scope,MaterialBlock block,Il2CppStructArray<StructureIntersection> hits,int count)
+    {
+        try
+        {
+            var entry=block.EnterIntersectionIndex;
+            if(entry<0||entry>=count||entry>=hits.Length||scope.Index<0||scope.Index>=scope.Sim.FragmentCount){scope.HeshAngle=double.NaN;return;}
+            var first=hits[entry];var normal=scope.Structure.GetIntersectionNormal(ref first).normalized;
+            var direction=scope.Sim.fragments[scope.Index].direction.normalized;var dot=Vector3.Dot(direction,normal);
+            scope.HeshAngle=float.IsFinite(dot)&&normal.sqrMagnitude>.5f&&direction.sqrMagnitude>.5f?Math.Acos(Math.Clamp(Math.Abs((double)dot),0,1))*180/Math.PI:double.NaN;
+        }
+        catch(Exception ex){scope.HeshAngle=double.NaN;if(!heshWarned){heshWarned=true;Plugin.ModLog.LogWarning("[HESH] Surface detonation unavailable; the native outcome is kept: "+ex.Message);}}
+    }
+    // After the native call: a HESH ricochet below the limit becomes a stop where it struck (no child flies on). Every other outcome stays native.
+    private static void HeshSurface(Scope scope)
+    {
+        var rules=RuntimeSpall.Hesh;
+        if(!rules.SurfaceDetonation)return;
+        try
+        {
+            var result=HeshRules.Surface(new NativeHeshFragments(scope.Sim),scope.Index,scope.CountBefore,scope.HeshAngle,rules.MinAngleDegrees);
+            if(result.Converted&&ReleaseDiagnostics.Enabled&&heshProbes++<24)
+                Plugin.ModLog.LogInfo($"[HESH] detonated on the surface at {scope.HeshAngle:0.0} deg (< {rules.MinAngleDegrees:0.#}): native ricochet replaced by a stop; {result.ChildrenStopped} ricochet child(ren) stopped.");
+        }
+        catch(Exception ex){if(!heshWarned){heshWarned=true;Plugin.ModLog.LogWarning("[HESH] Surface detonation unavailable; the native outcome is kept: "+ex.Message);}}
+    }
+    // 0.22.78 HESH end
+    // 0.22.86 HE begin
+    private static int heProbes;private static bool heWarned;
+    // The solid block the perforating part of an HE round reaches in this call: the angle (the native ricochet rule's acos(|direction . normal|), as HESH),
+    // the line-of-sight path, the rhaFactor, whether the block starts with armour (a plate or the composite module, not a module or an ERA element) and its
+    // report key. A failure marks the block as no armour, so a perforation of it never counts as a perforation of the armour.
+    private static void HeBlock(Scope scope,MaterialBlock block,Il2CppStructArray<StructureIntersection> hits,int count,Il2CppStructArray<MaterialInfo> materials)
+    {
+        HeshAngle(scope,block,hits,count);
+        scope.HeArmour=false;scope.HePathMm=double.NaN;scope.HeRha=double.NaN;scope.HeHit=null;
+        scope.HeNextMm=double.PositiveInfinity; // 0.22.89
+        try
+        {
+            int entry=block.EnterIntersectionIndex,exit=block.ExitIntersectionIndex;
+            if(entry<0||exit<0||entry>=count||exit>=count||entry>=hits.Length||exit>=hits.Length)return;
+            var sim=scope.Sim;var first=hits[entry];
+            scope.HePathMm=Math.Max(0,(hits[exit].distance-first.distance)*1000d);
+            if(block.MaterialIndex<materials.Length)scope.HeRha=materials[block.MaterialIndex].rhaFactor;
+            scope.HeHit=$"{sim.Pointer}:{scope.Index}:{entry}:{exit}";
+            if(first.objectIndex>=0&&first.objectIndex<sim.objects.Length&&sim.damageApplier?.TryCast<VehicleHealthRegister>()?.objectReader is {} reader)
+            {
+                var id=sim.objects[first.objectIndex].ID;
+                scope.HeArmour=reader.TryGet<PlateStructure>(new VUID(id),out var plate)&&plate!=null||
+                    reader.TryGet<VehicleObjectModel>(new VUID(id),out var model)&&model!=null&&model.ComponentID==CompositeModule.ComponentId;
+            }
+            HeBlast.LastLayer(scope.HeHit);
+            if(scope.HeArmour&&RuntimeSpall.He.SpacedArmourRule)scope.HeNextMm=HeNextArmour(scope,hits,count,exit); // 0.22.89: skirt rule, only with the rule on
+        }
+        catch(Exception ex){scope.HeArmour=false;if(!heWarned){heWarned=true;Plugin.ModLog.LogWarning("[HE] Perforation check unavailable; the plate counts as not perforated: "+ex.Message);}}
+    }
+    // After the native call of the part: a perforation of armour is recorded for the blast filter (that vehicle gets the game's own blast) and for the report;
+    // without a perforation a ricochet below the limit becomes a stop (the HESH rule) and from the limit on nothing flies on; a continuation behind the plate
+    // is stopped after its own call (the burst has already been made there), so the body never flies on.
+    private static void HeEnd(Scope scope)
+    {
+        try
+        {
+            var fragments=new NativeHeshFragments(scope.Sim);var index=scope.Index;
+            if(index<0||index>=fragments.Count)return;
+            var flags=fragments.Flags(index);
+            if((flags&HeshRules.Original)==0)return;
+            if((flags&HeshRules.Penetrated)!=0)
+            {
+                if(scope.HeArmour&&scope.Sim.damageApplier is {} applier&&double.IsFinite(scope.HePathMm))
+                {
+                    var angle=double.IsFinite(scope.HeshAngle)?scope.HeshAngle:0;
+                    var normal=scope.HePathMm*Math.Cos(angle*Math.PI/180);var rhaEq=scope.HePathMm*(double.IsFinite(scope.HeRha)?scope.HeRha:1);
+                    // 0.22.89 begin
+                    // Skirt rule: armour of this vehicle within spacedArmourGapMm behind the exit makes the plate spaced armour (a skirt, a mudguard, an ERA
+                    // box): the round detonates in the gap, this vehicle is not marked perforated and its interior keeps the shock.
+                    if(HeSpaced.Applies(RuntimeSpall.He,scope.HeNextMm))
+                    {
+                        HeBlast.Spaced(new HeSpacedPerforation(applier.Pointer,normal,rhaEq,angle,scope.HeNextMm,scope.HeHit));
+                        if(ReleaseDiagnostics.Enabled&&heProbes++<48)Plugin.ModLog.LogInfo($"[HE] the part perforated {normal:0.0} mm of spaced armour; next armour {scope.HeNextMm:0} mm behind (rule {RuntimeSpall.He.SpacedArmourGapMm:0} mm): detonation in the gap, the interior of this vehicle receives the shock only.");
+                    }
+                    else
+                    {
+                    // 0.22.89 end
+                    HeBlast.Perforated(new HePerforation(applier.Pointer,normal,rhaEq,angle,scope.HeHit));
+                    if(ReleaseDiagnostics.Enabled&&heProbes++<48)Plugin.ModLog.LogInfo($"[HE] the part perforated {normal:0.0} mm ({rhaEq:0.0} mm RHA-eq) at {angle:0.0} deg; the blast reaches the interior of this vehicle.");
+                    } // 0.22.89
+                }
+            }
+            else
+            {
+                var result=HeRules.NoPerforation(fragments,index,scope.CountBefore,scope.HeshAngle,RuntimeSpall.He.MinAngleDegrees);
+                if((result.Converted||result.Grazed)&&ReleaseDiagnostics.Enabled&&heProbes++<48)
+                    Plugin.ModLog.LogInfo(result.Converted?$"[HE] detonated on the surface at {scope.HeshAngle:0.0} deg (< {RuntimeSpall.He.MinAngleDegrees:0.#}): ricochet replaced by a stop; {result.ChildrenStopped} child(ren) stopped."
+                        :$"[HE] graze at {scope.HeshAngle:0.0} deg: the ricochet stays, {result.ChildrenStopped} child(ren) stopped (no residual projectile).");
+            }
+            var stopped=HeRules.StopContinuation(fragments,index,scope.CountBefore);
+            if(stopped>0&&ReleaseDiagnostics.Enabled&&heProbes++<48)Plugin.ModLog.LogInfo($"[HE] continuation {index} behind the plate stopped ({stopped} fragment(s)); no residual projectile.");
+            // The part itself never deals kinetic damage: the game pays the hits of a fragment after the simulation with ½mv² of its final speed, and the
+            // part's speed is only a proxy for its budget. Its speed is 0 once its own call is done (its continuation was already made in that call).
+            var self=scope.Sim.fragments[index];
+            if(self.speed!=0){self.speed=0;scope.Sim.fragments[index]=self;}
+        }
+        catch(Exception ex){if(!heWarned){heWarned=true;Plugin.ModLog.LogWarning("[HE] Part end unavailable; the native outcome is kept: "+ex.Message);}}
+    }
+    // 0.22.89 begin
+    private static bool heNextWarned;
+    // The skirt rule's look-ahead on the sorted intersection list of this block: the nearest Enter hit of armour of the same vehicle (a plate or the composite
+    // module, the test of HeBlock) behind the exit, within spacedArmourGapMm. A failure counts as "no armour behind" (the perforation of 0.22.88), once logged.
+    private static double HeNextArmour(Scope scope,Il2CppStructArray<StructureIntersection> hits,int count,int exit)
+    {
+        try
+        {
+            var sim=scope.Sim;var n=Math.Min(count,hits.Length);
+            var reader=sim.damageApplier?.TryCast<VehicleHealthRegister>()?.objectReader;
+            if(reader==null)return double.PositiveInfinity;
+            return HeSpaced.NextArmourMm(n,k=>hits[k].distance,k=>(hits[k].flags&IntersectionFlags.Enter)!=0,k=>
+            {
+                var o=hits[k].objectIndex;
+                if(o<0||o>=sim.objects.Length||sim.objects[o].materialIndex<0)return false;
+                var id=sim.objects[o].ID;
+                return reader.TryGet<PlateStructure>(new VUID(id),out var plate)&&plate!=null||
+                    reader.TryGet<VehicleObjectModel>(new VUID(id),out var model)&&model!=null&&model.ComponentID==CompositeModule.ComponentId;
+            },exit,RuntimeSpall.He.SpacedArmourGapMm);
+        }
+        catch(Exception ex){if(!heNextWarned){heNextWarned=true;Plugin.ModLog.LogWarning("[HE] Spaced-armour look-ahead unavailable; the perforation counts as in 0.22.88: "+ex.Message);}return double.PositiveInfinity;}
+    }
+    // 0.22.89 end
+    // 0.22.86 HE end
 }
 
 

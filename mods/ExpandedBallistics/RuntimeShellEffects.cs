@@ -2,6 +2,13 @@ using HarmonyLib;
 using Sprocket.DamageModelling;
 using Sprocket.Vehicles.Weapons;
 namespace SprocketExpandedBallistics;
+
+public static class BallisticsEffectApi
+{
+    public static string CurrentExplosionKind { get; internal set; } = "";
+    public static bool CurrentExplosionVisualOnly { get; internal set; }
+}
+
 [HarmonyPatch]
 internal static class RuntimeShellEffects
 {
@@ -40,12 +47,14 @@ internal static class RuntimeShellEffects
             context.ArmourEffectPlaying=true;
             try
             {
+                BallisticsEffectApi.CurrentExplosionKind="era";
+                BallisticsEffectApi.CurrentExplosionVisualOnly=true;
                 foreach(var position in positions)
                     __instance.PlayEffect(new ProjectileEffectInfo {Type=ProjectileEffectType.Explosion,Position=position,
                         HitNormal=__0.HitNormal,HitVelocity=__0.HitVelocity,Parent=__0.Parent,Calibre=35});
             }
             catch(Exception ex){Plugin.ModLog.LogWarning("[ERA] Visual unavailable: "+ex.Message);}
-            finally{context.ArmourEffectPlaying=false;}
+            finally{BallisticsEffectApi.CurrentExplosionKind="";BallisticsEffectApi.CurrentExplosionVisualOnly=false;context.ArmourEffectPlaying=false;}
         }
         if(context is {LiveImpact:true,ChemicalVisualPlayed:false} && context.Behavior is "heat" or "hesh" && (__0.Type & ProjectileEffectType.Explosion)==0)
         { context.ChemicalVisualPlayed=true; context.ExplosionPending=true; context.ExplosionPosition=__0.Position; }
@@ -54,6 +63,8 @@ internal static class RuntimeShellEffects
         if(context.Behavior=="aphe" && !RuntimeSpall.Settings.ApheExplosionEffect)return;
         try
         {
+            BallisticsEffectApi.CurrentExplosionKind=context.Behavior;
+            BallisticsEffectApi.CurrentExplosionVisualOnly=context.Behavior!="hesh";
             __instance.PlayEffect(new ProjectileEffectInfo {
                 Type=ProjectileEffectType.Explosion,Position=context.ExplosionPosition,
                 HitNormal=__0.HitNormal,HitVelocity=__0.HitVelocity,Parent=__0.Parent,
@@ -62,5 +73,6 @@ internal static class RuntimeShellEffects
             Plugin.ModLog.LogInfo("[APHE Effect] Native explosion visual requested; no added blast damage.");
         }
         catch(Exception ex){Plugin.ModLog.LogError("[APHE Effect] Visual unavailable: "+ex);}
+        finally{BallisticsEffectApi.CurrentExplosionKind="";BallisticsEffectApi.CurrentExplosionVisualOnly=false;}
     }
 }

@@ -82,7 +82,7 @@ internal static class T72SightAssets
         var amber=new Material(surface){name="TPD-K1 amber optical glass",hideFlags=HideFlags.HideAndDontSave};
         amber.SetColor("_BaseColor",new Color(.32f,.20f,.035f,1));HDMaterial.ValidateMaterial(amber);
         state.amberGlass=new VehicleMaterial(amber){Flags=VehicleMaterialFlags.Unpainted|VehicleMaterialFlags.DisableGrime|VehicleMaterialFlags.CustomShader};
-        Plugin.Instance.Log.LogInfo("[T72 sight] User model loaded: 352 triangles; original dimensions retained; mounting frame aligned to +Z.");
+        Plugin.Instance.Log.LogInfo("[T72 sight] User model loaded: 352 triangles; metric housing UVs (1 UV/m, since 0.4.1); original dimensions retained; mounting frame aligned to +Z.");
     }
     private static void Apply(VehicleObjectModel model)
     {

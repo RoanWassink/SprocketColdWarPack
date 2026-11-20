@@ -1,0 +1,141 @@
+{
+  "thermal-head.obj": {
+    "source_sha256": "4fcfe4735a48a364156423f4762dc4ee5548e5098159b9b7cff2bcde8309ceca",
+    "output_sha256": "998de6de32e5b0dd14b5d67e1f251c4f769ba564630ef0dbfcf6707ee434bfff",
+    "generator_sha256": "8cdd2564c68975bb62302e8ae43ed3940478d325abaff65f2becda6d2a80b334",
+    "positions": 82,
+    "triangles": 108,
+    "bounds": [
+      [
+        -0.13,
+        -0.27,
+        -0.2371
+      ],
+      [
+        0.13,
+        0.08,
+        0.0679
+      ]
+    ],
+    "material_order": [
+      "Dark",
+      "Paint",
+      "Paint",
+      "Paint",
+      "Dark",
+      "Lens",
+      "Dark"
+    ]
+  },
+  "thermal-head-vertical.obj": {
+    "source_sha256": "3b3f86554996ebff49d9e80bc5148d57a83cd3cb1db13c429f7d52b8358a1000",
+    "output_sha256": "239f27062f816e5f6dee2301700e126c9dd497b208025a1aff198d510a5fdcfe",
+    "generator_sha256": "8cdd2564c68975bb62302e8ae43ed3940478d325abaff65f2becda6d2a80b334",
+    "positions": 82,
+    "triangles": 108,
+    "bounds": [
+      [
+        -0.13,
+        -0.075,
+        0.0
+      ],
+      [
+        0.13,
+        0.075,
+        0.056
+      ]
+    ],
+    "material_order": [
+      "Dark",
+      "Paint",
+      "Paint",
+      "Paint",
+      "Dark",
+      "Lens",
+      "Dark"
+    ]
+  },
+  "automatic-lrf.obj": {
+    "source_sha256": "f89245a40f36ae4d2877037588c38d14e4c73231edd59856a7d70e97bf55a143",
+    "output_sha256": "dfd85848e494dc39c9d56273e6aff45136319679ac6a0711281b972d61967ea7",
+    "generator_sha256": "8cdd2564c68975bb62302e8ae43ed3940478d325abaff65f2becda6d2a80b334",
+    "positions": 48,
+    "triangles": 72,
+    "bounds": [
+      [
+        -0.096,
+        0.0,
+        -0.1
+      ],
+      [
+        0.096,
+        0.1744,
+        0.1
+      ]
+    ],
+    "material_order": []
+  },
+  "lrf-concept.obj": {
+    "source_sha256": "50f190930c7f2082b4fdad71b139dde04c3fdaac0368d8ec190738baf5a4d8e1",
+    "output_sha256": "4e2a9d3f03bfb84c49a9959b170321be17c748a40bfbdca3249c4027deb13884",
+    "generator_sha256": "8cdd2564c68975bb62302e8ae43ed3940478d325abaff65f2becda6d2a80b334",
+    "positions": 80,
+    "triangles": 120,
+    "bounds": [
+      [
+        -0.192,
+        0.0,
+        -0.288
+      ],
+      [
+        0.1325,
+        0.2855,
+        0.287
+      ]
+    ],
+    "material_order": [
+      "Paint",
+      "PaintLight",
+      "Glass",
+      "PaintLight",
+      "Paint",
+      "Mount",
+      "Mount",
+      "Mount",
+      "Mount",
+      "Mount"
+    ]
+  },
+  "optical-rangefinder.obj": {
+    "source_sha256": "a8cac38af899d21347dddeb3be9955fba667c9c67d96dacecea6f595946c5ec7",
+    "output_sha256": "4993650017aeee76f5ec8de8c08f6994bf1059eee6307884958ee232f5d527e8",
+    "generator_sha256": "8cdd2564c68975bb62302e8ae43ed3940478d325abaff65f2becda6d2a80b334",
+    "positions": 178,
+    "triangles": 312,
+    "bounds": [
+      [
+        -1.07,
+        -0.075,
+        -0.1625
+      ],
+      [
+        1.07,
+        0.11,
+        0.084
+      ]
+    ],
+    "material_order": [
+      "Paint",
+      "Tube",
+      "Tube",
+      "Paint",
+      "Paint",
+      "Paint",
+      "Paint",
+      "Glass",
+      "Glass",
+      "Tube",
+      "Tube"
+    ]
+  }
+}

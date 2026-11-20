@@ -7,20 +7,21 @@ namespace SprocketEmitter;
 [BepInDependency("sprocket.telescopicmast",BepInDependency.DependencyFlags.SoftDependency)]
 public sealed class Plugin:BasePlugin
 {
-    internal const string Version="0.1.1";
+    internal const string Version="0.1.3";
     internal static Plugin Instance=null!;
-    internal ConfigEntry<bool> Detailed=null!,AllowFallback=null!;
+    internal ConfigEntry<bool> Detailed=null!,AllowFallback=null!,UseNativeMaterial=null!;
     private ConfigEntry<string> item=null!;
     private ConfigEntry<float> caliber=null!,speed=null!,spread=null!,spin=null!,interval=null!,lifetime=null!;
     private ConfigEntry<int> count=null!;
     private ConfigEntry<bool> continuous=null!,inherit=null!;
     internal ConfigEntry<int> MaxObjects=null!,MaxCasts=null!;
     internal ConfigEntry<float> MaxLifetime=null!,CasingLength=null!,ProjectileLength=null!,Slope=null!,Friction=null!;
-    internal Settings Defaults=>new Settings {Item=item.Value,Caliber=caliber.Value,Speed=speed.Value,Spread=spread.Value,Spin=spin.Value,Count=count.Value,Continuous=continuous.Value,Interval=interval.Value,Lifetime=lifetime.Value,Inherit=inherit.Value}.Sanitize();
+    internal Settings Defaults=>new Settings {FollowCaliber=false,Item=item.Value,Caliber=caliber.Value,Speed=speed.Value,Spread=spread.Value,Spin=spin.Value,Count=count.Value,Continuous=continuous.Value,Interval=interval.Value,Lifetime=lifetime.Value,Inherit=inherit.Value}.Sanitize();
     public override void Load() {
         Instance=this;
         Detailed=Config.Bind("Diagnostics","DetailedLogging",false,"Verbose trace lines for testing. Warnings and errors are always logged.");
         AllowFallback=Config.Bind("Meshes","AllowEmbeddedFallback",false,"Use the plain embedded Carousel shapes when no stock rack mesh is available. Off: nothing is thrown without a stock mesh.");
+        UseNativeMaterial=Config.Bind("Meshes","UseNativeMaterial",true,"Use an owned copy of the loaded rack material with shared native textures. Off: always use the own Unlit materials.");
         item=Config.Bind("Defaults","item","casing","casing or projectile");
         caliber=Config.Bind("Defaults","caliber",30f,"Diameter in mm (5-155).");
         speed=Config.Bind("Defaults","speed",3f,"Ejection speed in m/s (0.5-15).");

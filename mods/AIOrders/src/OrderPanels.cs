@@ -57,15 +57,19 @@ public sealed partial class OrdersHost
         {
             if (player == null) { mapPanel.Close(); return; }
             quick.MapOpened();
+            boundsDiagnosed = false;
+            CaptureBounds();
             mapPanel.SetSize(Math.Min(1600, Screen.width / UiKit.Scale - 20), Math.Min(900, Screen.height / UiKit.Scale - 20));
             if (heights == null && heightRow < 0) StartMapBuild();
             FitMap();
             drawStats.Reset(); nextDrawLog = Time.unscaledTime + 5;
             status = "Map: left-click selects, right-click orders.";
             if (Plugin.Detailed) Plugin.Info("AI Orders map panel open; quick HUD hidden.");
+            if (Plugin.Detailed && mapCanvas != null) Plugin.Info(FormattableString.Invariant($"AI Orders map open: side={mapSpace.SizeX:F1} m; min=({mapSpace.MinX:F1}, {mapSpace.MinZ:F1}); canvas=({mapCanvas.CanvasWidth:F1}, {mapCanvas.CanvasHeight:F1}); zoom={mapCanvas.Zoom:F5}."));
         };
         mapPanel.OnClose += () =>
         {
+            mapClosedFrame = Time.frameCount;
             quick.MapClosed();
             ObserveMapDraw();
             if (Plugin.Detailed) Plugin.Info("AI Orders map panel closed.");

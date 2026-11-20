@@ -4,7 +4,7 @@
 #  -DllPath   the built mast DLL; default bin\Release\net6.0\SprocketTelescopicMast.dll.
 #  -IconChecker  house-style icon checker; default icon-src\Make-PartIcon.ps1.
 param(
- [string]$GameDir='C:\Program Files (x86)\Steam\steamapps\common\Sprocket',
+ [string]$GameDir='E:\SteamLibrary\steamapps\common\Sprocket',
  [string]$GameRef='',
  [string]$DllPath='',
  [string]$IconChecker=''
@@ -88,8 +88,8 @@ try {
  "PASS $($fields.Count) field accessors and ColliderType flags used by the 0.5.0 mount and cannon choice."
 } finally { foreach($a in $assemblies.Values){ $a.Dispose() } }
 $hash=(Get-FileHash -LiteralPath (Join-Path $GameDir 'GameAssembly.dll')).Hash
-# Sprocket 0.2.56.2.
-if($hash -ne '3E58082804D97CF32FFD400E7427E767EF9576D23DB71B2BE96FBB7F825FC17B') { throw "Game binary changed ($hash); recheck before installation." }
+# Steam build 26757044, reaudited 2026-11-18.
+if($hash -ne '77FC601748991DC2101435C6B72C7A5A4B3DC3C68429B349C2EFEE711F6D5388') { throw "Game binary changed ($hash); recheck before installation." }
 $part=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'assets/telescopicSightMastPart.json') -Raw | ConvertFrom-Json
 if($part.guid -ne 'e93f8788-e748-4bdf-bf91-dd236dc3f8aa' -or $part.components.Count -ne 1 -or !$part.transform.dynamic -or !$part.transform.scaling) { throw 'Invalid mast schema.' }
 if($part.transform.objects.Count -ne 1 -or $part.transform.objects[0].components[0].fileID -ne 'sprocketMastSleeve') { throw 'Sleeve needs its own component transform.' }

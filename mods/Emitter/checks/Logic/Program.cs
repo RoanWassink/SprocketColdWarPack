@@ -4,13 +4,31 @@ using System.Text.Json;
 using SprocketTelescopicMast.Io;
 int checks=0;
 void Check(bool pass,string message){checks++;if(!pass){Console.Error.WriteLine("FAIL "+message);Environment.Exit(1);}Console.WriteLine("PASS "+message);}
+FollowCaliberTests.Run(Check);
+// Exhaust all source-combination states, then model native texture loss and reharvest.
+for(int mask=0;mask<8;mask++) {
+    bool a=(mask&1)!=0,b=(mask&2)!=0,c=(mask&4)!=0;
+    Check(StockSource.MaterialValid(a,b,c)==(mask==7),"material validity state "+mask);
+    Check(StockSource.Complete(a,b,c)==(mask==7),"source combination state "+mask);
+}
+var fake=new FakeStockSource();
+Check(fake.Complete,"fake source initially complete");
+fake.Texture=false;Check(!fake.Complete,"native texture loss invalidates combination while meshes remain");
+fake.Texture=true;Check(fake.Complete,"reharvest can restore the combination");
+fake.Material=false;Check(!fake.Complete,"missing owned material requires harvest");
+fake.Material=true;fake.Shader=false;Check(!fake.Complete,"lost shader requires harvest");
+var budget=new EjectLogBudget();
+for(int i=0;i<40;i++)Check(budget.Next()==EjectLogDecision.Line,"eject diagnostic "+(i+1));
+Check(budget.Next()==EjectLogDecision.Suppression,"exactly one suppression line after forty batches");
+for(int i=0;i<10000;i++)if(budget.Next()!=EjectLogDecision.None)throw new Exception("eject budget overflow");
+Check(budget.Next()==EjectLogDecision.None,"suppression remains bounded after repeated calls");
 var d=new Settings();
 var s=Settings.Parse("{\"speed\":999,\"count\":3.5,\"caliber\":-1,\"item\":\"wrong\",\"spin\":\"NaN\",\"continuous\":true}",d);
 Check(s.Speed==15&&s.Count==4&&s.Caliber==5&&s.Item=="casing"&&s.Spin==180&&s.Continuous,"settings clamp, integer rounding, invalid field defaults");
 Check(Settings.Parse("[]",d)==d&&Settings.Parse("{",d)==d&&Settings.Parse(null,d)==d,"invalid root, malformed and absent data");
 Check(Settings.Parse("{}",d with {Speed=7}) .Speed==7,"missing field uses configured default");
 Check(float.IsFinite((d with {Speed=float.NaN,Caliber=float.PositiveInfinity}).Sanitize().Speed),"nonfinite configuration sanitized");
-using(var doc=JsonDocument.Parse(Settings.Schema(false))){Check(doc.RootElement.GetArrayLength()==10,"revision 2 schema has ten fields");Check(System.Text.Encoding.UTF8.GetByteCount(Settings.Schema(true))<4096,"extended schema within 4 KiB");}
+using(var doc=JsonDocument.Parse(Settings.Schema(false))){Check(doc.RootElement.GetArrayLength()==11,"revision 2 schema has eleven fields");Check(System.Text.Encoding.UTF8.GetByteCount(Settings.Schema(true))<4096,"extended schema within 4 KiB");}
 // IO-API §7 rules, checked by an independent validator; negative fixtures prove the validator rejects.
 Check(SchemaRules.Validate(Settings.Schema(false)) is null,"0.1.0 schema satisfies IO-API §7: "+(SchemaRules.Validate(Settings.Schema(false))??"ok"));
 Check(SchemaRules.Validate(Settings.Schema(true)) is null,"0.2.0 schema (flash, smoke) satisfies IO-API §7");
@@ -18,7 +36,7 @@ Check(!Settings.Schema(false).Contains("flash")&&!Settings.Schema(false).Contain
 foreach(var (bad,why) in SchemaRules.Negatives())Check(SchemaRules.Validate(bad) is not null,"validator rejects "+why);
 using(var doc=JsonDocument.Parse(Settings.Schema(false))) {
     var f=doc.RootElement.EnumerateArray().ToDictionary(x=>x.GetProperty("key").GetString()!,x=>x.GetProperty("default"));
-    Check(f["item"].GetString()=="casing"&&f["caliber"].GetSingle()==30&&f["speed"].GetSingle()==3&&f["spread"].GetSingle()==8&&f["spin"].GetSingle()==180&&f["count"].GetInt32()==1&&!f["continuous"].GetBoolean()&&f["interval"].GetSingle()==.5f&&f["lifetime"].GetSingle()==10&&f["inherit"].GetBoolean(),"frozen schema defaults are the fixed 0.1.0 constants");
+    Check(f["follow_caliber"].GetBoolean()&&f["item"].GetString()=="casing"&&f["caliber"].GetSingle()==30&&f["speed"].GetSingle()==3&&f["spread"].GetSingle()==8&&f["spin"].GetSingle()==180&&f["count"].GetInt32()==1&&!f["continuous"].GetBoolean()&&f["interval"].GetSingle()==.5f&&f["lifetime"].GetSingle()==10&&f["inherit"].GetBoolean(),"frozen schema defaults are the fixed 0.1.0 constants");
 }
 Check(Settings.Schema(false)==Settings.Schema(false)&&Settings.Parse("{}",Settings.Fixed)==Settings.Fixed&&Settings.Parse("{\"lifetime\":12,\"future_key\":1}",Settings.Fixed).Lifetime==12,"revision-2 reader uses fixed defaults; unknown keys tolerated");
 Check(Settings.Parse("{\"item\":\"projectile\",\"interval\":0.01,\"count\":0}",d) is {Item:"projectile",Interval:.05f,Count:1},"enum value, minimum clamps");
@@ -157,6 +175,10 @@ static class SchemaRules {
         yield return ("[{\"key\":\"a\",\"label\":\"A\",\"type\":\"enum\",\"options\":[{\"value\":\"x\",\"label\":\"X\"}],\"default\":\"y\"}]","enum default not an option");
         yield return ("[{\"key\":\"a\",\"label\":\""+new string('x',40)+"\",\"type\":\"bool\",\"default\":true,\"pad\":\""+new string('p',4100)+"\"}]","schema over 4 KB");
     }
+}
+sealed class FakeStockSource {
+    internal bool Material=true,Shader=true,Texture=true;
+    internal bool Complete=>StockSource.Complete(true,true,StockSource.MaterialValid(Material,Shader,Texture));
 }
 sealed class PlaneWorld:IWorld {
     internal bool Exists=true;internal int Calls;

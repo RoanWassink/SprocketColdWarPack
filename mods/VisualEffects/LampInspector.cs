@@ -22,9 +22,7 @@ internal static class LampInspector
     internal static MethodInfo Method()=>typeof(VehicleObjectEditor).GetMethod(nameof(VehicleObjectEditor.OnGUI),new[]{typeof(IGUILayout)})??throw new MissingMethodException("VehicleObjectEditor.OnGUI(IGUILayout) changed");
     internal static unsafe bool Compatible(out string reason)
     {
-        using(var stream=File.OpenRead(Path.Combine(Paths.GameRootPath,"GameAssembly.dll")))
-        using(var sha=SHA256.Create())
-            if(Convert.ToHexString(sha.ComputeHash(stream))!=HookGuard.GameHash){reason="GameAssembly hash differs from audited build";return false;}
+        if(!HookGuard.IsAuditedGameHash(out var hashReason)){reason=hashReason;return false;}
         var m=Method();
         if(m.ReturnType!=typeof(void)||m.GetParameters().Length!=1){reason="OnGUI signature differs";return false;}
         var fields=typeof(VehicleObjectEditor).GetFields(BindingFlags.NonPublic|BindingFlags.Static).Where(f=>f.Name.StartsWith("NativeMethodInfoPtr_OnGUI_")).ToArray();

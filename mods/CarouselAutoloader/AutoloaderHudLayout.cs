@@ -12,7 +12,7 @@ public enum HudSpotSource { BelowAmmo, Manual, NoAmmoHud, AmmoHudTopCorner }
 public readonly record struct HudSpot(HudAnchor Corner, float X, float Y, HudSpotSource Source);
 
 /// <summary>Which parts of one HUD card are on screen; enough to know its height.</summary>
-public readonly record struct HudCardShape(bool Cycle, bool CycleRunning, bool Refill, bool RefillRunning);
+public readonly record struct HudCardShape(bool Cycle, bool CycleRunning, bool Refill, bool RefillRunning, bool Belt = false);
 
 public static class AutoloaderHudLayout
 {
@@ -76,6 +76,7 @@ public static class AutoloaderHudLayout
     /// </summary>
     public static float CardHeight(HudCardShape shape, bool rings)
     {
+        if (shape.Belt) return HeadLine + SmallLine + BarHeight + 2 * CardGap;
         float h = Math.Max(HeadLine, TagChip);
         int parts = 1;
         if (shape.Cycle)

@@ -75,10 +75,22 @@ var setup=t.GetMethods().Select(h=>md.GetMethodDefinition(h)).Single(m=>md.GetSt
 var signature=setup.DecodeSignature(new Names(),null);
 Check(signature.ReturnType=="Void"&&string.Join(",",signature.ParameterTypes)=="Sprocket.WeaponFramework.CannonMuzzleFlashEffectInfo,UnityEngine.Transform,UnityEngine.Vector3,UnityEngine.Quaternion,Boolean","Installed interop signature changed");
 Check(t.GetFields().Select(h=>md.GetString(md.GetFieldDefinition(h).Name)).Count(n=>n.StartsWith("NativeMethodInfoPtr_Setup_"))==1,"Native pointer field ambiguity");
-Console.WriteLine("PASS installed interop Setup return/parameters and unambiguous native pointer field");
+var pec=md.TypeDefinitions.Select(h=>md.GetTypeDefinition(h)).Single(x=>md.GetString(x.Name)=="ProjectileEffectConfig"&&md.GetString(x.Namespace)=="Sprocket.Vehicles.Weapons");
+var playEffect=pec.GetMethods().Select(h=>md.GetMethodDefinition(h)).Single(m=>md.GetString(m.Name)=="PlayEffect");
+var playSig=playEffect.DecodeSignature(new Names(),null);
+Check(playSig.ReturnType=="Void"&&string.Join(",",playSig.ParameterTypes)=="Sprocket.DamageModelling.ProjectileEffectInfo","Installed PlayEffect signature changed");
+Check(pec.GetFields().Select(h=>md.GetString(md.GetFieldDefinition(h).Name)).Count(n=>n.StartsWith("NativeMethodInfoPtr_PlayEffect_"))==1,"PlayEffect native pointer field ambiguity");
+using var vehFile=File.OpenRead(Path.Combine(game,"BepInEx","interop","Sprocket.Vehicles.dll"));
+using var vehPe=new PEReader(vehFile);var vehMd=vehPe.GetMetadataReader();
+var expType=vehMd.TypeDefinitions.Select(h=>vehMd.GetTypeDefinition(h)).Single(x=>vehMd.GetString(x.Name)=="Explosive"&&vehMd.GetString(x.Namespace)=="Sprocket.Vehicles");
+var detonate=expType.GetMethods().Select(h=>vehMd.GetMethodDefinition(h)).Single(m=>vehMd.GetString(m.Name)=="Detonate");
+var detSig=detonate.DecodeSignature(new Names(),null);
+Check(detSig.ReturnType=="Void"&&detSig.ParameterTypes.Length==0,"Installed Explosive.Detonate signature changed");
+Check(expType.GetFields().Select(h=>vehMd.GetString(vehMd.GetFieldDefinition(h).Name)).Count(n=>n.StartsWith("NativeMethodInfoPtr_Detonate_"))==1,"Detonate native pointer field ambiguity");
+Console.WriteLine("PASS installed interop Setup, ProjectileEffectConfig.PlayEffect and Explosive.Detonate signatures and unambiguous native pointer fields");
 
 {
-    // 0.4.5: VE never writes native part state. Every member the built DLL references on a Sprocket type
+    // 0.5.0: VE never writes native part state. Every member the built DLL references on a Sprocket type
     // must be a read-only getter, a native inspector drawer call or RequestRedraw; any native mesh,
     // material, dynamic or collision setter (MarkDynamic, SetMesh, SetShadowProxy, SetInteractionMesh,
     // SetMaterials, set_Materials, SetCollisionMesh, ...) or VehicleMaterial wrapper fails the build.
@@ -87,9 +99,10 @@ Console.WriteLine("PASS installed interop Setup return/parameters and unambiguou
     string Parent(EntityHandle h){if(h.Kind!=HandleKind.TypeReference)return h.Kind.ToString();var r=mod.GetTypeReference((TypeReferenceHandle)h);return mod.GetString(r.Namespace)+"."+mod.GetString(r.Name);}
     var used=mod.MemberReferences.Select(h=>mod.GetMemberReference(h)).Select(m=>Parent(m.Parent)+"::"+mod.GetString(m.Name)).Where(n=>n.StartsWith("Sprocket")).ToHashSet();
     var allowed=new HashSet<string>{
+        "Sprocket.DamageModelling.ProjectileEffectInfo::get_Calibre","Sprocket.DamageModelling.ProjectileEffectInfo::get_HitNormal","Sprocket.DamageModelling.ProjectileEffectInfo::get_HitVelocity","Sprocket.DamageModelling.ProjectileEffectInfo::get_Position","Sprocket.DamageModelling.ProjectileEffectInfo::get_Type",
         "Sprocket.UI.IGUIElementDrawer::Dropdown","Sprocket.UI.IGUIElementDrawer::InfoField","Sprocket.UI.IGUIElementDrawer::InputField","Sprocket.UI.IGUIElementDrawer::Slider",
         "Sprocket.UI.IGUILayout::BeginDropdown","Sprocket.UI.IGUILayout::EndAllDropdowns","Sprocket.VehicleDesigner.DesignerEditor::RequestRedraw",
-        "Sprocket.VehicleDesigner.Modules.VehicleObjectEditor::get_target","Sprocket.Vehicles.IVehicleObjectReader::get_Items",
+        "Sprocket.VehicleDesigner.Modules.VehicleObjectEditor::get_target","Sprocket.Vehicles.Explosive::get_destructionImpulse","Sprocket.Vehicles.Explosive::get_mass","Sprocket.Vehicles.IVehicleObjectReader::get_Items",
         "Sprocket.Vehicles.Vehicle::get_ObjectReader","Sprocket.Vehicles.Vehicle::get_Released","Sprocket.Vehicles.VehicleComponent::get_ComponentID",
         "Sprocket.Vehicles.VehicleComponent::get_IsInstalled","Sprocket.Vehicles.VehicleComponent::get_Vehicle","Sprocket.Vehicles.VehicleComponent::get_VehicleObject",
         "Sprocket.Vehicles.VehicleObject::get_Components","Sprocket.Vehicles.VehicleObject::get_Flags","Sprocket.Vehicles.VehicleObject::get_GUID",

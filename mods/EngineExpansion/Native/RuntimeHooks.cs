@@ -11,11 +11,30 @@ namespace SprocketEngineExpansion.Native;
 internal static class RuntimeHooks
 {
     private sealed record Binding(EngineBehaviour Behaviour,EngineBlueprint Blueprint,Plans.Snapshot Snapshot,float NativeFuel,AssemblyCommit Commit)
-    {internal int LastBand=-1;}
+    {
+        internal int LastBand=-1;
+        internal float Spool;
+        internal float HoldRemaining;
+        internal float LastRequestedThrottle;
+        internal bool LastRunning;
+    }
     private static readonly Dictionary<IntPtr,Binding> bindings=new();
     private static readonly HashSet<IntPtr> pending=new();
     [ThreadStatic]private static bool draining;
     private static int reports,fuelReports;
+    internal static bool TryGetState(IntPtr behaviourPtr,out EngineKind kind,out float spool,out float requestedThrottle,out bool running)
+    {
+        if(bindings.TryGetValue(behaviourPtr,out var binding))
+        {
+            kind=Plans.EffectiveKind(binding.Blueprint);
+            spool=binding.Spool;
+            requestedThrottle=binding.LastRequestedThrottle;
+            running=binding.LastRunning;
+            return true;
+        }
+        kind=EngineKind.Petrol;spool=0;requestedThrottle=0;running=false;
+        return false;
+    }
     private static void CompleteReaders(VehicleMovementRegister register)
     {
         if(Environment.CurrentManagedThreadId!=Plugin.MainThreadId)throw new InvalidOperationException("Engine table mutation is restricted to the loader's Unity main thread.");
@@ -96,8 +115,20 @@ internal static class RuntimeHooks
             // Never free a newly committed table because releasing the prior allocation throws.
             try{if(previous.IsCreated)previous.Dispose();}catch(Exception ex){Plugin.Warn("prior torque table disposal",ex);}
             float nativeFuel=__instance.maxFuelUsePerRotation;
-            bindings[__instance.Pointer]=new(__instance,bp,snapshot,nativeFuel,commit);
-            __instance.maxFuelUsePerRotation=nativeFuel*(float)commit.Fuel(snapshot.Plan,__instance.RPM);
+            bool running=__instance.State==Sprocket.Powertrains.Engines.EngineState.Running;
+            var profile=EngineCharacterRules.For(snapshot.Plan.Selection.Kind);
+            var binding=new Binding(__instance,bp,snapshot,nativeFuel,commit)
+            {
+                Spool=running?(float)profile.IdleSpoolFloor:0f,
+                HoldRemaining=0f,
+                LastRequestedThrottle=Math.Clamp(__instance.Throttle,0f,1f),
+                LastRunning=running
+            };
+            bindings[__instance.Pointer]=binding;
+            double loadFuel=EngineCharacterHooks.Enabled&&EngineCharacterHooks.SpoolAndFuel
+                ?EngineCharacterRules.LoadFuelMultiplier(__instance.s.fuelInjectionFraction,running,profile)
+                :1.0;
+            __instance.maxFuelUsePerRotation=nativeFuel*(float)(commit.Fuel(snapshot.Plan,__instance.RPM)*loadFuel);
             if(reports++<32)Plugin.ModLog.LogInfo($"[Engine Expansion] CURVE blueprint={bp.Pointer} behaviour={__instance.Pointer} kind={snapshot.Plan.Selection.Kind} boost={snapshot.Plan.Selection.BoostPercent} validAssembly={AssemblyStatus.ValidFor(__instance)} knots={points.Length} jobMaxTorque={__instance.physicsJob.maxTorque} maxRPM={__instance.MaxRPM} nativeFuel={nativeFuel} fuelCache={__instance.maxFuelUsePerRotation} nativePeakKW={snapshot.Plan.Native.MaxProduct(snapshot.Plan.IdleRPM/snapshot.Plan.NativeMaxRPM,1)*snapshot.Plan.NativeMaxRPM/EnginePlan.NmRpmPerKW} profilePeakKW={snapshot.Plan.Profile.Power*snapshot.Plan.Native.MaxProduct(snapshot.Plan.IdleRPM/snapshot.Plan.NativeMaxRPM,1)*snapshot.Plan.NativeMaxRPM/EnginePlan.NmRpmPerKW} coefficient={snapshot.OutputCoefficient} shiftMidRPM={(bp.Downshift+bp.Upshift)*.5}");
         }
         catch(Exception ex)
@@ -108,7 +139,7 @@ internal static class RuntimeHooks
         }
     }
     [HarmonyPrefix,HarmonyPatch(typeof(EngineBehaviour),nameof(EngineBehaviour.Update),new[]{typeof(float)})]
-    private static void Update(EngineBehaviour __instance)
+    private static void Update(EngineBehaviour __instance,float __0)
     {
         if(!bindings.TryGetValue(__instance.Pointer,out var binding))return;
         try
@@ -116,20 +147,36 @@ internal static class RuntimeHooks
             // Native Update consumes this cache directly: radians/(2*pi), delta time, injection fraction.
             // Recompute from the baseline, never multiply last frame's modified cache.
             bool active=false;
-            var effective=Selections.Get(binding.Blueprint) with {Kind=Plans.EffectiveKind(binding.Blueprint),Turbo=false};
+            var effectiveKind=Plans.EffectiveKind(binding.Blueprint);
+            var effective=Selections.Get(binding.Blueprint) with {Kind=effectiveKind,Turbo=false};
             if(!binding.Commit.Matches(effective,0,active))pending.Add(__instance.Pointer);
-            __instance.maxFuelUsePerRotation=binding.NativeFuel*(float)binding.Commit.Fuel(binding.Snapshot.Plan,__instance.RPM);
+            bool running=__instance.State==Sprocket.Powertrains.Engines.EngineState.Running;
+            float requested=float.IsFinite(__instance.Throttle)?Math.Clamp(__instance.Throttle,0f,1f):0f;
+            float dt=float.IsFinite(__0)&&__0>=0f?__0:0f;
+            var profile=EngineCharacterRules.For(effectiveKind);
+            binding.LastRequestedThrottle=requested;
+            binding.LastRunning=running;
+            var stepped=EngineCharacterRules.StepSpoolState(binding.Spool,binding.HoldRemaining,requested,running,dt,profile);
+            binding.Spool=(float)stepped.Spool;
+            binding.HoldRemaining=(float)stepped.HoldRemaining;
+            double fuelCoef=binding.Commit.Fuel(binding.Snapshot.Plan,__instance.RPM);
+            if(EngineCharacterHooks.Enabled&&EngineCharacterHooks.SpoolAndFuel)
+            {
+                __instance.Throttle=(float)EngineCharacterRules.EffectiveThrottle(requested,binding.Spool,profile);
+                fuelCoef*=EngineCharacterRules.LoadFuelMultiplier(__instance.s.fuelInjectionFraction,running,profile);
+            }
+            __instance.maxFuelUsePerRotation=binding.NativeFuel*(float)fuelCoef;
             int band=(int)(__instance.RPM/binding.Snapshot.Plan.MaxRPM*4);
-            if(band!=binding.LastBand&&__instance.State==Sprocket.Powertrains.Engines.EngineState.Running)
+            if(band!=binding.LastBand&&running)
             {
                 binding.LastBand=band;
-                if(fuelReports++<64)Plugin.ModLog.LogInfo($"[Engine Expansion] FUEL behaviour={__instance.Pointer} RPM={__instance.RPM} generatedTorque={__instance.GeneratedTorque} cache={__instance.maxFuelUsePerRotation} coefficient={binding.Commit.Fuel(binding.Snapshot.Plan,__instance.RPM)} committedBoost={binding.Commit.Selection.BoostPercent} active={binding.Commit.Active} revision={binding.Commit.Revision}");
+                if(fuelReports++<64)Plugin.ModLog.LogInfo($"[Engine Expansion] FUEL behaviour={__instance.Pointer} RPM={__instance.RPM} generatedTorque={__instance.GeneratedTorque} cache={__instance.maxFuelUsePerRotation} coefficient={fuelCoef} spool={binding.Spool:0.##} committedBoost={binding.Commit.Selection.BoostPercent} active={binding.Commit.Active} revision={binding.Commit.Revision}");
             }
         }
         catch(Exception ex){Plugin.Warn("fuel cache",ex);}
     }
     [HarmonyPrefix,HarmonyPatch(typeof(EngineBehaviour),nameof(EngineBehaviour.Dispose))]
-    private static void Dispose(EngineBehaviour __instance){bindings.Remove(__instance.Pointer);pending.Remove(__instance.Pointer);}
+    private static void Dispose(EngineBehaviour __instance){bindings.Remove(__instance.Pointer);pending.Remove(__instance.Pointer);EngineAudio.Release(__instance.Pointer);}
     // Update observes state through AssemblyCommit.Matches and queues the existing safe boundary.
     // Do not detour SetStateInternal: the reviewed crash reaches padding after its short return.
 }

@@ -11,6 +11,7 @@ namespace SprocketEngineExpansion.Native;
 internal static class DrivetrainAdapter
 {
     internal static Func<double> Volume=()=>.5,AngleMultiplier=()=>2;
+    internal static Func<bool> UnlimitedAngle=()=>true;
     private sealed record BuildScope(TransmissionBlock Block,float Scale);
     [ThreadStatic]private static BuildScope? current;
     private static float Scale(BuildScope scope)=>scope.Scale;
@@ -81,7 +82,7 @@ internal static class DrivetrainAdapter
             var ports=new[]{connection.provider,connection.receiver}.DistinctBy(p=>p.Pointer).Where(p=>!anglePorts.Contains(p.Pointer)).ToArray();
             var saved=ports.Select(p=>new AngleScope(p,p.minConnectionAngle)).ToArray();
             // Validate the whole batch before touching native ports; finalizer restores on exceptions.
-            var values=saved.Select(p=>DrivetrainRules.Angle(p.Original,AngleMultiplier())).ToArray();
+            var values=saved.Select(p=>DrivetrainRules.Angle(p.Original,AngleMultiplier(),UnlimitedAngle())).ToArray();
             __state=saved;
             for(int i=0;i<saved.Length;i++){anglePorts.Add(saved[i].Port.Pointer);saved[i].Port.minConnectionAngle=values[i];}
         }

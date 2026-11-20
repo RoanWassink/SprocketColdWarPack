@@ -229,6 +229,8 @@ internal static partial class NativeMaterialReactions
         var om=exponent==1?0:ProtectionFactorTable.Overmatch(fragment.mass,fragment.speed,fragment.diameter,path*.001,angle);
         var value=(float)ProtectionFactorTable.NativeRhaFactor(factor,angle,exponent,om,profile.apModifier);
         if(!float.IsFinite(value)||value<0||value==0&&interval==null&&GroupedProtection.CompositeProtectionScale!=0)return;
+        var floored=value<ProtectionFactorTable.MinimumNativeRhaFactor; // 0.22.90: the guard above is unchanged; then the floor: never 0 to native ("uncovered", a factor-0 face or module, scale 0), from 1e-6 up bit for bit
+        value=ProtectionFactorTable.NativeSafe(value); // 0.22.90
         Restore(sim.Pointer,reached.Index);
         // MaterialInfo is a real value type in an Il2CppStructArray: the element read is a copy, so it is written back explicitly and read back.
         var materials=sim.materials;var original=materials[block.MaterialIndex].rhaFactor;
@@ -253,8 +255,26 @@ internal static partial class NativeMaterialReactions
         }
         ArmourComparisonEvidence.Update(sim,reached.Index,member.Entity,member.Material,path*Math.Cos(angle*Math.PI/180),angle);
         if(ReleaseDiagnostics.Enabled)Plugin.ModLog.LogInfo(string.Create(System.Globalization.CultureInfo.InvariantCulture,
-            $"[Protection] plate #{member.Entity} {member.Material}: {ProtectionLine.Text(label,path,factor,threat,angle)}; exponent {exponent:0.##}; rhaFactor {original:0.#####} -> {value:0.#####} (read back {readBack:0.#####})"));
+            $"[Protection] plate #{member.Entity} {member.Material}: {ProtectionLine.Text(label,path,factor,threat,angle)}; exponent {exponent:0.##}; rhaFactor {original:g6} -> {value:g6} (read back {readBack:g6}){(floored?" (floor; no unpaid path)":"")}")); // 0.22.90 replaced: six significant digits, so 0 and 1e-06 differ in the log
     }
+    // 0.22.90 begin
+    /// <summary>Diagnostics only (RuntimeOriginalTrajectory.End): "#plate (rhaFactor x)" of the last EB write still open for this SimulateFragment call,
+    /// x read back from the native array; null when EB wrote nothing for that call. Reads only, never throws.</summary>
+    internal static string? OpenWriteText(IntPtr sim,short index)
+    {
+        try
+        {
+            if(writes is not {Count:>0} list)return null;
+            for(int i=list.Count-1;i>=0;i--)
+            {
+                var w=list[i];
+                if(w.Sim==sim&&w.Index==index)return string.Create(System.Globalization.CultureInfo.InvariantCulture,$"#{w.Entity} (rhaFactor {w.Materials[w.MaterialIndex].rhaFactor:g6})");
+            }
+            return null;
+        }
+        catch(Exception){return null;}
+    }
+    // 0.22.90 end
     internal static void CaptureBlockBudget(PenetrationSimulation sim,short index)
     {
         if(writes is not {} list)return;
@@ -281,7 +301,8 @@ internal static partial class NativeMaterialReactions
                     if(refreshed==null){Restore(sim.Pointer,index);return;}
                     w=w with{Factor=refreshed.Factor,Interval=refreshed};
                 }
-                var value=(float)ProtectionFactorTable.NativeRhaFactor(w.Factor,w.Angle,profile.obliquityExponent,om,profile.apModifier);
+                var value=ProtectionFactorTable.NativeSafe((float)ProtectionFactorTable.NativeRhaFactor(w.Factor,w.Angle,profile.obliquityExponent,om,profile.apModifier)); // 0.22.90 replaced: the floor on the refresh (a re-planned interval can be empty: factor 0)
+                if(!float.IsFinite(value)){Restore(sim.Pointer,index);return;} // 0.22.90: DIVISOR-AUDIT: a non-finite refresh is never written; native keeps its own factor (as the guard of WriteFactor)
                 SetRha(w.Materials,w.MaterialIndex,value,out var read);
                 if(read!=value){Restore(sim.Pointer,index);return;}
                 if(w.Extra!=null){SetRha(w.Extra,w.MaterialIndex,value,out read);if(read!=value){Restore(sim.Pointer,index);return;}}

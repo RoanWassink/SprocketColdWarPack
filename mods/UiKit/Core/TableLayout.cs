@@ -1,6 +1,7 @@
 namespace SprocketUiKit;
 
 /// <summary>Horizontal alignment of a table cell (and its column header).</summary>
+/// <summary>Right UI data and behavior.</summary>
 public enum CellAlign { Left, Centre, Right }
 
 /// <summary>

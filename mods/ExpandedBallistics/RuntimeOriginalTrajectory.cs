@@ -13,6 +13,7 @@ internal static class RuntimeOriginalTrajectory
     internal static bool Install(Harmony owner)
     {
         Ready=false;
+        if(!GameBuildGate.AllowHotPath)return false; // 0.22.95 game-build gate: shot/hit-path hooks only on an audited GameAssembly
         owner.CreateClassProcessor(typeof(RuntimeOriginalTrajectory)).Patch();
         var method=AccessTools.Method(typeof(CompoundStructure),nameof(CompoundStructure.SimulateFragment),new[]{typeof(PenetrationSimulation),typeof(short)});
         var info=Harmony.GetPatchInfo(method);
@@ -52,6 +53,7 @@ internal static class RuntimeOriginalTrajectory
             for(int i=capture.Count;i<count;i++)
             {
                 var child=sim.fragments[i];
+                if(nonFinite<5&&!(OriginalTrajectoryPolicy.Finite(Pure(child.spawnPoint))&&OriginalTrajectoryPolicy.Finite(Pure(child.direction))))NonFinite(sim.Pointer,index,i,child.spawnPoint,child.direction); // 0.22.90: diagnostics only (FEAT-0.22.90 C), reads
                 if(!OriginalTrajectoryPolicy.Eligible((ushort)parent.flags,(ushort)child.flags,child.parentIndex,index,
                     parent.projectileProfileIndex,child.projectileProfileIndex,parent.mass,child.mass,parent.diameter,child.diameter,
                     child.speed,Pure(capture.Direction),Pure(child.direction),Pure(child.spawnPoint)))continue;
@@ -66,6 +68,24 @@ internal static class RuntimeOriginalTrajectory
         }
         catch(Exception ex){Warn(ex);}
     }
+    // 0.22.90 begin
+    // FEAT-0.22.90 C, diagnostics only (no hook, no write): a new native child with a non-finite spawn point or direction is the NaN link of the
+    // 16-11 vanishing (a block at rhaFactor 0: budget +inf, the overmatch blend NaN, a ricochet child at a NaN position; VANISH-MAP section 2).
+    // At most 5 lines per session. Seen in this hook's own calls only: an original penetrator of a HEAT or APFSDS shot (OriginalTrajectoryPolicy.Behavior).
+    private static int nonFinite;
+    private static void NonFinite(IntPtr sim,short index,int child,Vector3 spawn,Vector3 direction)
+    {
+        nonFinite++;
+        try
+        {
+            var c=System.Globalization.CultureInfo.InvariantCulture;
+            string V(Vector3 v)=>string.Create(c,$"({v.x:g4}, {v.y:g4}, {v.z:g4})");
+            Plugin.ModLog.LogWarning("[Original trajectory] non-finite child spawn/direction after block "+(NativeMaterialReactions.OpenWriteText(sim,index)??"(no EB rhaFactor write in this call)")+
+                string.Create(c,$"; fragment {index}, child {child}, spawn {V(spawn)}, direction {V(direction)} (logged at most 5 times per session)"));
+        }
+        catch(Exception){/* diagnostics never change the impact */}
+    }
+    // 0.22.90 end
     private static void Warn(Exception error)
     {if(warnings++<4)Plugin.ModLog.LogWarning("[Original trajectory] Native continuation retained: "+error.Message);}
 }

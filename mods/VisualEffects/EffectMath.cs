@@ -20,7 +20,7 @@ internal static class EffectMath
     // 0.2.1: doubled after the daylight/sand calibration (out/proof-C2/calib2):
     // at 3.2 the 1.5-4 s smoke read as too thin against bright desert sand.
     internal const float HeavyDensity=6.4f;
-    internal const float HeavyFireStrength=18f;
+    internal const float HeavyFireStrength=24f;
     internal const float HeavyCurlStrength=1f;
     // Grey-white smoke scattering colour (shader default, set per shot).
     internal const float HeavySmokeR=.62f,HeavySmokeG=.61f,HeavySmokeB=.58f;
@@ -34,11 +34,11 @@ internal static class EffectMath
     // straight vertical edge. Same values as _BoxMin/_BoxMax defaults in the shader.
     internal static readonly Vector3 MuzzleBoxMin=new(-BoxHalfWidth,BoxBottom,BoxBack),MuzzleBoxMax=new(BoxHalfWidth,BoxTop,BoxFront);
     // Fire core as physical luminance (cd/m2) times exposure in the shader.
-    internal const float HeavyFireLuminance=1500000f;
+    internal const float HeavyFireLuminance=2800000f;
     // Muzzle flash point light (HDRP, candela = native unit for point lights).
-    internal const float FlashPeakCandela=600000f,FlashRange=25f,FlashDuration=.12f,FlashForward=1.2f;
+    internal const float FlashPeakCandela=900000f,FlashRange=32f,FlashDuration=.14f,FlashForward=1.2f;
     internal const float FlashR=1f,FlashG=.62f,FlashB=.28f;
-    internal const int FlashLightPool=2;
+    internal const int FlashLightPool=4;
     // Ground dust ring (shader _Mode 1), placed by a downward raycast.
     internal const float DustLifetime=3f,DustDensity=2.4f,DustMaxDrop=8f;
     internal const float DustR=.86f,DustG=.75f,DustB=.57f;
@@ -110,12 +110,20 @@ internal static class EffectMath
         if(!float.IsFinite(age)||age<=0)return 0;
         return Smooth(0,.01f,age)*(1-Smooth(.02f,FlashDuration,age));
     }
-    // 0.3.0 puff layer (PuffRenderer / SixWayPuff.shader).
+    // 0.3.0 / 0.5.0 puff, spark & blast-wave layers.
     internal const string PuffShaderName="SprocketVfx/SixWayPuff";
+    internal const string SparkShaderName="SprocketVfx/ImpactSpark";
+    internal const string BlastWaveShaderName="SprocketVfx/BlastWave";
     internal const float VolumeFireLifetime=.6f,VolumeSmokeFadeEnd=.5f;    // volume = fire/blast + jet only
-    // 0.3.1: mid-grey, slightly cool smoke albedo (0.3.0: .66 near-white) so it stays grey in full sun.
+    // 0.3.1: mid-grey, slightly cool smoke albedo; 0.5.0 adds explosion soot, dirt geyser and armour scorch tints.
     internal const float PuffSmokeR=.40f,PuffSmokeG=.42f,PuffSmokeB=.45f,PuffDustR=.64f,PuffDustG=.55f,PuffDustB=.42f;
-    internal static int PuffCapacity(int value)=>Math.Clamp(value,32,400);
+    internal const float PuffSootR=.11f,PuffSootG=.105f,PuffSootB=.10f;
+    internal const float PuffDirtR=.34f,PuffDirtG=.27f,PuffDirtB=.19f;
+    internal const float PuffScorchR=.18f,PuffScorchG=.17f,PuffScorchB=.16f;
+    internal const float PuffCookoffR=.07f,PuffCookoffG=.065f,PuffCookoffB=.06f;
+    internal static int PuffCapacity(int value)=>Math.Clamp(value,32,600);
+    internal static int SparkCapacity(int value)=>Math.Clamp(value,128,3000);
+    internal static int ImpactVolumeCapacity(int value)=>Math.Clamp(value,1,12);
     // Display-relative sun strength from the directional light's lux and elevation
     // (dir.y of the direction TOWARDS the sun): full at >= 80 klx and > ~9 deg elevation.
     internal static float PuffSunStrength(float lux,float towardsSunY)
@@ -125,7 +133,7 @@ internal static class EffectMath
         return l*(.15f+.85f*t*t*(3-2*t));
     }
     internal static float PuffAmbient(float sunStrength)=>.12f+.2f*Math.Clamp(sunStrength,0,1);
-    internal static int VolumeCapacity(int value)=>Math.Clamp(value,1,4);
+    internal static int VolumeCapacity(int value)=>Math.Clamp(value,1,8);
     internal static int VolumeSteps(int value)=>Math.Clamp(value,16,36);
     internal static float FrontWeight(float alignment)
     {

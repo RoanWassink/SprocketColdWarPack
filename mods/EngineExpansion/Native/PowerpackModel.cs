@@ -15,6 +15,7 @@ namespace SprocketEngineExpansion.Native;
 internal static class PowerpackModel
 {
     internal static PowerpackModelSettings Settings=new();
+    internal static double TurbineScale=PowerpackModelSettings.DefaultTurbineScale;
     internal static bool Installed;
     internal static bool Enabled=>Installed&&Settings.Enabled;
     private sealed class State
@@ -23,6 +24,7 @@ internal static class PowerpackModel
         internal EngineBlueprint Blueprint;
         internal CombustionEngine? Engine;
         internal string? Report;
+        internal PowerpackModelSettings ActiveSettings=Settings;
         internal State(EngineModelDefinition definition,EngineBlueprint blueprint){Definition=new(definition);Blueprint=blueprint;}
     }
     private static readonly Dictionary<IntPtr,State> models=new();
@@ -32,7 +34,7 @@ internal static class PowerpackModel
         return EngineDateRegistry.PowerpackEffective(engine.Blueprint);
     }
     internal static bool UsesEngine(CombustionEngine engine)=>Enabled&&Effective(engine)&&
-        engine.Blueprint.EngineLayout==EngineLayout.V&&Plans.EffectiveKind(engine.Blueprint)!=EngineKind.GasTurbine;
+        engine.Blueprint.EngineLayout==EngineLayout.V;
 
     [HarmonyPrefix,HarmonyPatch(typeof(CombustionEngineModel),nameof(CombustionEngineModel.Generate))]
     private static void BeforeGenerate(CombustionEngineModel __instance,EngineModelBlueprint __0,IEngineModelAssetLoader __1)
@@ -43,8 +45,9 @@ internal static class PowerpackModel
             bool active=UsesEngine(engine);
             if(!models.TryGetValue(__instance.Pointer,out var state))
             {if(!active)return;models.Add(__instance.Pointer,state=new(__instance.definition,engine.Blueprint));}
-            state.Blueprint=engine.Blueprint;state.Engine=engine;
-            bool changed=state.Definition.Select(active,Settings,Clone);
+            var effectiveSettings=Settings.ForKind(Plans.EffectiveKind(engine.Blueprint),TurbineScale);
+            state.Blueprint=engine.Blueprint;state.Engine=engine;state.ActiveSettings=effectiveSettings;
+            bool changed=state.Definition.Select(active,effectiveSettings,Clone);
             // A native layout change constructs a NEW model: this prefix sees that new object's definition too.
             __instance.definition=state.Definition.Current;
             if(changed)__instance.builtMeshHash=~__0.GetMeshRebuildHashCode();
@@ -69,14 +72,15 @@ internal static class PowerpackModel
         if(!models.TryGetValue(__instance.Pointer,out var state)||!state.Definition.Active)return;
         try
         {
+            var s=state.ActiveSettings;
             var instances=__instance.meshInstances;int n=instances.Length-2;
-            var factors=Matrix4x4.Scale(new Vector3((float)Settings.SizeFactor,(float)(Settings.SizeFactor*Settings.HeightFactor),(float)(Settings.SizeFactor*Settings.LengthFactor)));
+            var factors=Matrix4x4.Scale(new Vector3((float)s.SizeFactor,(float)(s.SizeFactor*s.HeightFactor),(float)(s.SizeFactor*s.LengthFactor)));
             var pieces=new List<(string Part,Matrix4x4 Matrix)>();
             Matrix4x4 Matrix(int i)=>__instance.transformMatrix*instances[i].transform*factors;
             pieces.Add(("start",Matrix(instances.Length-1)));
             for(int i=0;i<n;i++)pieces.Add(("pair",Matrix(i)));
             pieces.Add(("output",Matrix(instances.Length-2)));
-            pieces.Add((Settings.TurboLayout==PowerpackTurboLayout.Compact?"turbo":"turbo-outboard",Matrix(instances.Length-2)));
+            pieces.Add((s.TurboLayout==PowerpackTurboLayout.Compact?"turbo":"turbo-outboard",Matrix(instances.Length-2)));
             var lods=__instance.outputLODs;
             if(lods==null||lods.Length!=2)
             {
@@ -141,7 +145,7 @@ internal static class PowerpackModel
             if(!Enabled)return;
             var context=PowerpackLayout.Resolve(__instance);if(context==null)return;
             bool active=Effective(__instance);
-            string key=$"{active}:{__instance.Blueprint.EngineLayout}:{Plans.EffectiveKind(__instance.Blueprint)}:{Settings}:{context.Plan}:{context.Twin}";
+            string key=FormattableString.Invariant($"{active}:{__instance.Blueprint.EngineLayout}:{Plans.EffectiveKind(__instance.Blueprint)}:{Settings}:{TurbineScale:0.###}:{context.Plan}:{context.Twin}");
             bool remembered=engineStates.TryGetValue(__instance.Pointer,out var previous);
             if(remembered&&previous.Key==key)return;
             engineStates[__instance.Pointer]=(key,active);
@@ -161,5 +165,5 @@ internal static class PowerpackModel
     }
     [HarmonyPostfix,HarmonyPatch(typeof(CombustionEngine),nameof(CombustionEngine.Release))]
     private static void EngineReleased(CombustionEngine __instance)
-    {engineStates.Remove(__instance.Pointer);var context=PowerpackLayout.Resolve(__instance);if(context!=null)PowerpackBridge.Clear(context.Powertrain.Pointer);}
+    {engineStates.Remove(__instance.Pointer);PowerpackCollision.RemoveComponent(__instance.Pointer);var context=PowerpackLayout.Resolve(__instance);if(context!=null)PowerpackBridge.Clear(context.Powertrain.Pointer);}
 }

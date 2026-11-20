@@ -1,0 +1,29 @@
+Drempels: vlak 2.0 graden, cilinder/kegel-keten 50.0 graden, as-tolerantie 4 graden, cirkel 4%, dichtheid 1.0 UV/m; grenzen {'plane_area': 0.02, 'plane_stretch': 1.05, 'cyl_area': 0.03, 'cyl_stretch': 1.12}
+
+thermal-head.obj
+  voor (0.4.0): UV/m p10/p50/p90 1.00/1.00/1.00; oppervlak met stretch>=1,05 3.0%; dichtheid buiten 1,00+-1% 3.0%; plane n=14 UV/3D 1.000..1.000 stretch max 1.000; cylinder n=1 UV/3D 0.971..0.971 stretch max 1.414
+  na   (0.4.1): UV/m p10/p50/p90 1.00/1.00/1.00; oppervlak met stretch>=1,05 0.0%; dichtheid buiten 1,00+-1% 0.0%; plane n=14 UV/3D 1.000..1.000 stretch max 1.000; cylinder n=1 UV/3D 1.000..1.000 stretch max 1.000
+thermal-head-vertical.obj
+  voor (0.4.0): UV/m p10/p50/p90 1.00/1.00/1.00; oppervlak met stretch>=1,05 1.0%; dichtheid buiten 1,00+-1% 1.0%; plane n=14 UV/3D 1.000..1.000 stretch max 1.000; cylinder n=1 UV/3D 0.971..0.971 stretch max 1.414
+  na   (0.4.1): UV/m p10/p50/p90 1.00/1.00/1.00; oppervlak met stretch>=1,05 0.0%; dichtheid buiten 1,00+-1% 0.0%; plane n=14 UV/3D 1.000..1.000 stretch max 1.000; cylinder n=1 UV/3D 1.000..1.000 stretch max 1.000
+automatic-lrf.obj
+  voor (0.4.0): UV/m p10/p50/p90 1.00/1.00/1.00; oppervlak met stretch>=1,05 0.0%; dichtheid buiten 1,00+-1% 0.0%; plane n=32 UV/3D 1.000..1.000 stretch max 1.000
+  na   (0.4.1): UV/m p10/p50/p90 1.00/1.00/1.00; oppervlak met stretch>=1,05 0.0%; dichtheid buiten 1,00+-1% 0.0%; plane n=32 UV/3D 1.000..1.000 stretch max 1.000
+lrf-concept.obj
+  voor (0.4.0): UV/m p10/p50/p90 1.00/1.00/1.00; oppervlak met stretch>=1,05 0.0%; dichtheid buiten 1,00+-1% 0.0%; plane n=54 UV/3D 1.000..1.000 stretch max 1.000
+  na   (0.4.1): UV/m p10/p50/p90 1.00/1.00/1.00; oppervlak met stretch>=1,05 0.0%; dichtheid buiten 1,00+-1% 0.0%; plane n=54 UV/3D 1.000..1.000 stretch max 1.000
+optical-rangefinder.obj
+  voor (0.4.0): UV/m p10/p50/p90 0.84/0.98/1.00; oppervlak met stretch>=1,05 20.7%; dichtheid buiten 1,00+-1% 62.1%; plane n=34 UV/3D 1.000..1.000 stretch max 1.000; cylinder n=5 UV/3D 0.880..0.880 stretch max 1.414
+  na   (0.4.1): UV/m p10/p50/p90 1.00/1.00/1.00; oppervlak met stretch>=1,05 0.0%; dichtheid buiten 1,00+-1% 0.0%; plane n=34 UV/3D 1.000..1.000 stretch max 1.000; cylinder n=5 UV/3D 1.000..1.000 stretch max 1.000
+fcs-console.obj
+  voor (0.4.0): UV/m p10/p50/p90 0.00/0.00/3.62; oppervlak met stretch>=1,05 96.5%; dichtheid buiten 1,00+-1% 99.7%; plane n=372 UV/3D 0.000..4942.099 stretch max inf; cylinder n=27 UV/3D 0.000..837.825 stretch max inf; cone n=23 UV/3D 0.000..4539.594 stretch max inf
+  na   (0.4.1): UV/m p10/p50/p90 1.00/1.00/1.00; oppervlak met stretch>=1,05 0.2%; dichtheid buiten 1,00+-1% 0.3%; plane n=372 UV/3D 1.000..1.000 stretch max 1.001; cylinder n=27 UV/3D 1.000..1.027 stretch max 1.075; cone n=23 UV/3D 1.000..1.022 stretch max 1.110
+t72-style-sight.obj
+  voor (0.4.0): UV/m p10/p50/p90 0.00/0.00/1.91; oppervlak met stretch>=1,05 99.8%; dichtheid buiten 1,00+-1% 100.0%; plane n=73 UV/3D 0.000..65.169 stretch max inf; cylinder n=2 UV/3D 0.069..1.448 stretch max inf; cone n=2 UV/3D 0.000..0.000 stretch max inf
+  na   (0.4.1): UV/m p10/p50/p90 1.00/1.00/1.00; oppervlak met stretch>=1,05 0.0%; dichtheid buiten 1,00+-1% 0.0%; plane n=73 UV/3D 0.998..1.000 stretch max 1.015; cylinder n=2 UV/3D 1.000..1.000 stretch max 1.005; cone n=2 UV/3D 1.000..1.000 stretch max 1.007
+ir-searchlight.obj
+  voor (0.4.0): UV/m p10/p50/p90 0.54/1.00/1.00; oppervlak met stretch>=1,05 17.4%; dichtheid buiten 1,00+-1% 18.7%; plane n=32 UV/3D 0.057..1.000 stretch max 680.931; cylinder n=6 UV/3D 1.000..14.089 stretch max 118.358; cone n=1 UV/3D 0.288..0.288 stretch max 128.533
+  na   (0.4.1): UV/m p10/p50/p90 1.00/1.00/1.00; oppervlak met stretch>=1,05 0.0%; dichtheid buiten 1,00+-1% 0.0%; plane n=32 UV/3D 0.990..1.000 stretch max 1.010; cylinder n=6 UV/3D 1.000..1.000 stretch max 1.000; cone n=1 UV/3D 1.000..1.000 stretch max 1.000
+box-sight.obj
+  voor (0.4.0): UV/m p10/p50/p90 0.00/0.67/4.03; oppervlak met stretch>=1,05 97.8%; dichtheid buiten 1,00+-1% 100.0%; plane n=780 UV/3D 0.000..1368.138 stretch max inf; cylinder n=30 UV/3D 0.000..1089.675 stretch max inf; cone n=41 UV/3D 0.000..503.806 stretch max inf
+  na   (0.4.1): UV/m p10/p50/p90 1.00/1.00/1.00; oppervlak met stretch>=1,05 0.1%; dichtheid buiten 1,00+-1% 0.4%; plane n=780 UV/3D 0.994..1.000 stretch max 1.014; cylinder n=30 UV/3D 1.000..1.024 stretch max 1.118; cone n=41 UV/3D 1.000..1.001 stretch max 1.062

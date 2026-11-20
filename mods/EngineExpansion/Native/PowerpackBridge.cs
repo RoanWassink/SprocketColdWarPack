@@ -11,7 +11,7 @@ namespace SprocketEngineExpansion.Native;
 [HarmonyPatch]
 internal static class PowerpackBridge
 {
-    internal static bool CasingEnabled=true;
+    internal static bool CasingEnabled=false;
     private sealed record Child(GameObject Object,List<Mesh> Meshes);
     private static readonly Dictionary<IntPtr,RenderChildSlot<Child>> slots=new();
     private static void Retire(Child child)
@@ -93,22 +93,24 @@ internal static class PowerpackBridge
                             var b=mesh.bounds;var source=new OrientedBox(ToVec(b.center),ToVec(b.size),new(0,0,0,1));
                             var frame=FrameOf(render.transform);var layoutFrame=FrameOf(powertrain.transform);
                             var engineCorners=source.Corners().Select(frame.TransformPoint).Select(layoutFrame.InverseTransformPoint).Select(basis.InverseTransformPoint);
-                            fit=CasingFit.FromCorners(engineCorners,boxes.SelectMany(x=>x));
-                            var group=NewObject("Powerpack casing "+enginePort.module.id,child.Object.transform,rotation,layer);
-                            var renderers=new MeshRenderer[2];
-                            for(int lod=0;lod<2;lod++)
+                            if(CasingFit.TryFromCorners(engineCorners,boxes.SelectMany(x=>x),out fit)&&fit!=null)
                             {
-                                var data=fit.Warp(PowerpackMeshes.Data("casing-lod"+lod));
-                                var go=NewObject("Casing LOD"+lod,group.transform,Quaternion.identity,layer);
-                                var output=Mesh(data,"Powerpack casing LOD"+lod,child.Meshes);
-                                go.AddComponent<MeshFilter>().sharedMesh=output;
-                                renderers[lod]=go.AddComponent<MeshRenderer>();renderers[lod].sharedMaterial=material;
+                                var group=NewObject("Powerpack casing "+enginePort.module.id,child.Object.transform,rotation,layer);
+                                var renderers=new MeshRenderer[2];
+                                for(int lod=0;lod<2;lod++)
+                                {
+                                    var data=fit.Warp(PowerpackMeshes.Data("casing-lod"+lod));
+                                    var go=NewObject("Casing LOD"+lod,group.transform,Quaternion.identity,layer);
+                                    var output=Mesh(data,"Powerpack casing LOD"+lod,child.Meshes);
+                                    go.AddComponent<MeshFilter>().sharedMesh=output;
+                                    renderers[lod]=go.AddComponent<MeshRenderer>();renderers[lod].sharedMaterial=material;
+                                }
+                                var lodGroup=group.AddComponent<LODGroup>();
+                                lodGroup.SetLODs(new Il2CppReferenceArray<LOD>(new[]{
+                                    new LOD{screenRelativeTransitionHeight=.35f,renderers=new Il2CppReferenceArray<Renderer>(new Renderer[]{renderers[0]})},
+                                    new LOD{screenRelativeTransitionHeight=.01f,renderers=new Il2CppReferenceArray<Renderer>(new Renderer[]{renderers[1]})}}));
+                                lodGroup.RecalculateBounds();visible++;
                             }
-                            var lodGroup=group.AddComponent<LODGroup>();
-                            lodGroup.SetLODs(new Il2CppReferenceArray<LOD>(new[]{
-                                new LOD{screenRelativeTransitionHeight=.35f,renderers=new Il2CppReferenceArray<Renderer>(new Renderer[]{renderers[0]})},
-                                new LOD{screenRelativeTransitionHeight=.01f,renderers=new Il2CppReferenceArray<Renderer>(new Renderer[]{renderers[1]})}}));
-                            lodGroup.RecalculateBounds();visible++;
                         }
                     }
                     catch(Exception ex){Plugin.Warn("powerpack casing fit",ex);}
@@ -116,9 +118,10 @@ internal static class PowerpackBridge
                 if(twin&&context.SplitterId>=0&&layout.GetModule(context.SplitterId) is {} splitterModule)
                 {
                     var a=boxes[0];var b=boxes[1];if(a.Average(v=>v.X)>b.Average(v=>v.X))(a,b)=(b,a);
+                    double engineRearZ=basis.InverseTransformPoint(ToVec(enginePort.position)).Z;
                     double x0=a.Max(v=>v.X),x1=b.Min(v=>v.X),y0=Math.Max(a.Min(v=>v.Y),b.Min(v=>v.Y)),y1=Math.Min(a.Max(v=>v.Y),b.Max(v=>v.Y));
                     double z0=Math.Max(a.Min(v=>v.Z),b.Min(v=>v.Z)),z1=Math.Min(a.Max(v=>v.Z),b.Max(v=>v.Z));
-                    if(x1-x0<.001||y1-y0<.001||z1-z0<.001)continue;
+                    if(z0<engineRearZ-0.05||x1-x0<.015||y1-y0<.01||z1-z0<.01)continue;
                     var splitter=basis.InverseTransformPoint(ToVec(splitterModule.position));
                     double radius=(x1-x0)*.24;z0=Math.Min(z0,splitter.Z-radius);z1=Math.Max(z1,splitter.Z+radius);
                     var data=PowerpackBridgeGeometry.Build(x1-x0,y1-y0,z1-z0,Math.Clamp(splitter.X-(x0+x1)*.5,-(x1-x0)*.35,(x1-x0)*.35),Math.Clamp(splitter.Z-z0,0,z1-z0));
@@ -163,5 +166,9 @@ internal static class PowerpackBridge
     private static Frame FrameOf(Transform t)=>new(ToVec(t.position),new(t.rotation.x,t.rotation.y,t.rotation.z,t.rotation.w),ToVec(t.lossyScale));
     // Existing unique target. Never hook the folded VehicleComponent.Release.
     [HarmonyPrefix,HarmonyPatch(typeof(VehiclePowertrain),nameof(VehiclePowertrain.Clear))]
-    private static void Cleared(VehiclePowertrain __instance)=>Clear(__instance.Pointer);
+    private static void Cleared(VehiclePowertrain __instance)
+    {
+        Clear(__instance.Pointer);
+        PowerpackCollision.Clear(__instance.Pointer);
+    }
 }

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework><PlatformTarget>x64</PlatformTarget>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    <AssemblyName>SprocketPlateDestructionP0</AssemblyName><RootNamespace>PlateDestructionP0</RootNamespace>
+    <Version>0.8.3</Version><Authors>Nero</Authors><Company>Nero</Company>
+    <Description>Plate Destruction P0: surface-contact HESH/HEAT/ERA blast orientation, per-cell local thickness, solid torn armor cross-section walls, independent child PlateStructure protection, blast-hole punching, hull/turret battle damage, Photo Mode stability, InPlace armour updates.</Description>
+    <GameDir Condition="'$(GameDir)'==''">E:\SteamLibrary\steamapps\common\Sprocket</GameDir>
+    <PathMap>$(MSBuildProjectDirectory)=/SprocketPlateDestructionP0/src</PathMap><DebugType>none</DebugType>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="$(GameDir)\BepInEx\core\*.dll" Exclude="$(GameDir)\BepInEx\core\TerraFX*.dll;$(GameDir)\BepInEx\core\dobby.dll"><Private>false</Private></Reference>
+    <Reference Include="$(GameDir)\BepInEx\interop\*.dll"><Private>false</Private></Reference>
+    <Compile Remove="checks\**\*.cs;out\**\*.cs;obj\**\*.cs" />
+  </ItemGroup>
+</Project>

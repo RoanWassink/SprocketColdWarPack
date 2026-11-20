@@ -1,38 +1,60 @@
 # Sprocket AI Orders
 
-Lets you give orders to your AI allies in battle: a small number-key menu on F9 and a tactical map on M with move, follow, halt, attack, retreat and release orders.
+AI Orders lets you give orders to your AI allies while a battle is running. A small menu on screen handles quick orders, and a tactical map lets you plan moves and attacks by clicking.
 
-- Version: 0.5.2
-- Requires: Sprocket UI Kit (`sprocket.uikit`, >=0.1.2 <0.2.0) and Sprocket Keybinds (`sprocket.keybinds`, >=0.1.7 <0.2.0)
-- Optional: Sprocket Expedition (`sprocket.expedition`, soft dependency); in Expedition battles the orders are handed to Expedition, so Expedition releases those tanks from its own AI
-- Plugin GUID: `sprocket.aiorders`
-- Game version tested: 0.2.56.2
+Version 0.5.4. It needs [Keybinds](../Keybinds) for its keys and [UI Kit](../UiKit) for its windows.
 
-## Features
+## What it adds
 
-- F9 opens a small, non-modal quick-orders HUD at the bottom left: no cursor, and driving, aiming, firing and the camera keep working. The number keys are only read while the HUD is visible.
-- Menu: all allies on/off, choose allies, Follow column, Follow line, Halt, Attack, Retreat, Release to AI, open the map; a status line shows the result of the last order or why it was refused.
-- M opens a tactical map with terrain relief, contour lines and the battle boundary; you in yellow, allies in blue with number and heading, visible enemies in red with distance, last-seen enemies fading after 90 seconds.
-- On the map: click or Shift+click to select, right-click ground to move (Shift for waypoints; several tanks spread into a line), right-click a visible enemy to attack, wheel zoom, middle-drag pan.
-- Follow uses the game's own formation system with you as leader and falls back to waypoint following if the formation does not take within about 5 seconds.
-- Halt, Move and Attack first take a tank out of its formation; Move retries the target if the AI stops to fire; Release to AI hands a tank back to the game's AI.
-- Three Harmony prefix patches: `CommanderAI.Order` and `CommanderAI.UpdateFormationTasks` skip the game's own order and formation logic for tanks you have ordered, `VehicleOrderConstruction.SelectConstructAndApply` only observes native player commands.
-- Safety gate: only runs on the exact `GameAssembly.dll` build it was checked against (game 0.2.56.2); on another build it disables itself with an error in the log.
+- A quick-orders menu in the bottom left of the screen. It takes no cursor, so you keep driving, aiming and firing while it is open.
+- A tactical map with terrain relief, contour lines and the edge of the battle area. You are yellow, allies are blue with a number and a heading, and visible enemies are red with their distance. Enemies you saw last fade away after 90 seconds.
+- Six orders: move, follow, halt, attack, retreat and release.
+- Move orders with waypoints, and several tanks that spread into a line at the target.
 
-## Settings and keys
+## The orders
 
-- Config: `BepInEx\config\sprocket.aiorders.cfg` (created by BepInEx on first start). `[Map] RedrawFps = 12` (1 to 30) and `[Diagnostics] DetailedLogging = false` by default (set to `true` for a verbose trace).
-- Keys (defaults): `F9` Quick orders HUD, `M` Tactical map, `1` to `9` Menu choice, `0` Menu back / close. Rebind them under "AI Orders" in the game's Settings > Controls/keybinds > Mod keybinds, which Sprocket Keybinds provides.
-- On the map the number keys select tanks 1 to 9 (Shift adds) and 0 toggles all or none.
-- Shipped files: `BepInEx\plugins\SprocketAIOrders\SprocketAIOrders.dll` only; no part, technology or localization files.
+- Move: the tank drives to a point. If the AI stops on the way to fire, the order tries again.
+- Follow: the ally follows you, in a column (one behind the other) or in a line (side by side). It uses the game's own formation system with you as the leader. If the formation does not take within about 5 seconds, the tank follows your waypoints instead.
+- Halt: the tank stops. It leaves its formation first.
+- Attack: the tank goes for a visible enemy.
+- Retreat: the tank pulls back.
+- Release: the tank goes back to the game's own AI.
 
-## Status
+A tank that has an order from you ignores the game's own orders and formation logic until you release it. Tanks without an order from you are not touched.
 
-- In game (0.5.0, Expedition battle): the map opens and a move order reaches the tank (`Move: 1 unit(s)`). The game then froze at the first drawn route; that was fixed in 0.5.1.
-- 0.5.2 is installed but not yet tested in game: the F9 HUD, the map redraw, halt, follow, attack, Expedition and Custom Battle still need checking. The number keys are shared with game actions (for example ammo selection), which is also unchecked.
-- The whole pack was just renamed and has not been re-tested in game since.
+## How to use it
+
+1. Open the game's Settings screen, go to Controls, and open the mod keybinds panel. Under "AI Orders", set a key for the quick-orders menu and one for the tactical map. The mod sets no keys itself.
+<!-- SCREENSHOT: ai-orders-keybinds.png (the AI Orders actions in the mod keybinds panel) -->
+2. In a battle, press the key for the quick-orders menu. The menu appears at the bottom left. Each line has a number, and you choose a line by pressing that number. The lines are: all allies on or off, choose allies, follow in a column, follow in a line, halt, attack, retreat, release to AI, and open the map. A status line shows the result of your last order or why it was refused.
+<!-- SCREENSHOT: ai-orders-hud.png (the quick-orders menu at the bottom left in a battle) -->
+3. To use the map, press the key for the tactical map. The list of allies is on the left. Click an ally to select it, and Shift-click to add or remove one. A click on empty ground clears the selection.
+<!-- SCREENSHOT: ai-orders-map.png (the tactical map with allies, enemies and a planned route) -->
+4. Right-click the ground to send the selected tanks there. Hold Shift while you right-click to add waypoints. Right-click a visible enemy to order an attack.
+5. Use the mouse wheel to zoom and drag with the middle button to pan. Buttons on the map give the other orders (follow, halt, release, attack the nearest spotted enemy), and one centres the map on you or shows the whole map.
+6. If an order is refused, for instance because you clicked outside the battle area or nothing is selected, a red cross appears at the click with a short text. A successful move shows a blue ring for a moment.
+
+While the map is open, clicks do not fire your gun or turn the camera, and Esc closes the map before it opens the pause menu. Driving with the keyboard keeps working. A tank or missile switch releases all orders and closes the menu.
+
+## Settings
+
+The settings file is `BepInEx\config\sprocket.aiorders.cfg`. The game creates it at the first start.
+
+- `Map` / `RedrawFps` (default 12, from 1 to 30): how often the map redraws. Lower it if the map stutters.
+- `Diagnostics` / `DetailedLogging` (default `false`): extra lines in the log, for testing.
+
+The keys are set in the mod keybinds panel, as in the steps above.
+
+## Known limits
+
+- The orders were checked in the game in one campaign-style battle only. There the map opened and a move order reached the tank. The game then froze when the first route was drawn. That was fixed in a later version.
+- A later check of 0.5.2 in a battle found that the map opens and that clicks arrive in the right place. Only one of nine right-clicks became an order. The other clicks were refused without any message. Version 0.5.3 adds the red cross and the text so you can see why an order is refused.
+- Not yet tested in the game: the quick-orders menu, the map redraw, halt, follow and attack, battles outside the campaign-style one, and 0.5.3 as a whole. The numbers in the menu are shared with some game actions (for example choosing ammunition), and that clash has not been checked either.
+- The pack was renamed recently and has not been tested in the game again since.
+- The mod only runs on the game version it was checked against (0.2.56.2). On another version it switches itself off and writes an error to the log. The game update of 18 November is not covered by 0.5.3, so the mod does not load there.
 
 ## Building
 
-.NET project (`src\SprocketAIOrders.csproj`, solution `SprocketAIOrders.sln` in this folder, net6.0); build with `dotnet build -c Release -p:GameDir=<path to Sprocket folder>`. It references the game's BepInEx and interop assemblies and the installed `SprocketUiKit.dll` and `SprocketKeybinds.dll`; the DLL is written to `build\`.
-`Verify.ps1` and `tests\` hold the offline checks. Full usage guide in Dutch: [README-NL.md](README-NL.md); see also [CHANGELOG.md](CHANGELOG.md) and [TESTPLAN.md](TESTPLAN.md).
+The project is a .NET project (`src\SprocketAIOrders.csproj`, solution `SprocketAIOrders.sln`, net6.0). Build it with `dotnet build -c Release -p:GameDir=<path to Sprocket folder>`. It uses the game's BepInEx and interop assemblies and the installed `SprocketUiKit.dll` and `SprocketKeybinds.dll`. The DLL is written to `build\`. `Verify.ps1` and `tests\` hold the offline checks. The plugin folder is `BepInEx\plugins\SprocketAIOrders\` and the mod ships only the DLL.
+
+More notes: a full guide in Dutch ([README-NL.md](README-NL.md)), [CHANGELOG.md](CHANGELOG.md) and [TESTPLAN.md](TESTPLAN.md). Plugin ID: `sprocket.aiorders`.

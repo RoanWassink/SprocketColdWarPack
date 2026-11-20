@@ -1,6 +1,7 @@
 using System.Reflection;
 using Sprocket.Vehicles.Cannons;
 using Sprocket.Vehicles.AmmunitionStorage;
+using Sprocket.Vehicles.Weapons;
 
 namespace SprocketCarouselAutoloader;
 
@@ -14,12 +15,14 @@ internal static class AmmoLoadoutBridge
     private delegate void DestroyReader(AmmoRackBehaviour aggregate);
     private delegate int AvailableReader(Cannon cannon,AmmoRackBehaviour aggregate,int type);
     private delegate int TransferReader(Cannon cannon,AmmoRackBehaviour source,AmmoRackBehaviour destination,int type);
+    private delegate void PrepareReader(LoadTask task);
     private static HasReader? has;
     private static SupplyReader? supply;
     private static SameReader? same;
     private static DestroyReader? destroy;
     private static AvailableReader? available;
     private static TransferReader? transfer;
+    private static PrepareReader? prepare;
     private static long nextSearch;
     private static bool warned;
     private static void Resolve()
@@ -36,6 +39,7 @@ internal static class AmmoLoadoutBridge
             destroy=Bind<DestroyReader>(type,"ClearStorage");
             available=Bind<AvailableReader>(type,"GetAvailable");
             transfer=Bind<TransferReader>(type,"TryTransfer");
+            prepare=Bind<PrepareReader>(type,"PrepareRequest");
             break;
         }
     }
@@ -80,5 +84,10 @@ internal static class AmmoLoadoutBridge
     {
         try{Resolve();return has?.Invoke(cannon)==true?(transfer?.Invoke(cannon,source,destination,type)??-1):0;}
         catch(Exception ex){Warn(ex);return -1;}
+    }
+    internal static void Prepare(LoadTask task)
+    {
+        try{Resolve();prepare?.Invoke(task);}
+        catch(Exception ex){Warn(ex);}
     }
 }

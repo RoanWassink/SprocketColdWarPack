@@ -1,11 +1,13 @@
-# Sprocket UI Kit 0.1.12
+# Sprocket UI Kit developer guide
+
+## Overview
 
 Shared BepInEx 6 IL2CPP plugin (`sprocket.uikit`) that draws mod panels in one style and
 handles their behaviour centrally: Input System clicks/typing, cursor, gameplay-input block in game,
 designer click-through guard, Esc, dragging, remembered positions, scale, focus/z-order and guarded
 callbacks. Mods only describe content; values update every frame through getters.
 
-- Requires: Sprocket Keybinds API `>=0.1.3 <0.2.0` (tested against installed 0.1.9), Sprocket 0.2.56.2.
+- Requires: Sprocket Keybinds API `>=0.1.10 <0.2.0` (built against 0.1.10), Sprocket 0.2.56.2.
 - Install: `BepInEx\plugins\SprocketUiKit\SprocketUiKit.dll` (with Sprocket closed).
 - Build and check: `dotnet build SprocketUiKit.csproj -c Release` (add `-p:GameDir=<folder with BepInEx\core, interop and the Keybinds DLL>` for a copy of the game),
   `dotnet run --project tests\UiKit.Tests.csproj -c Release` (pure tests), `Verify.ps1` (static checks and public API against `baseline\`; read only),
@@ -17,92 +19,37 @@ callbacks. Mods only describe content; values update every frame through getters
   Panel positions: `sprocket.uikit.panels.cfg` (delete a line to re-centre). Since 0.1.4 a line is
   `x,y` (original size), `x,y,w,h` (resized) or `x,y,w,h,max` (maximized; x,y,w,h = restore rectangle).
 
-## Focus-only keyboard routing (0.1.12)
+| API (since 0.1.0) | Behavior |
+|---|---|
+| `UiKit.Context`, `ContextLabel`, `AnyPanelOpen`, `PointerOverPanel`, `TextInputActive`, `Scale` | State for mods. |
 
-Keys go to the panel with focus: `AddShortcut`, Enter's `DefaultAction` and modal Enter
-use only `UiKit.FocusedPanel`. With no focus the Kit does nothing with these keys and
-only the game receives them; there is no fallback to the top panel. A popup still suppresses
-these actions, text entry keeps its existing path, and Esc retains its existing top-panel order.
-Enter consults the focused panel's modal, even when another panel is higher in z-order.
+Notes: build the content once (in `Load`); use `VisibleWhen` for tabs/conditional parts and `Repeat<T>`
+for rows whose controls depend on data. Callbacks run on the Unity main thread. Panels are built on
+first open (the TMP font must exist by then).
 
-```csharp
-public bool Panel.HasFocus { get; }
-public static Panel? UiKit.FocusedPanel { get; }
-```
+## Panels
 
-`HasFocus` is true exactly when `UiKit.FocusedPanel` is that panel; the latter is null when
-there is no owner. HUDs never acquire focus. The open/press/close and lifecycle rules below
-remain unchanged. Demo > Window shows both properties and a Ctrl+Shift+D shortcut counter.
-The shortcut loop retains its existing `ToList()` snapshot so callback additions/removals
-cannot invalidate enumeration; the new recipient policy and property getters allocate nothing.
+| API (since 0.1.0) | Behavior |
+|---|---|
+| `UiKit.CreatePanel(modGuid, id, title, subtitle?, width=900, height=560)` | Panel (unique per modGuid+id; duplicate throws). Sizes in 1080p reference px. |
 
-## Keyboard focus and game keys (0.1.11)
+| API (since 0.1.0) | Behavior |
+|---|---|
+| `UiKit.BindToggle(panel, ModKeybind)` | Toggle on the Keybinds API action (ignored while typing / in the settings menu). |
 
-Normal panels take keyboard focus when opened and on any mouse-button press in the title,
-content or border. Only one panel owns focus. Clicking outside all Kit panels releases it;
-closing the owner passes it to the top remaining open normal panel. HUDs, markers and tooltips
-never own focus. Native pause, scene changes, alt-tab, settings and plugin unload release both
-panel and text focus. A focused title has a subtle amber accent; other titles are dimmed.
+| API (since 0.1.0) | Behavior |
+|---|---|
+| `Panel.Open/Close/Toggle`, `IsOpen`, `OnOpen`, `OnClose` | Esc, close button, keybind, pause and scene/context change all close. |
 
-`Input.BlockKeysWhilePanelFocused=true` disables enabled game InputActions while a normal panel
-owns focus, in the designer as well as gameplay. The native UI input module's maps and all
-DontSave assets (including the Keybinds API) are excluded. Panel focus never selects the typing
-proxy: mod toggle keys such as a consumer's F8 still work. Text fields retain their existing
-proxy and `Input.SuspendGameKeysWhileTyping` behaviour. Turning off panel blocking releases its
-claim immediately; typing blocking remains independently controlled by the typing option.
+| API (since 0.1.0) | Behavior |
+|---|---|
+| `Panel.SetStatus(text, StatusKind)`, `AddKeyHint(key, action)`, `SetContext(text or getter)`, `TitleIcon` | Footer status (info/success/warning/error), key hints, context chip. |
 
-`Panel.AddShortcut` has its existing signature, with no `consume` parameter: while its panel is
-focused, the designer's game actions are disabled too (for example Ctrl+Z). Esc and pointer
-blocking use the existing paths. The guard records only actions it disabled and restores only
-those actions. It restores on focus loss, config opt-out, lifecycle changes and exceptions,
-before reporting the error; failed native restores stay tracked for retry. An orphaned set is
-restored in the same Update. A resource scan runs on entering a blocking session, then at most
-once per second to catch actions the game enabled again. A continuous panel/text handoff keeps
-that throttle. DetailedLogging emits one count/reason line per disable or restore batch.
+| API (since 0.1.0) | Behavior |
+|---|---|
+| `Panel.AllowedContexts`, `BlockGameplayInput`, `CloseOnSceneChange`, `SetSize` | Behaviour switches (defaults: designer+game, block, close). |
 
-## Graph gestures, picking and live tabs (0.1.11)
-
-```csharp
-NodeGraph graph = column.NodeGraph().Fill().PortHitRadius(12); // default 7 physical px
-int serial = 0;
-graph.OnPortDrag(drop =>
-{
-    if (drop.Drop.Kind != GraphHitKind.Port) return;
-    var target = graph.Node(drop.Drop.NodeId!)!;
-    // This example connects drags from an output to an input named "in".
-    // The consumer owns port types, connection validity and replacement rules.
-    if (!drop.FromOutput || drop.Drop.PortId != "in") return;
-    graph.AddWire("drag" + serial++, drop.FromNode, drop.FromPort, target.Id, "in");
-});
-Vector2 layoutSize = graph.ViewSize;
-Rect visibleGraphSpace = graph.VisibleRect;
-var names = new List<string> { "Main", "Auxiliary" };
-int selected = 0;
-column.Tabs(() => names, () => selected, i => selected = i);
-column.TextField(() => names[selected], value => names[selected] = value);
-```
-
-A left press on a port followed by movement strictly greater than 4 physical px starts a dashed
-wire from that port to the mouse. It cannot move blocks or pan/zoom the graph. Release invokes
-`OnPortDrag(Action<GraphPortDrop>)` once, including drops on the canvas, a block, a wire or footer;
-short press/release still uses `OnClick`. The drag wire is independent of the mod's
-`BeginPendingWire`/`EndPendingWire`, and disappears on release, cancellation, hidden content or
-source-node removal. The two temporary wires each reserve one of the 511 mesh slots, leaving
-509 regular wires if both are active. Input-origin drags report `FromOutput=false`.
-
-Picking walks blocks from top to bottom: within each block, footer button, ports, then body.
-The first block that hits wins, including port circles extending outside that block. Higher
-bodies therefore cover lower ports and footers. Wires follow all blocks, then the canvas.
-`PortHitRadius(float px)` accepts finite nonnegative physical pixels, independent of Kit scale
-and zoom. `ViewSize` is the laid-out graph extent in Kit units (zero before first layout);
-`VisibleRect` is that extent transformed into graph space by current pan and zoom.
-
-`Container.Tabs(Func<IReadOnlyList<string>> labels, Func<int> selected, Action<int> select)`
-polls the list and detects in-place edits as well as replacement lists. Return a cached list:
-equal labels allocate zero bytes, renaming changes text only, and changing the count rebuilds
-the tab strip. The consumer keeps the selected index valid when removing tabs.
-
-## Een paneel maken (make a panel)
+### Creating a panel (since 0.1.0)
 
 Reference `SprocketUiKit.dll` and `SprocketKeybinds.dll` with `Private=false`; never ship copies.
 This complete plugin compiles (`examples/ExamplePlugin.cs`, `examples/Example.csproj`):
@@ -114,9 +61,9 @@ using SprocketKeybinds;
 using SprocketUiKit;
 
 [BepInPlugin("example.hatches", "Example Hatches", "1.0.0")]
-[BepInDependency(Keybinds.PluginGuid, ">=0.1.3 <0.2.0")]
+[BepInDependency(Keybinds.PluginGuid, ">=0.1.10 <0.2.0")]
 [BepInDependency(UiKit.PluginGuid, ">=0.1.0 <0.2.0")]
-public sealed class ExamplePlugin : BasePlugin
+public sealed class ExamplePlugin : BasePlugin // (since 0.1.0)
 {
     private sealed class Hatch { public string Name = ""; public bool Open; public double Speed = 90; }
     private readonly List<Hatch> hatches = new() { new() { Name = "Commander hatch" }, new() { Name = "Loader hatch" } };
@@ -157,79 +104,318 @@ public sealed class ExamplePlugin : BasePlugin
 }
 ```
 
-## API overview
+### Maximize (`Maximize`, `Restore`, `ToggleMaximize`, `IsMaximized`, `Maximizable`) (since 0.1.4)
+
+```csharp
+panel.Maximizable = false;          // no button, no double-click (default true)
+panel.Maximize();                   // fills the screen minus 8 px; panel.Restore() goes back
+toolbar.Button("Full screen", panel.ToggleMaximize);
+bool big = panel.IsMaximized;
+```
+Button left of the close button (in its place when `Closable = false`); double-click on an empty spot of
+the title bar toggles; dragging the title bar of a maximized panel restores it under the cursor. A
+maximized panel follows a new screen size. The state is remembered.
+
+### Resize (`Resizable`, `MinSize`, `Resized`) (since 0.1.4)
+
+```csharp
+var panel = UiKit.CreatePanel(Guid, "editor", "Shell editor", null, 1100, 640)
+    .MinSize(800, 480);             // default minimum: the CreatePanel / last SetSize size
+panel.Resizable = false;            // no grips (default true)
+panel.Resized += () => map?.Invalidate();   // after every size change, at most once per frame
+```
+Grips: the right edge, the bottom edge and the corner grip (bottom right). Maximum: the screen (it also
+wins over `MinSize`). Size is remembered next to the position. Extra room goes to what already grows:
+`Fill()`, `ScrollView`, `Canvas(...).Fill()` and flexible columns. Column rule: fixed columns keep their
+width and flexible ones take the extra; only when **all** columns are fixed, the growth goes to the
+widest one (the content, not the sidebars). At the original size the layout is exactly as in 0.1.3. A
+canvas redraws at most 10 times a second while an edge is dragged (the image stretches in between).
+
+### Back on screen, reset (`ResetPosition`) (since 0.1.4)
+
+```csharp
+settings.Button("Reset window", panel.ResetPosition);   // centred, original size, not maximized; line forgotten
+```
+On open, and when it grows, a panel whose remembered place is (partly) off screen comes back fully on
+screen; a remembered size larger than the screen shrinks to the screen.
+
+### Close like the user (`RequestClose`) (since 0.1.4)
+
+```csharp
+footer.Button("Close", () => panel.RequestClose());     // asks OnCloseRequest, honours Closable
+```
+Returns true when the panel is closed afterwards. `Close()` still closes unconditionally.
+
+### Confirm and modal (since 0.1.2)
+
+```csharp
+panel.Confirm("Delete shell", $"Delete '{shell.Name}'?", "Delete", () => Delete(shell));   // Danger, "Back"
+panel.Confirm("Overwrite", "Overwrite the preset?", "Overwrite", Save, ButtonStyle.Primary, "Cancel", onCancel: null);
+panel.ShowModal("Rename", m => { m.TextField(() => name, v => name = v); m.Button("Close", panel.CloseModal); });
+```
+Esc cancels. Enter confirms, except a Danger confirm, where Enter cancels (safe default). `ModalOpen`.
+
+### Sub-pages (since 0.1.2)
+
+```csharp
+var edit = panel.Page("edit", "Edit shell");          // a Stack, built once like panel.Body
+edit.Columns(0)[0].Section("Edit").Slider(...);
+list.OnSelect(s => { selected = s; panel.Push("edit"); });
+// panel.Pop(), PopToRoot(), CurrentPage (null = root), PageDepth, PageChanged
+```
+The title bar shows a back button and the page trail; Esc goes back one page, then closes.
+
+## Layout
+
+| API (since 0.1.0) | Behavior |
+|---|---|
+| `Panel.Columns(widths…)` / `Body` | Columns: `>0` px, `0` flexible, `<0` flexible weight. |
+
+| API (since 0.1.0) | Behavior |
+|---|---|
+| `Column.Section(title, count/note?)` → Stack, `Column.Footer(title?)` → Block pinned to the bottom | |
+
+| API (since 0.1.0) | Behavior |
+|---|---|
+| Container factories: `Stack`, `Row`, `Card`, `ScrollView`, `Collapsible`, `Repeat<T>`, `FieldRow(label)`, `Labeled(label)`, `Spacer` | Layout. |
+
+| API (since 0.1.0) | Behavior |
+|---|---|
+| Every element: `.Width() .Height() .Flex() .Fill() .Tooltip() .VisibleWhen() .EnabledWhen()` | |
+
+### Scrollbars (since 0.1.5)
+
+No API change: `ScrollView`, `ListView<T>` and an open dropdown list get a real vertical scrollbar
+automatically. Consumers keep their existing dependency and need no rebuild; the Cassette Composer
+(`ScrollView().Fill()` in its right column) gets it as-is.
+- Rest: 3 px thumb `#5c5442` (`Border`). Hover over the 10 px strip or drag: 6 px, `#b8ad94` (`Text2`);
+  while dragging `#dc9e33` (`Accent`); a subtle 6 px track `#24231c` at .55 appears. Tokens in `docs/STYLE.md`.
+- Drag the thumb: the content follows the mouse proportionally, the grab point stays under the cursor,
+  and the capture continues outside the bar and panel (`OnPress` + `Kit.Pressed`, like `Slider`).
+  Click the track above or below the thumb to page one viewport; hold to repeat after .45 s at .07 s
+  (the `Stepper` rhythm) until the thumb is under the cursor.
+- The wheel is unchanged, also over the bar; nested `ScrollView`s keep the innermost list under the
+  cursor. The bar exists only while the content overflows and takes clicks only in the 10 px strip at
+  the right edge. The reserved 6 px content width (and so the layout) is unchanged from 0.1.4.
+- Resize grip versus bar: inside the panel the bar owns its strip; the 4 px grip band outside the right
+  edge still resizes. A bar in the rightmost column sits inside the 14 px column padding, clear of the grip.
+- `ListView`: a click on the bar selects no row and presses no delete button. In an open dropdown,
+  dragging or paging keeps the list open and chooses no option; an option click works as before.
+- No horizontal scrollbar exists in the kit, and none was added.
+
+## Controls
+
+| API (since 0.1.0) | Behavior |
+|---|---|
+| `Button(text, onClick, ButtonStyle)` `.Compact()` `.WithIcon()`, `IconButton(icon, onClick, tooltip)` `.Round()` | Primary / Normal / Quiet / Danger; disabled via `EnabledWhen`. |
+
+| API (since 0.1.0) | Behavior |
+|---|---|
+| `Segmented(options, get, set)`, `Stepper(get, set, min, max, step, unit)` `.Compact()` `.Format()`, `Toggle(get, set)` | |
+
+| API (since 0.1.0) | Behavior |
+|---|---|
+| `Dropdown(options or getter or Choice-getter, get, set)` `.Inline()` `.Accent()` | Overlay list above everything, flips up, scrolls, grouped headings via `Choice.Group`. |
+
+| API (since 0.1.0) | Behavior |
+|---|---|
+| `TextField(get, commit, placeholder)` `.MaxChars()` `.Numeric()` `.OnChange()` | Enter/blur commits, Esc reverts, Ctrl+A. |
+
+| API (since 0.1.0) | Behavior |
+|---|---|
+| `Tabs(tabs, get, set)`, `List<T>(items, template)` `.OnSelect` `.OnRemove` `.LampHold` `.Empty` `.MaxHeight` | `ListRow`: Title, Subtitle, Tag(+TagChip), Lamp, Value(+ValueAccent), Progress, Note, Selected, Removable, Key. |
+
+| API (since 0.1.0) | Behavior |
+|---|---|
+| `Lamp(on, label?)` `.Hold(s)`, `Progress(value)`, `Chip(text, ChipStyle)` `.StyleWhen()`, `Warning(text)`, `Label(text or getter, TextStyle)` `.Wrap()` | |
+
+| API (since 0.1.0) | Behavior |
+|---|---|
+| `Guard.Run(where, action)`, `Guard.Get(where, getter, fallback)` | Every callback already runs inside Guard; also usable by mods. |
+
+### Slider live field (`OnFieldChange`, `HideValue`) (since 0.1.4)
+
+```csharp
+f.Labeled("Velocity").Slider(() => v, x => v = x, 100, 2000, 10, "m/s").WithField(72)
+    .OnFieldChange(text => typed = text)                // every keystroke; the value is set on Enter/blur
+    .Error(() => Bad(typed) ? "Between 100 and 2000 m/s." : null);
+row.Slider(() => k, x => k = x, 0, 1, .01).HideValue(); // no 64 px value box: the track takes the width
+```
+`TextField.OnChange` now also runs once per keystroke (before: once per frame with a change).
+
+### No allocations per frame (since 0.1.4)
+
+`Dropdown(() => list)` (string lists) and `Column.Section(title, () => count)` no longer allocate while
+the labels or the count stay the same; mods do not need their own caches for these.
+
+### Slider (since 0.1.2)
+
+```csharp
+form.Labeled("Angle").Slider(() => angle, v => angle = v, 0, 180, 1, "°").OnDragEnd(Preview);
+form.Labeled("Armour").Slider(() => mm, v => mm = v, () => 5, () => maxMm, 5, "mm").WithField(64);
+```
+Drag or click the track; Shift+drag = fine; wheel = one step, Shift+wheel = 10 steps; `.Format(v => ...)`.
+
+### Field errors (since 0.1.2)
+
+```csharp
+f.Labeled("Velocity").TextField(() => v, s => v = s).Numeric().Error(() => !ok ? "Between 100 and 2000 m/s." : null);
+f.Button("Save", Save, ButtonStyle.Primary).EnabledWhen(() => !panel.HasErrors);   // panel.FirstError?.Message
+```
+Works on every element (red ring, message line under it); hidden elements never count.
+
+### Smaller additions (since 0.1.2)
 
 | | |
 |---|---|
-| `UiKit.CreatePanel(modGuid, id, title, subtitle?, width=900, height=560)` | Panel (unique per modGuid+id; duplicate throws). Sizes in 1080p reference px. |
-| `UiKit.BindToggle(panel, ModKeybind)` | Toggle on the Keybinds API action (ignored while typing / in the settings menu). |
-| `UiKit.Context`, `ContextLabel`, `AnyPanelOpen`, `PointerOverPanel`, `TextInputActive`, `Scale` | State for mods. |
-| `Panel.Open/Close/Toggle`, `IsOpen`, `OnOpen`, `OnClose` | Esc, close button, keybind, pause and scene/context change all close. |
-| `Panel.SetStatus(text, StatusKind)`, `AddKeyHint(key, action)`, `SetContext(text or getter)`, `TitleIcon` | Footer status (info/success/warning/error), key hints, context chip. |
-| `Panel.AllowedContexts`, `BlockGameplayInput`, `CloseOnSceneChange`, `SetSize` | Behaviour switches (defaults: designer+game, block, close). |
-| `Panel.Columns(widths…)` / `Body` | Columns: `>0` px, `0` flexible, `<0` flexible weight. |
-| `Column.Section(title, count/note?)` → Stack, `Column.Footer(title?)` → Block pinned to the bottom | |
-| Container factories: `Stack`, `Row`, `Card`, `ScrollView`, `Collapsible`, `Repeat<T>`, `FieldRow(label)`, `Labeled(label)`, `Spacer` | Layout. |
-| `Button(text, onClick, ButtonStyle)` `.Compact()` `.WithIcon()`, `IconButton(icon, onClick, tooltip)` `.Round()` | Primary / Normal / Quiet / Danger; disabled via `EnabledWhen`. |
-| `Segmented(options, get, set)`, `Stepper(get, set, min, max, step, unit)` `.Compact()` `.Format()`, `Toggle(get, set)` | |
-| `Dropdown(options or getter or Choice-getter, get, set)` `.Inline()` `.Accent()` | Overlay list above everything, flips up, scrolls, grouped headings via `Choice.Group`. |
-| `TextField(get, commit, placeholder)` `.MaxChars()` `.Numeric()` `.OnChange()` | Enter/blur commits, Esc reverts, Ctrl+A. |
-| `Tabs(tabs, get, set)`, `List<T>(items, template)` `.OnSelect` `.OnRemove` `.LampHold` `.Empty` `.MaxHeight` | `ListRow`: Title, Subtitle, Tag(+TagChip), Lamp, Value(+ValueAccent), Progress, Note, Selected, Removable, Key. |
+| `.Alpha(() => float)` | opacity of any element |
+| `Label.Colour("#hex" or getter)`, `Label.Color(Color)`, `Label.Outline()` | text colour, HUD outline |
+| `Card.Stripe(() => "#hex", 3)`, `Card.Accent(Color)`, `Chip(text, Color)`, `Chip.Colour(Color)` | accent colours (rarity) |
+| `ListRow.Swatch`, `ListRow.LampKind`, `ListRow.AccentColor`, `Lamp.Kind(() => LampKind)` | rows and lamps |
+| `Warning(...).Severity(StatusKind)`, `.OnClick(...)` | amber/info warning rows, clickable |
+| `Stepper.FastStep(shiftStep, ctrlStep?)` | Shift/Ctrl+click steps |
+| `panel.AddShortcut("Ctrl+D", action, hint)`, `DefaultAction(action)` | keys for the focused panel only (not while typing/modal; no focus means no action) |
+| `panel.OnCloseRequest = () => bool`, `panel.Closable = false` | refuse or forbid closing by Esc/✕/keybind |
+| `panel.StayOpenWhilePaused` | stay open under the pause menu |
+| `panel.Backdrop(.6f)` | full-screen dim layer that catches every click |
+| section body `.SectionVisibleWhen(...)`, `.SectionTitle(() => ...)` | hide a whole section, dynamic heading |
+| `row.ShrinkToFit()` | shrink labels/chips instead of clipping controls |
+| `UiKit.Colour("#hex")`, `Icon.ChevronLeft`, `HudCorner`, `LampKind` | helpers |
+
+Pause: panels close on the game's own pause menu (`GameTime.PauseState`), not on `Time.timeScale = 0`
+set by a mod.
+
+## Settings
+
+All APIs in this section are available **(since 0.1.13)** and require Keybinds `>=0.1.10 <0.2.0`.
+
+```csharp
+public Row Container.Setting(SprocketKeybinds.ModSetting setting); // (since 0.1.13)
+```
+
+Register a global ConfigEntry with Keybinds `ModSettings.Register(ownerId, entry, options)`.
+The Kit installs the presenter during Load. Choose Settings > Mod settings > Open; the native row
+reads "Opens after Settings". Leave Settings with Back, Accept or Cancel and the panel appears.
+`ModSettings.IsOpen` is already true while waiting. The panel supports the main menu, designer and
+game, survives scene changes, and remains above the pause menu. Bind "Open mod settings" in the
+native Mod keybinds menu for direct access; its factory default is unbound.
+
+The left column groups author (or pack) > mod in registry order. The right column shows the selected
+mod's sections. "Show advanced" starts off. "Reset all" asks for confirmation before calling
+`ModSettings.ResetOwner`. An empty registry explains how mods register settings. Registry `Changed`
+events and opening refresh the view; `VisibleWhen` is evaluated only on those view refreshes.
+
+A setting row includes its label, description tooltip, "Restart required" chip when applicable,
+and a Reset button shown only away from the default. Controls use `setting.Value` and `setting.Reset()`:
+
+| Kind | Control | Write timing |
+|---|---|---|
+| Toggle | Toggle | Immediately |
+| Number | Slider with linked field, Min/Max/Step; integral types rounded | At most every 250 ms and on release; pending writes also flush on close/rebuild |
+| Choice | Dropdown with all Choices | Immediately |
+| Text | TextField | Enter or focus loss; Esc reverts |
+| Unknown | Read-only value | One warning per setting |
+
+ConfigFile.SettingChanged refreshes a retained value cache. Each row polls that cache without
+boxing or allocating while idle; an external update is reflected on the next frame. This also
+works on your own settings page, using either a registered setting or `ModSettings.Describe(entry)`:
+
+```csharp
+var entry = Config.Bind("Display", "Hints", true, "Show helper labels");
+var setting = ModSettings.Register(MyGuid, entry);
+if (setting != null) panel.Body.Setting(setting); // (since 0.1.13)
+```
+
+The Kit registers DetailedLogging, Scale, FontSource, BlockGameplayInput, BlockKeysWhilePanelFocused,
+SuspendGameKeysWhileTyping and advanced SkipBlockTargets. All are live except FontSource (cached
+font selection) and SkipBlockTargets (hook exclusions are applied during Load), which require restart.
+
+## Table
+
+| API (since 0.1.6) | Behavior |
+|---|---|
 | `Table<T>(rows)` `.Column(header, cell, ColumnWidth, CellAlign, headerTooltip?)` `.CellStyle(...)` `.RowTooltip` `.CellTooltip` `.Zebra` `.OnSelect` `.Selected` `.Empty` `.MaxHeight` | Aligned data table (0.1.6); columns stay aligned at every size and scale. |
+
+### Table API (since 0.1.6)
+
+`Container.Table<T>(Func<IReadOnlyList<T>> rows)` returns a table in the `ListView<T>` style: the
+getter is polled every frame, columns and rows are drawn in the kit look, and only visible rows are
+active. The exact API:
+
+```csharp
+public Table<T> Table<T>(Func<IReadOnlyList<T>> rows);                       // on Container // (since 0.1.6)
+public Table<T> Column(string header, Func<T, string> cell, ColumnWidth width, CellAlign align, string? headerTooltip = null); // (since 0.1.6)
+public Table<T> CellStyle(Func<T, int, CellStyle> style);                   // (row item, column index) // (since 0.1.6)
+public Table<T> RowTooltip(Func<T, string?> tooltip); // (since 0.1.6)
+public Table<T> CellTooltip(Func<T, int, string?> tooltip); // (since 0.1.6)
+public Table<T> Zebra(bool on = true); // (since 0.1.6)
+public Table<T> OnSelect(Action<T> select); // (since 0.1.6)
+public Table<T> Selected(Func<T, bool> isSelected); // (since 0.1.6)
+public Table<T> Empty(string text); // (since 0.1.6)
+public Table<T> MaxHeight(float height);                                    // and the usual .Fill() // (since 0.1.6)
+public readonly struct ColumnWidth { Fixed(float px), Auto, Fill(float weight = 1) } // (since 0.1.6)
+public enum CellAlign { Left, Centre, Right } // (since 0.1.6)
+public readonly struct CellStyle { CellStyle(Color? colour = null, bool strong = false, bool faint = false) } // (since 0.1.6)
+```
+
+The complete protection table (also in the demo, tab "Table"):
+
+```csharp
+private sealed class ThreatRow
+{
+    public string Threat = "", Note = "";
+    public int Rha;
+    public double Thickness, Mass;
+}
+
+private readonly List<ThreatRow> threats = new()
+{
+    new() { Threat = "KE", Rha = 150, Thickness = 1.00, Mass = 1.00, Note = "Long rod and AP shot." },
+    new() { Threat = "HEAT", Rha = 95, Thickness = .75, Mass = .85, Note = "Shaped charge jet." },
+};
+
+// inside a panel, after a Section:
+var table = column.Section("Protection").Table(() => threats)
+    .Column("Threat", r => r.Threat, ColumnWidth.Fill(1), CellAlign.Left, "The projectile class this row describes.")
+    .Column("Protection (mm RHA)", r => r.Rha.ToString(), ColumnWidth.Fixed(160), CellAlign.Right, "Equivalent homogeneous armour.")
+    .Column("Factor on plate thickness", r => r.Thickness.ToString("0.00"), ColumnWidth.Fixed(130), CellAlign.Right)
+    .Column("Factor on mass", r => r.Mass.ToString("0.00"), ColumnWidth.Fill(1.2f), CellAlign.Right)
+    .CellStyle((r, i) => i == 1 && r.Threat == "HEAT" ? new CellStyle(UiKit.Colour("#e07a4f"))
+        : i == 1 && r.Threat == "KE" ? new CellStyle(strong: true) : default)
+    .RowTooltip(r => r.Note)
+    .Zebra()
+    .Empty("No threats in this vehicle.");
+```
+
+- **Numbers**: right-align numeric columns yourself with `CellAlign.Right`; headers use the same
+  alignment, so values sit directly under their header. `CellAlign.Centre` is available too.
+- **Widths**: `Fixed(px)` is exact in reference px and scales with the Kit. `Auto` is the widest of the
+  header and all cells plus the cell padding, remeasured only when a cell text changes (with no Fill
+  column, the extra width is shared by the Auto columns). `Fill(weight)` takes the leftover; its
+  minimum is the longest word of the header (at least 40 px).
+- **Too narrow**: Fill columns shrink to their minimum first, then Auto columns shrink proportionally;
+  Fixed never shrinks. Widths and x positions are whole pixels, header and body share them, and text
+  that does not fit gets an ellipsis instead of overlapping the next column. Headers may wrap to two
+  lines; the header line is then equally high for every column.
+- **Height**: by default the table measures its full height and does not scroll, so a `ScrollView`
+  around it owns the wheel. `.MaxHeight(px)` or `.Fill()` gives the table a fixed header and a
+  scrolling body with the 0.1.5 bar (drag, track paging and wheel); only visible rows are built/hit.
+- **Tooltips**: `headerTooltip` explains a column. A truncated cell shows its full text as its
+  tooltip unless `CellTooltip` returns one; `RowTooltip` is the fallback for the rest of the row.
+- **Style**: `CellStyle` can set a `Color`, `Strong` (bold label style) or `Faint`; `Zebra` alternates
+  the row background and `OnSelect` gives the `ListView` hover look. `Selected` only reads your state.
+
+## Charts
+
+| API (since 0.1.7) | Behavior |
+|---|---|
 | `LineChart(height=220)` `.Series` `.XAxis` `.YAxis` `.TickFormat` `.RefLine` `.Legend` `.Empty` | Line/staircase/point chart with auto or fixed axes, ticks, hover and legend (0.1.7). |
+
+| API (since 0.1.7) | Behavior |
+|---|---|
 | `BarChart(height=220)` `.Bars` `.Waterfall` `.YAxis` `.TickFormat` `.RefLine` `.Empty` | Bar chart and floating waterfall (0.1.7). |
-| `Radial(value, size=48, centre?)` `.Thickness(px)` `.Colour(...)` `.Track(...)` | Circular progress with a GPU-filled ring and optional centre text; 0..1 (0.1.8). |
-| `Lamp(on, label?)` `.Hold(s)`, `Progress(value)`, `Chip(text, ChipStyle)` `.StyleWhen()`, `Warning(text)`, `Label(text or getter, TextStyle)` `.Wrap()` | |
-| Every element: `.Width() .Height() .Flex() .Fill() .Tooltip() .VisibleWhen() .EnabledWhen()` | |
-| `Guard.Run(where, action)`, `Guard.Get(where, getter, fallback)` | Every callback already runs inside Guard; also usable by mods. |
 
-Notes: build the content once (in `Load`); use `VisibleWhen` for tabs/conditional parts and `Repeat<T>`
-for rows whose controls depend on data. Callbacks run on the Unity main thread. Panels are built on
-first open (the TMP font must exist by then).
-
-## New in 0.1.8: RadialProgress
-
-`Container.Radial(...)` draws a circular progress without a `CanvasView`: one procedural ring sprite
-is shown twice, as a muted track and as a GPU-filled `Image` (`Radial360`), so a value change costs an
-`Image.fillAmount` update and no CPU raster. The same element works in a panel, in `HudPanel.Body` and
-in a `Row` next to a label. The default colour is Accent, the track is the muted `#3d3c35` token, and
-the default ring thickness is about 12% of the diameter (minimum 3 px).
-
-```csharp
-public RadialProgress Radial(Func<float> value, float size = 48, Func<string?>? centre = null);
-
-public RadialProgress Thickness(float px);       // reference px, scales with the Kit
-public RadialProgress Colour(Color colour);
-public RadialProgress Colour(Func<Color> colour);
-public RadialProgress Track(Color colour);
-```
-
-The value is clamped to 0..1; NaN and infinite values count as 0. The ring fills clockwise from
-12 o'clock. The optional centre text uses `TextStyle.Value` or smaller, is only set when it changes,
-and the `fillAmount` is only set for a change of at least 1/720 (half a degree). Equal value and equal
-text cost 0 bytes per poll. Every element method still applies (`.Width`, `.Height`, `.Tooltip`, ...).
-
-Example for a reload HUD (the getter values come from your reload state; keep the colours and centre
-string cached, as below):
-
-```csharp
-static readonly Color Accent = new Color32(0xdc, 0x9e, 0x33, 0xff);
-static readonly Color Ready = new Color32(0x5f, 0xe0, 0x7a, 0xff);
-float reload01 = 0; string secondsLeft = "0.0";   // e.g. 1 - remaining / reloadTime
-
-var hud = UiKit.CreateHud("example.hatches", "reload", 220).Anchor(HudCorner.BottomRight, 24, 24);
-hud.Body.Label("RELOAD", TextStyle.BlockTitle);
-var row = hud.Body.Row(10);
-row.Radial(() => reload01, 56, () => secondsLeft)
-   .Thickness(7)
-   .Colour(() => reload01 >= 1 ? Ready : Accent)
-   .Tooltip("Reload progress; the ring fills clockwise.");
-row.Label("Main gun", TextStyle.Value);
-```
-
-Consumers of this element need `[BepInDependency(UiKit.PluginGuid, ">=0.1.8 <0.2.0")]`.
-
-## New in 0.1.7: LineChart and BarChart
+### Chart API (since 0.1.7)
 
 Two new elements on the existing `CanvasView`/`Painter` (no second rasteriser), for the two ballistic
 uses in #28: protection against an angle and the penetration budget along the shot line. The width
@@ -239,27 +425,27 @@ range changes. Hover uses uGUI images over the image and the Kit tooltip, so hov
 Inside a `ScrollView` the wheel goes to the ScrollView (no pan or zoom).
 
 ```csharp
-public LineChart LineChart(float height = 220);                 // on Container
-public BarChart BarChart(float height = 220);
+public LineChart LineChart(float height = 220);                 // on Container // (since 0.1.7)
+public BarChart BarChart(float height = 220); // (since 0.1.7)
 
-public LineChart Series(string name, Func<IReadOnlyList<Vector2>> points, Color? colour = null, SeriesStyle style = SeriesStyle.Line);
-public LineChart XAxis(string label, string unit = "", float? min = null, float? max = null, float? tick = null);
-public LineChart YAxis(string label, string unit = "", float? min = null, float? max = null, float? tick = null);
-public LineChart TickFormat(Func<float, string> format);        // both axes
-public LineChart TickFormat(Func<float, string> x, Func<float, string> y);
-public LineChart RefLine(string label, Func<float> y, Color? colour = null);
-public LineChart Legend(bool show = true);
-public LineChart Empty(string text);
+public LineChart Series(string name, Func<IReadOnlyList<Vector2>> points, Color? colour = null, SeriesStyle style = SeriesStyle.Line); // (since 0.1.7)
+public LineChart XAxis(string label, string unit = "", float? min = null, float? max = null, float? tick = null); // (since 0.1.7)
+public LineChart YAxis(string label, string unit = "", float? min = null, float? max = null, float? tick = null); // (since 0.1.7)
+public LineChart TickFormat(Func<float, string> format);        // both axes // (since 0.1.7)
+public LineChart TickFormat(Func<float, string> x, Func<float, string> y); // (since 0.1.7)
+public LineChart RefLine(string label, Func<float> y, Color? colour = null); // (since 0.1.7)
+public LineChart Legend(bool show = true); // (since 0.1.7)
+public LineChart Empty(string text); // (since 0.1.7)
 
-public BarChart Bars(Func<IReadOnlyList<ChartBar>> bars);
-public BarChart Waterfall(Func<float> start, string startLabel = "Start", string endLabel = "Left");
-public BarChart YAxis(string label, string unit = "", float? min = null, float? max = null, float? tick = null);
-public BarChart TickFormat(Func<float, string> format);
-public BarChart RefLine(string label, Func<float> y, Color? colour = null);
-public BarChart Empty(string text);
+public BarChart Bars(Func<IReadOnlyList<ChartBar>> bars); // (since 0.1.7)
+public BarChart Waterfall(Func<float> start, string startLabel = "Start", string endLabel = "Left"); // (since 0.1.7)
+public BarChart YAxis(string label, string unit = "", float? min = null, float? max = null, float? tick = null); // (since 0.1.7)
+public BarChart TickFormat(Func<float, string> format); // (since 0.1.7)
+public BarChart RefLine(string label, Func<float> y, Color? colour = null); // (since 0.1.7)
+public BarChart Empty(string text); // (since 0.1.7)
 
-public enum SeriesStyle { Line, Step, Points }
-public readonly struct ChartBar
+public enum SeriesStyle { Line, Step, Points } // (since 0.1.7)
+public readonly struct ChartBar // (since 0.1.7)
 {
     public string Label { get; init; }
     public float Value { get; init; }
@@ -362,154 +548,58 @@ section.BarChart(200)
 With deltas `{ -120, -150, -180, -60 }` the third layer reaches 0: its bar is clamped, the tooltip
 says "Stopped at 0." and the fourth layer is not drawn.
 
-## New in 0.1.6: Table<T>
+## Radial
 
-`Container.Table<T>(Func<IReadOnlyList<T>> rows)` returns a table in the `ListView<T>` style: the
-getter is polled every frame, columns and rows are drawn in the kit look, and only visible rows are
-active. The exact API:
+| API (since 0.1.8) | Behavior |
+|---|---|
+| `Radial(value, size=48, centre?)` `.Thickness(px)` `.Colour(...)` `.Track(...)` | Circular progress with a GPU-filled ring and optional centre text; 0..1 (0.1.8). |
 
-```csharp
-public Table<T> Table<T>(Func<IReadOnlyList<T>> rows);                       // on Container
-public Table<T> Column(string header, Func<T, string> cell, ColumnWidth width, CellAlign align, string? headerTooltip = null);
-public Table<T> CellStyle(Func<T, int, CellStyle> style);                   // (row item, column index)
-public Table<T> RowTooltip(Func<T, string?> tooltip);
-public Table<T> CellTooltip(Func<T, int, string?> tooltip);
-public Table<T> Zebra(bool on = true);
-public Table<T> OnSelect(Action<T> select);
-public Table<T> Selected(Func<T, bool> isSelected);
-public Table<T> Empty(string text);
-public Table<T> MaxHeight(float height);                                    // and the usual .Fill()
-public readonly struct ColumnWidth { Fixed(float px), Auto, Fill(float weight = 1) }
-public enum CellAlign { Left, Centre, Right }
-public readonly struct CellStyle { CellStyle(Color? colour = null, bool strong = false, bool faint = false) }
-```
+### Radial API (since 0.1.8)
 
-The complete protection table (also in the demo, tab "Table"):
+`Container.Radial(...)` draws a circular progress without a `CanvasView`: one procedural ring sprite
+is shown twice, as a muted track and as a GPU-filled `Image` (`Radial360`), so a value change costs an
+`Image.fillAmount` update and no CPU raster. The same element works in a panel, in `HudPanel.Body` and
+in a `Row` next to a label. The default colour is Accent, the track is the muted `#3d3c35` token, and
+the default ring thickness is about 12% of the diameter (minimum 3 px).
 
 ```csharp
-private sealed class ThreatRow
-{
-    public string Threat = "", Note = "";
-    public int Rha;
-    public double Thickness, Mass;
-}
+public RadialProgress Radial(Func<float> value, float size = 48, Func<string?>? centre = null); // (since 0.1.8)
 
-private readonly List<ThreatRow> threats = new()
-{
-    new() { Threat = "KE", Rha = 150, Thickness = 1.00, Mass = 1.00, Note = "Long rod and AP shot." },
-    new() { Threat = "HEAT", Rha = 95, Thickness = .75, Mass = .85, Note = "Shaped charge jet." },
-};
-
-// inside a panel, after a Section:
-var table = column.Section("Protection").Table(() => threats)
-    .Column("Threat", r => r.Threat, ColumnWidth.Fill(1), CellAlign.Left, "The projectile class this row describes.")
-    .Column("Protection (mm RHA)", r => r.Rha.ToString(), ColumnWidth.Fixed(160), CellAlign.Right, "Equivalent homogeneous armour.")
-    .Column("Factor on plate thickness", r => r.Thickness.ToString("0.00"), ColumnWidth.Fixed(130), CellAlign.Right)
-    .Column("Factor on mass", r => r.Mass.ToString("0.00"), ColumnWidth.Fill(1.2f), CellAlign.Right)
-    .CellStyle((r, i) => i == 1 && r.Threat == "HEAT" ? new CellStyle(UiKit.Colour("#e07a4f"))
-        : i == 1 && r.Threat == "KE" ? new CellStyle(strong: true) : default)
-    .RowTooltip(r => r.Note)
-    .Zebra()
-    .Empty("No threats in this vehicle.");
+public RadialProgress Thickness(float px);       // reference px, scales with the Kit // (since 0.1.8)
+public RadialProgress Colour(Color colour); // (since 0.1.8)
+public RadialProgress Colour(Func<Color> colour); // (since 0.1.8)
+public RadialProgress Track(Color colour); // (since 0.1.8)
 ```
 
-- **Numbers**: right-align numeric columns yourself with `CellAlign.Right`; headers use the same
-  alignment, so values sit directly under their header. `CellAlign.Centre` is available too.
-- **Widths**: `Fixed(px)` is exact in reference px and scales with the Kit. `Auto` is the widest of the
-  header and all cells plus the cell padding, remeasured only when a cell text changes (with no Fill
-  column, the extra width is shared by the Auto columns). `Fill(weight)` takes the leftover; its
-  minimum is the longest word of the header (at least 40 px).
-- **Too narrow**: Fill columns shrink to their minimum first, then Auto columns shrink proportionally;
-  Fixed never shrinks. Widths and x positions are whole pixels, header and body share them, and text
-  that does not fit gets an ellipsis instead of overlapping the next column. Headers may wrap to two
-  lines; the header line is then equally high for every column.
-- **Height**: by default the table measures its full height and does not scroll, so a `ScrollView`
-  around it owns the wheel. `.MaxHeight(px)` or `.Fill()` gives the table a fixed header and a
-  scrolling body with the 0.1.5 bar (drag, track paging and wheel); only visible rows are built/hit.
-- **Tooltips**: `headerTooltip` explains a column. A truncated cell shows its full text as its
-  tooltip unless `CellTooltip` returns one; `RowTooltip` is the fallback for the rest of the row.
-- **Style**: `CellStyle` can set a `Color`, `Strong` (bold label style) or `Faint`; `Zebra` alternates
-  the row background and `OnSelect` gives the `ListView` hover look. `Selected` only reads your state.
+The value is clamped to 0..1; NaN and infinite values count as 0. The ring fills clockwise from
+12 o'clock. The optional centre text uses `TextStyle.Value` or smaller, is only set when it changes,
+and the `fillAmount` is only set for a change of at least 1/720 (half a degree). Equal value and equal
+text cost 0 bytes per poll. Every element method still applies (`.Width`, `.Height`, `.Tooltip`, ...).
 
-## New in 0.1.5
-No API change: `ScrollView`, `ListView<T>` and an open dropdown list get a real vertical scrollbar
-automatically. Consumers keep their existing dependency and need no rebuild; the Cassette Composer
-(`ScrollView().Fill()` in its right column) gets it as-is.
-- Rest: 3 px thumb `#5c5442` (`Border`). Hover over the 10 px strip or drag: 6 px, `#b8ad94` (`Text2`);
-  while dragging `#dc9e33` (`Accent`); a subtle 6 px track `#24231c` at .55 appears. Tokens in `docs/STYLE.md`.
-- Drag the thumb: the content follows the mouse proportionally, the grab point stays under the cursor,
-  and the capture continues outside the bar and panel (`OnPress` + `Kit.Pressed`, like `Slider`).
-  Click the track above or below the thumb to page one viewport; hold to repeat after .45 s at .07 s
-  (the `Stepper` rhythm) until the thumb is under the cursor.
-- The wheel is unchanged, also over the bar; nested `ScrollView`s keep the innermost list under the
-  cursor. The bar exists only while the content overflows and takes clicks only in the 10 px strip at
-  the right edge. The reserved 6 px content width (and so the layout) is unchanged from 0.1.4.
-- Resize grip versus bar: inside the panel the bar owns its strip; the 4 px grip band outside the right
-  edge still resizes. A bar in the rightmost column sits inside the 14 px column padding, clear of the grip.
-- `ListView`: a click on the bar selects no row and presses no delete button. In an open dropdown,
-  dragging or paging keeps the list open and chooses no option; an option click works as before.
-- No horizontal scrollbar exists in the kit, and none was added.
+Example for a reload HUD (the getter values come from your reload state; keep the colours and centre
+string cached, as below):
 
-## New in 0.1.4
-Declare `[BepInDependency(UiKit.PluginGuid, ">=0.1.4 <0.2.0")]` to call these. Maximize and resize
-are on by default for every panel (not for HUDs, markers or modals); older mods get them without a rebuild.
-
-### Maximize (`Maximize`, `Restore`, `ToggleMaximize`, `IsMaximized`, `Maximizable`)
 ```csharp
-panel.Maximizable = false;          // no button, no double-click (default true)
-panel.Maximize();                   // fills the screen minus 8 px; panel.Restore() goes back
-toolbar.Button("Full screen", panel.ToggleMaximize);
-bool big = panel.IsMaximized;
+static readonly Color Accent = new Color32(0xdc, 0x9e, 0x33, 0xff);
+static readonly Color Ready = new Color32(0x5f, 0xe0, 0x7a, 0xff);
+float reload01 = 0; string secondsLeft = "0.0";   // e.g. 1 - remaining / reloadTime
+
+var hud = UiKit.CreateHud("example.hatches", "reload", 220).Anchor(HudCorner.BottomRight, 24, 24);
+hud.Body.Label("RELOAD", TextStyle.BlockTitle);
+var row = hud.Body.Row(10);
+row.Radial(() => reload01, 56, () => secondsLeft)
+   .Thickness(7)
+   .Colour(() => reload01 >= 1 ? Ready : Accent)
+   .Tooltip("Reload progress; the ring fills clockwise.");
+row.Label("Main gun", TextStyle.Value);
 ```
-Button left of the close button (in its place when `Closable = false`); double-click on an empty spot of
-the title bar toggles; dragging the title bar of a maximized panel restores it under the cursor. A
-maximized panel follows a new screen size. The state is remembered.
 
-### Resize (`Resizable`, `MinSize`, `Resized`)
-```csharp
-var panel = UiKit.CreatePanel(Guid, "editor", "Shell editor", null, 1100, 640)
-    .MinSize(800, 480);             // default minimum: the CreatePanel / last SetSize size
-panel.Resizable = false;            // no grips (default true)
-panel.Resized += () => map?.Invalidate();   // after every size change, at most once per frame
-```
-Grips: the right edge, the bottom edge and the corner grip (bottom right). Maximum: the screen (it also
-wins over `MinSize`). Size is remembered next to the position. Extra room goes to what already grows:
-`Fill()`, `ScrollView`, `Canvas(...).Fill()` and flexible columns. Column rule: fixed columns keep their
-width and flexible ones take the extra; only when **all** columns are fixed, the growth goes to the
-widest one (the content, not the sidebars). At the original size the layout is exactly as in 0.1.3. A
-canvas redraws at most 10 times a second while an edge is dragged (the image stretches in between).
+Consumers of this element need `[BepInDependency(UiKit.PluginGuid, ">=0.1.8 <0.2.0")]`.
 
-### Back on screen, reset (`ResetPosition`)
-```csharp
-settings.Button("Reset window", panel.ResetPosition);   // centred, original size, not maximized; line forgotten
-```
-On open, and when it grows, a panel whose remembered place is (partly) off screen comes back fully on
-screen; a remembered size larger than the screen shrinks to the screen.
+## HUD and markers
 
-### Close like the user (`RequestClose`)
-```csharp
-footer.Button("Close", () => panel.RequestClose());     // asks OnCloseRequest, honours Closable
-```
-Returns true when the panel is closed afterwards. `Close()` still closes unconditionally.
+### HUD overlay (`UiKit.CreateHud`) (since 0.1.2)
 
-### Slider live field (`OnFieldChange`, `HideValue`)
-```csharp
-f.Labeled("Velocity").Slider(() => v, x => v = x, 100, 2000, 10, "m/s").WithField(72)
-    .OnFieldChange(text => typed = text)                // every keystroke; the value is set on Enter/blur
-    .Error(() => Bad(typed) ? "Between 100 and 2000 m/s." : null);
-row.Slider(() => k, x => k = x, 0, 1, .01).HideValue(); // no 64 px value box: the track takes the width
-```
-`TextField.OnChange` now also runs once per keystroke (before: once per frame with a change).
-
-### No allocations per frame
-`Dropdown(() => list)` (string lists) and `Column.Section(title, () => count)` no longer allocate while
-the labels or the count stay the same; mods do not need their own caches for these.
-
-## New in 0.1.2
-
-All additive. A mod that uses anything below declares `[BepInDependency(UiKit.PluginGuid, ">=0.1.2 <0.2.0")]`.
-
-### HUD overlay (`UiKit.CreateHud`)
 Non-interactive, own canvas below the panels: no clicks, no cursor change, no input block, no Esc, not
 in `AnyPanelOpen`/`PointerOverPanel`. Getters are only polled while it is shown.
 ```csharp
@@ -520,13 +610,17 @@ hud.Body.Row().Lamp(() => lastHit!.Penetrated, "Penetrated").Kind(() => LampKind
 // Width, Height (0 = auto), MaxHeight(px), FadeSeconds, Show()/Hide(), IsShown, UiKit.DestroyHud(hud)
 ```
 
-### World marker (`UiKit.CreateMarker`)
+### World marker (`UiKit.CreateMarker`) (since 0.1.2)
+
 ```csharp
 var m = UiKit.CreateMarker("my.mod", "hinge").Follow(() => selectedHinge?.transform).Label(() => selectedHinge?.name);
 // .At(() => worldPos), .Visible(() => ...), .Colour(Color), .Size(18, liftPx), Show()/Hide(); designer + game
 ```
 
-### Canvas and diagram (`Canvas`, `Diagram` → `CanvasView`, `Painter`)
+## Canvas
+
+### Canvas and diagram (`Canvas`, `Diagram` → `CanvasView`, `Painter`) (since 0.1.2)
+
 Shapes are rasterised on the CPU into one texture (anti-aliased), runtime textures and text are pooled
 uGUI objects; nothing is drawn per frame unless asked (`Invalidate()`, `Version(...)`, `Fps(...)`).
 ```csharp
@@ -556,59 +650,51 @@ Painter: `Line`, `Polyline`, `Rect`/`FillRect`, `Circle`/`FillCircle`, `Dot`, `F
 colours as `Color` or "#rrggbb[aa]". One redraw of 800×600 with 300 shapes costs about 10 ms of raster
 time (tests), plus the texture upload.
 
-### Slider
+## Node graph
+
+### Port gestures and picking (since 0.1.11)
+
 ```csharp
-form.Labeled("Angle").Slider(() => angle, v => angle = v, 0, 180, 1, "°").OnDragEnd(Preview);
-form.Labeled("Armour").Slider(() => mm, v => mm = v, () => 5, () => maxMm, 5, "mm").WithField(64);
+NodeGraph graph = column.NodeGraph().Fill().PortHitRadius(12); // default 7 physical px
+int serial = 0;
+graph.OnPortDrag(drop =>
+{
+    if (drop.Drop.Kind != GraphHitKind.Port) return;
+    var target = graph.Node(drop.Drop.NodeId!)!;
+    // This example connects drags from an output to an input named "in".
+    // The consumer owns port types, connection validity and replacement rules.
+    if (!drop.FromOutput || drop.Drop.PortId != "in") return;
+    graph.AddWire("drag" + serial++, drop.FromNode, drop.FromPort, target.Id, "in");
+});
+Vector2 layoutSize = graph.ViewSize;
+Rect visibleGraphSpace = graph.VisibleRect;
+var names = new List<string> { "Main", "Auxiliary" };
+int selected = 0;
+column.Tabs(() => names, () => selected, i => selected = i);
+column.TextField(() => names[selected], value => names[selected] = value);
 ```
-Drag or click the track; Shift+drag = fine; wheel = one step, Shift+wheel = 10 steps; `.Format(v => ...)`.
 
-### Confirm and modal
-```csharp
-panel.Confirm("Delete shell", $"Delete '{shell.Name}'?", "Delete", () => Delete(shell));   // Danger, "Back"
-panel.Confirm("Overwrite", "Overwrite the preset?", "Overwrite", Save, ButtonStyle.Primary, "Cancel", onCancel: null);
-panel.ShowModal("Rename", m => { m.TextField(() => name, v => name = v); m.Button("Close", panel.CloseModal); });
-```
-Esc cancels. Enter confirms, except a Danger confirm, where Enter cancels (safe default). `ModalOpen`.
+A left press on a port followed by movement strictly greater than 4 physical px starts a dashed
+wire from that port to the mouse. It cannot move blocks or pan/zoom the graph. Release invokes
+`OnPortDrag(Action<GraphPortDrop>)` once, including drops on the canvas, a block, a wire or footer;
+short press/release still uses `OnClick`. The drag wire is independent of the mod's
+`BeginPendingWire`/`EndPendingWire`, and disappears on release, cancellation, hidden content or
+source-node removal. The two temporary wires each reserve one of the 511 mesh slots, leaving
+509 regular wires if both are active. Input-origin drags report `FromOutput=false`.
 
-### Field errors
-```csharp
-f.Labeled("Velocity").TextField(() => v, s => v = s).Numeric().Error(() => !ok ? "Between 100 and 2000 m/s." : null);
-f.Button("Save", Save, ButtonStyle.Primary).EnabledWhen(() => !panel.HasErrors);   // panel.FirstError?.Message
-```
-Works on every element (red ring, message line under it); hidden elements never count.
+Picking walks blocks from top to bottom: within each block, footer button, ports, then body.
+The first block that hits wins, including port circles extending outside that block. Higher
+bodies therefore cover lower ports and footers. Wires follow all blocks, then the canvas.
+`PortHitRadius(float px)` accepts finite nonnegative physical pixels, independent of Kit scale
+and zoom. `ViewSize` is the laid-out graph extent in Kit units (zero before first layout);
+`VisibleRect` is that extent transformed into graph space by current pan and zoom.
 
-### Sub-pages
-```csharp
-var edit = panel.Page("edit", "Edit shell");          // a Stack, built once like panel.Body
-edit.Columns(0)[0].Section("Edit").Slider(...);
-list.OnSelect(s => { selected = s; panel.Push("edit"); });
-// panel.Pop(), PopToRoot(), CurrentPage (null = root), PageDepth, PageChanged
-```
-The title bar shows a back button and the page trail; Esc goes back one page, then closes.
+`Container.Tabs(Func<IReadOnlyList<string>> labels, Func<int> selected, Action<int> select)`
+polls the list and detects in-place edits as well as replacement lists. Return a cached list:
+equal labels allocate zero bytes, renaming changes text only, and changing the count rebuilds
+the tab strip. The consumer keeps the selected index valid when removing tabs.
 
-### Smaller additions
-| | |
-|---|---|
-| `.Alpha(() => float)` | opacity of any element |
-| `Label.Colour("#hex" or getter)`, `Label.Color(Color)`, `Label.Outline()` | text colour, HUD outline |
-| `Card.Stripe(() => "#hex", 3)`, `Card.Accent(Color)`, `Chip(text, Color)`, `Chip.Colour(Color)` | accent colours (rarity) |
-| `ListRow.Swatch`, `ListRow.LampKind`, `ListRow.AccentColor`, `Lamp.Kind(() => LampKind)` | rows and lamps |
-| `Warning(...).Severity(StatusKind)`, `.OnClick(...)` | amber/info warning rows, clickable |
-| `Stepper.FastStep(shiftStep, ctrlStep?)` | Shift/Ctrl+click steps |
-| `panel.AddShortcut("Ctrl+D", action, hint)`, `DefaultAction(action)` | keys for the focused panel only (not while typing/modal; no focus means no action) |
-| `panel.OnCloseRequest = () => bool`, `panel.Closable = false` | refuse or forbid closing by Esc/✕/keybind |
-| `panel.StayOpenWhilePaused` | stay open under the pause menu |
-| `panel.Backdrop(.6f)` | full-screen dim layer that catches every click |
-| section body `.SectionVisibleWhen(...)`, `.SectionTitle(() => ...)` | hide a whole section, dynamic heading |
-| `row.ShrinkToFit()` | shrink labels/chips instead of clipping controls |
-| `UiKit.Colour("#hex")`, `Icon.ChevronLeft`, `HudCorner`, `LampKind` | helpers |
-
-Pause: panels close on the game's own pause menu (`GameTime.PauseState`), not on `Time.timeScale = 0`
-set by a mod.
-
-
-## Node graph / flow editor (0.1.9)
+### Graph model and view (since 0.1.9)
 
 Require `>=0.1.9 <0.2.0`. `Container.NodeGraph().Fill()` occupies the flexible column between the
 library and inspector. Nodes are pooled native uGUI objects under one pan/zoom transform, clipped
@@ -626,7 +712,7 @@ one slot, leaving 510 regular wires; an independent port-drag wire reserves anot
 when both are active. Extra wires stay in the model but are not drawn or hit-tested;
 the Kit logs one warning per graph instance. Slots follow insertion order; removing wires restores
 available slots. The limit is independent of wire length (each slot reserves up to 32 segments).
-See [exact API and handle semantics](logs/0.1.9/API.md).
+See [exact API and handle semantics](docs/NODEGRAPH-API.md).
 
 Controls: drag a block body/header, left-drag empty canvas, middle-drag anywhere, wheel-zoom around
 the cursor. Snap is in graph units (8 for the mast); hit radii and the 4 px drag threshold stay in
@@ -645,7 +731,7 @@ using UnityEngine;
 
 // Build once from a plugin's Load(). Register/open the returned panel through the Keybinds API.
 // Persistence and flow evaluation belong to the consumer; this sample keeps the handles for live updates.
-public sealed class GraphEditor
+public sealed class GraphEditor // (since 0.1.9)
 {
     private readonly NodeGraph graph;
     private readonly Dictionary<string,GraphNode> nodes=new();
@@ -740,5 +826,56 @@ The demo's Graph tab has the four-block example, a 60-node/100-wire Stress scene
 changes, average whole-frame milliseconds, and a Compare Canvas switch. Default is the shared
 canvas. The isolated-world alternative exists for a like-for-like in-game comparison; no native
 batching measurement has been made in this build because starting/running the game was excluded.
-Pure timings and allocation results are in `logs/0.1.9/tests.log`; they do not prove native rendering,
+Pure timings and allocation results are in the build's test log (not shipped); they do not prove native rendering,
 GC behaviour or game frame times. See TESTPLAN.md before installation by the coordinator.
+
+## Focus and input
+
+Panels with `StayOpenWhilePaused` can keep or acquire focus above pause (since 0.1.13). A panel opened during vanilla Settings remains logically open and gains focus only after its root becomes visible. Lifecycle and application-focus suppression still apply.
+
+### Keyboard routing (since 0.1.12)
+
+Keys go to the panel with focus: `AddShortcut`, Enter's `DefaultAction` and modal Enter
+use only `UiKit.FocusedPanel`. With no focus the Kit does nothing with these keys and
+only the game receives them; there is no fallback to the top panel. A popup still suppresses
+these actions, text entry keeps its existing path, and Esc retains its existing top-panel order.
+Enter consults the focused panel's modal, even when another panel is higher in z-order.
+
+```csharp
+public bool Panel.HasFocus { get; } // (since 0.1.12)
+public static Panel? UiKit.FocusedPanel { get; } // (since 0.1.12)
+```
+
+`HasFocus` is true exactly when `UiKit.FocusedPanel` is that panel; the latter is null when
+there is no owner. HUDs never acquire focus. The open/press/close and lifecycle rules below
+remain unchanged. Demo > Window shows both properties and a Ctrl+Shift+D shortcut counter.
+The shortcut loop uses a cached array snapshot, rebuilt when shortcuts are added, so callbacks
+cannot invalidate enumeration and idle dispatch allocates nothing.
+
+### Focus and game keys (since 0.1.11)
+
+Normal panels take keyboard focus when opened and on any mouse-button press in the title,
+content or border. Only one panel owns focus. Clicking outside all Kit panels releases it;
+closing the owner passes it to the top remaining open normal panel. HUDs, markers and tooltips
+never own focus. Native pause, scene changes, alt-tab, settings and plugin unload release both
+panel and text focus. A focused title has a subtle amber accent; other titles are dimmed.
+
+`Input.BlockKeysWhilePanelFocused=true` disables enabled game InputActions while a normal panel
+owns focus, in the designer as well as gameplay. The native UI input module's maps and all
+DontSave assets (including the Keybinds API) are excluded. Panel focus never selects the typing
+proxy: mod toggle keys such as a consumer's F8 still work. Text fields retain their existing
+proxy and `Input.SuspendGameKeysWhileTyping` behaviour. Turning off panel blocking releases its
+claim immediately; typing blocking remains independently controlled by the typing option.
+
+`Panel.AddShortcut` has its existing signature, with no `consume` parameter: while its panel is
+focused, the designer's game actions are disabled too (for example Ctrl+Z). Esc and pointer
+blocking use the existing paths. The guard records only actions it disabled and restores only
+those actions. It restores on focus loss, config opt-out, lifecycle changes and exceptions,
+before reporting the error; failed native restores stay tracked for retry. An orphaned set is
+restored in the same Update. A resource scan runs on entering a blocking session, then at most
+once per second to catch actions the game enabled again. A continuous panel/text handoff keeps
+that throttle. DetailedLogging emits one count/reason line per disable or restore batch.
+
+## Style
+
+Element sizing, color and typography follow [STYLE.md](docs/STYLE.md). `UiKit.Colour(hex)` (since 0.1.0) parses `#rrggbb` or `#rrggbbaa`. Color and text getters should return cached values while unchanged.

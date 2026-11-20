@@ -9,5 +9,9 @@
   <ItemGroup>
     <Compile Include="..\src\SightCatalogue.cs" Link="SightCatalogue.cs" />
     <Compile Include="..\src\Reticles.cs" Link="Reticles.cs" />
+    <Compile Include="..\src\SightStateData.cs" Link="SightStateData.cs" />
+    <!-- Current sibling source, read-only, for the coexistence test. -->
+    <Compile Include="..\..\thermal-sight\src\ConsoleLinkData.cs" Link="Thermal\ConsoleLinkData.cs" />
+    <Compile Include="..\..\thermal-sight\src\ThermalProfileData.cs" Link="Thermal\ThermalProfileData.cs" />
   </ItemGroup>
 </Project>

@@ -81,6 +81,10 @@ var beforeIssues=new[]{new LayoutIssue("existing","old")};
 foreach(string reason in new[]{"TooLong","angle","obstruction"})
  Check(LayoutValidation.NewProblem(beforeIssues,beforeIssues.Append(new LayoutIssue(reason,reason)))==reason,"new "+reason+" rejects copy");
 Check(LayoutValidation.NewProblem(beforeIssues,beforeIssues)==null,"existing issues allowed");
+Check(Plan(m0.Select(m=>m.Id==1?m with {Flags=0x10}:m).ToArray(),c0,new(0,0,-1)).Removed.SequenceEqual(new[]{1}),"0.6.0 collapses 1-in/1-out junction even with positioning flags");
+var twinNoMirM=new[]{new LayoutModule(0,ModuleKind.Engine,0),new LayoutModule(1,ModuleKind.Junction,0x70),new LayoutModule(2,ModuleKind.Transmission,2,-1),new LayoutModule(3,ModuleKind.Transmission,4,-1)};
+var twinNoMirC=new[]{new LayoutConnection(4,0,1,0),new LayoutConnection(5,1,2,0),new LayoutConnection(6,1,3,0)};
+Check(LayoutCollapse.Find(twinNoMirM,twinNoMirC,0,_=>new(0,0,-1),new(0,0,0),new(0,0,1)).Status==PowerpackStatus.Ready,"0.6.0 allows non-mirrored twin gearboxes");
 Check(StartupSafety.SafeMode("FAKE-HASH")&&!StartupSafety.InstallHooks("FAKE-HASH"),"fake hash installs zero hooks");
 Check(StartupSafety.InstallHooks(StartupSafety.AuditedHash),"audited hash installs hooks");
 Check(StartupSafety.Warning.Contains("CAN REMOVE")&&StartupSafety.Warning.Contains("No hooks"),"safe-mode warning explains loss and disabled features");

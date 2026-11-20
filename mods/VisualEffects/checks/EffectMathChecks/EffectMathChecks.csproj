@@ -3,5 +3,5 @@
     <OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
   </PropertyGroup>
-  <ItemGroup><Compile Include="../../EffectMath.cs" Link="EffectMath.cs"/><Compile Include="../../PuffMath.cs" Link="PuffMath.cs"/><Compile Include="../../FlipbookTables.cs" Link="FlipbookTables.cs"/></ItemGroup>
+  <ItemGroup><Compile Include="../../EffectMath.cs" Link="EffectMath.cs"/><Compile Include="../../PuffMath.cs" Link="PuffMath.cs"/><Compile Include="../../FlipbookTables.cs" Link="FlipbookTables.cs"/><Compile Include="../../SparkMath.cs" Link="SparkMath.cs"/><Compile Include="../../BlastWaveMath.cs" Link="BlastWaveMath.cs"/><Compile Include="../../ImpactMath.cs" Link="ImpactMath.cs"/></ItemGroup>
 </Project>

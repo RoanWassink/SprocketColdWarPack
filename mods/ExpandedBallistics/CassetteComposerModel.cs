@@ -14,10 +14,15 @@ internal sealed record ComposerIssue(string Text,bool Error,int Layer,string? Fi
 /// 0.22.14: <paramref name="ConvertBlocker"/> is null when an ordinary plate can be converted (<see cref="CompositeConversion.Blocker"/>; the default means "not read");
 /// <paramref name="LinkedCopies"/> counts Alt duplicates sharing its mesh; <paramref name="SelectedFaces"/> counts the faces selected in the designer (0: none).</remarks>
 internal sealed record ComposerTarget(string Name,int Faces,string MaterialId,string MaterialLabel,bool Composite,double MinFaceMm,double MaxFaceMm,int? VehicleDateKey=null,bool? MaterialKnown=null,
-    string? ConvertBlocker=CompositeConversion.NotRead,int LinkedCopies=0,int SelectedFaces=0,string? LayerLine=null,string? FrontNote=null);
+    string? ConvertBlocker=CompositeConversion.NotRead,int LinkedCopies=0,int SelectedFaces=0,string? LayerLine=null,string? FrontNote=null,bool SolidMark=false,SolidTargetInfo? Solid=null);
+/// <summary>0.22.82: the plate as a closed shape, read by the panel from the gated snapshot (compared by value): closed pieces and volume, or the refusal.</summary>
+internal readonly record struct SolidTargetInfo(int Pieces,double VolumeM3,string? Refusal,int ThickFaces=0,int MaxThicknessMm=0)
+{
+    internal static SolidTargetInfo Of(SolidShapeResult s,(int Faces,int MaxMm) thick=default)=>new(s.Closed?s.Pieces:0,s.Closed?s.VolumeM3:0,s.Refusal,thick.Faces,thick.MaxMm);
+}
 internal sealed record ComposerSaveResult(CassettePreset Preset,bool RestartRequired,string Status);
-/// <summary>0.22.71: what the button Apply does on the plate besides the recipe: one choice at a time (Thickness only = what Apply did before).</summary>
-internal enum ComposerApplyChoice{ThicknessOnly,Flip,Inward,FillToWall,CheekPreset,ConformCheek,CheekShell,ConvertToLayers,BackToBox}
+/// <summary>0.22.71: what the button Apply does on the plate besides the recipe: one choice at a time (Thickness only = what Apply did before). 0.22.82: Solid block.</summary>
+internal enum ComposerApplyChoice{ThicknessOnly,Flip,Inward,FillToWall,CheekPreset,ConformCheek,CheekShell,ConvertToLayers,BackToBox,SolidBlock}
 
 /// <summary>One band of the cross-section in diagram units (612×250 view box).</summary>
 internal sealed record SectionBand(int Layer,string Material,bool Air,double TiltDegrees,double DepthMm,float X0,float X1,float[] Polygon,string Colour);
@@ -434,14 +439,21 @@ internal sealed class CassetteComposerModel
             // 0.22.71: another plate starts on Thickness only, a plate in layers on Convert to layers; the choice stays after Apply, except Back to box once the plate is no longer in layers.
             // 0.22.74: the choice is made first and Apply does it, so it stays while the window is open and does not change with the plate (a mirrored pair is two plates that are read in turn).
             // Only the first plate of a window sets the starting choice, and Back to box falls back to Thickness only on a plate that is not in layers, with a short note.
-            if(!choiceSet){choiceSet=true;applyChoice=next.LayerLine!=null?ComposerApplyChoice.ConvertToLayers:ComposerApplyChoice.ThicknessOnly;choiceNote="";Version++;}
+            // 0.22.82: a plate that is a Solid block starts on Solid block, so Apply with another recipe keeps the mark.
+            if(!choiceSet){choiceSet=true;applyChoice=next.LayerLine!=null?ComposerApplyChoice.ConvertToLayers:next.SolidMark?ComposerApplyChoice.SolidBlock:ComposerApplyChoice.ThicknessOnly;choiceNote="";Version++;}
             else if(next.LayerLine==null&&applyChoice==ComposerApplyChoice.BackToBox){applyChoice=ComposerApplyChoice.ThicknessOnly;choiceNote="Back to box was cleared: "+next.Name+" is not in layers, so Apply does Thickness only.";Version++;}
         }
     }
     private bool choiceSet;private string choiceNote="";private ComposerApplyChoice applyChoice;
     /// <summary>A new window: the choice starts again (the next target read sets it).</summary>
     internal void ResetApplyChoice(){choiceSet=false;choiceNote="";applyChoice=ComposerApplyChoice.ThicknessOnly;Version++;}
-    internal static readonly string[] ApplyChoiceLabels={"Thickness only","Flip selected faces","Thicken inward","Fill to wall","T-80U preset","Conform cheek fill","Cheek fill (shell)","Convert to layers","Back to box"};
+    internal static readonly string[] ApplyChoiceLabels={"Thickness only","Flip selected faces","Thicken inward","Fill to wall","T-80U preset","Conform cheek fill","Cheek fill (shell)","Convert to layers","Back to box",SolidBlockApply.Label};
+    /// <summary>0.22.82: the target carries the mark [Solid block].</summary>
+    internal bool IsSolidBlock=>target?.SolidMark==true;
+    /// <summary>0.22.82: the density of a recipe over its nominal depth, air included (the panel gives CassetteModel.Passive.Density); null: unknown.</summary>
+    internal Func<string,double?>? RecipeDensity{get;set;}
+    /// <summary>0.22.82: choices whose Apply names the mesh by another mode and so removes the mark of a Solid block (Flip and Thicken inward keep the mode).</summary>
+    internal static bool EndsSolidBlock(ComposerApplyChoice choice)=>choice is not (ComposerApplyChoice.SolidBlock or ComposerApplyChoice.Flip or ComposerApplyChoice.Inward or ComposerApplyChoice.BackToBox);
     internal ComposerApplyChoice ApplyChoice=>applyChoice;
     /// <summary>The target is a plate in layers (its mesh carries the layers mark).</summary>
     internal bool InLayers=>target?.LayerLine!=null;
@@ -471,6 +483,7 @@ internal sealed class CassetteComposerModel
         ComposerApplyChoice.CheekShell=>"Lines the inside of the turret front with armour. You choose the thickness at the gun and at the outer edge.",
         ComposerApplyChoice.ConvertToLayers=>LayerFaces.Tooltip+(InLayers?" This plate is already in layers: it goes back to its box first and is then split again by the recipe.":""),
         ComposerApplyChoice.BackToBox=>"Brings a plate in layers back to its outer faces (front, sides, and a back where the box needs one) so you can reshape the box. Convert to layers makes the layers again.",
+        ComposerApplyChoice.SolidBlock=>SolidBlockApply.Help,
         _=>"Applies the recipe and the thickness chosen above to the plate."
     };
     /// <summary>"Plate busy: Plate #464 is not readable yet (dirty flags 2). Try again in a moment."</summary>
@@ -849,6 +862,12 @@ internal sealed class CassetteComposerModel
             if(applyChoice==ComposerApplyChoice.BackToBox)return !target.Composite?"Select a composite plate.":!InLayers?"This plate is not in layers.":null;
             if(applyChoice==ComposerApplyChoice.ThicknessOnly&&target.Composite&&InLayers)return "This plate is in layers: choose Convert to layers to rebuild it with the recipe, or Back to box to reshape it.";
             if(!target.Composite&&target.ConvertBlocker is {} why)return why;
+            // 0.22.82: Solid block needs a closed shape and a plate that is not in layers (the reason and the advice are shown; nothing is changed).
+            if(applyChoice==ComposerApplyChoice.SolidBlock)
+            {
+                if(InLayers)return SolidBlockApply.InLayers;
+                if(target.Solid is {Refusal:{} open})return open;
+            }
             // 0.22.74: an option can be chosen before anything else and Apply does it all: a plate that is not composite is converted in the same step (the recipe is needed for that);
             // a composite plate with no recipe open keeps its own recipe. Only what really cannot be done refuses (the reason is shown).
             if(ApplyPreset is not {} p)return OwnRecipe?null:layers.Count==0?Converts?applyChoice!=ComposerApplyChoice.ThicknessOnly?"Pick a preset first: Apply converts the plate with it.":"Pick a preset first: Convert to composite plate applies it.":"Pick a preset first.":"Save the draft first.";
@@ -921,6 +940,14 @@ internal sealed class CassetteComposerModel
             note=$"Converts {t.Name} to a composite plate, applies {recipe}and then: {ApplyChoiceLabels[(int)applyChoice]}. One undo step."+(linked.Length>0?" "+linked:"");
             if(ApplyPreset==null)note=ApplyBlocker??note;
         }
+        if(applyChoice==ComposerApplyChoice.SolidBlock&&t!=null)
+        {
+            // 0.22.82: the recipe and the mark in one step; the geometry stays as drawn. Then the closed pieces, the volume, the new weight and the line about fragments.
+            if(!Converts)note=ApplyBlocker??$"Applies {ApplyPreset?.Label??t.MaterialLabel} to {t.Name} as a Solid block; the shape stays as drawn. One undo step.";
+            if(ApplyBlocker==null&&t.Solid is {Refusal:null,Pieces:>0} s)note+=" "+SolidBlockApply.Note(s.Pieces,s.VolumeM3,ApplyRecipeId is {} recipeId?RecipeDensity?.Invoke(recipeId):null,s.ThickFaces,s.MaxThicknessMm);
+        }
+        // 0.22.82: a choice that names the mesh by another mode ends the Solid block; the note says so.
+        if(t?.SolidMark==true&&EndsSolidBlock(applyChoice))note=SolidBlockApply.Leaves+(note.Length>0?" "+note:"");
         var button=applyChoice!=ComposerApplyChoice.ThicknessOnly?"Apply: "+ApplyChoiceLabels[(int)applyChoice]+(applyChoice!=ComposerApplyChoice.BackToBox&&Converts?" (converts the plate first)":""):t==null?"Apply to plate":Converts?"Convert to composite plate":"Apply to "+t.Name;
         if(applyChoice==ComposerApplyChoice.ConvertToLayers&&t?.FrontNote is {Length:>0} frontNote)note=frontNote+". "+note;
         if(choiceNote.Length>0)note=choiceNote+(note.Length>0?" "+note:"");

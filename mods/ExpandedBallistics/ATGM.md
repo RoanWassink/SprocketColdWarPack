@@ -6,7 +6,7 @@ Use `behavior: atgm` for launcher missiles and `behavior: atgm_gun` for gun-laun
 
 Motor settings are per-profile. Fresh examples use 50 m/s fixed launch speed, 150 m/s² acceleration after a 0.12 s delay, 200 m/s maximum flight speed, 4 s motor burn and 1 m/s² coast loss. The gun-launched example uses cannon speed × 0.2 and a 0.08 s motor delay. They are editable gameplay values. Native gravity and drag apply before ignition; powered guidance runs before native movement/collision. Flame, light and smoke are linked to motor ignition.
 
-[Custom ATGM field ranges and formulas](CUSTOM-SHELLS.md#custom-atgms) explain all motor/guidance settings. [Launcher and finite ammunition setup](GUIDE.md#dedicated-launcher-and-ammunition-box) covers the native gunner, one ready initial missile and optional automatic reserve box.
+[Custom ATGM field ranges and formulas](CUSTOM-SHELLS.md#custom-atgms) explain all motor/guidance settings. [Launcher and finite ammunition setup](README.md#dedicated-launcher-and-ammunition-box) covers the native gunner, one ready initial missile and optional automatic reserve box.
 
 ## Top attack
 
@@ -20,7 +20,7 @@ Release after completion and fire within 30 seconds. Exactly the next successful
 
 In `BepInEx/config/sprocket.expandedballistics.cfg`, `[ATGM guidance] Enabled` controls powered guidance. If disabled or unavailable, missiles retain native ballistic launch with their chemical impact. `DiagnosticLogging` defaults to false and enables detailed commanded/native movement reports. `TopAttackLockSeconds` defaults to 1 (0.1–5 s) and sets how long the top-attack lock key must stay on a target.
 
-`[ATGM Launcher Tests] InitialReadyMissile` defaults to true; `AutomaticAmmoBox` and `OpticalSightDirection` default to false. These section/key names are retained for existing configuration compatibility. Restart after edits.
+`[ATGM Launcher Tests] InitialReadyMissile` defaults to true and `OpticalSightDirection` to false; these section/key names are retained for existing configuration compatibility. The automatic ammo-box feed is `[ATGM ammo box] AutomaticFeed`, default true since 0.22.89 (the old `[ATGM Launcher Tests] AutomaticAmmoBox` is no longer read). Restart after edits.
 
 Audio is separate for launcher and gun-launched missiles. `[ATGM Audio] Enabled` defaults to true, `VolumeMultiplier` is 0–2 (default 1). Optional PCM16 WAV overrides belong in `BepInEx/config/sprocket.expandedballistics.audio/atgm.wav` and `atgm_gun.wav`. Native positional attenuation/mixer processing remains in use. See [audio provenance](audio/README.md).
 

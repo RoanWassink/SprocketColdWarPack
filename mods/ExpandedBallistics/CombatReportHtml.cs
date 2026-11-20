@@ -18,12 +18,13 @@ internal static class CombatReportHtml
         var byNumber=shots.Select(CombatReportTruth.Normalize).GroupBy(s=>s.Number.ToString(System.Globalization.CultureInfo.InvariantCulture)).ToDictionary(g=>g.Key,g=>g.Last());
         string Details(CombatReportShot shot)
         {
+            static string Num(double? v,string unit)=>v is {} x&&double.IsFinite(x)?x.ToString("0.#",System.Globalization.CultureInfo.InvariantCulture)+unit:"—";
             var lines=shot.Events.Where(CombatReportNoise.IsEndedPlate).Select(e=>e.Text).ToList();
             foreach(var hit in CombatHitProjection.Build(shot))
             {
                 lines.Add(hit.Name+(hit.Stage.Length>0?" ("+hit.Stage+")":""));
                 if(hit.Layer?.Combined==true)lines.Add("  Native aggregate: penetration is measured for the whole block, not each member.");
-                foreach(var part in hit.Layer?.Parts??Array.Empty<CombatLayerPart>())lines.Add($"  {part.Name}: {part.MaterialLabel??"component"}; {part.ThicknessMm:0.#} mm; {part.AngleDegrees:0.#} degrees");
+                foreach(var part in hit.Layer?.Parts??Array.Empty<CombatLayerPart>())lines.Add($"  {part.Name}: {part.MaterialLabel??"component"}; {Num(part.ThicknessMm," mm")}; {Num(part.AngleDegrees," degrees")}");
                 lines.AddRange(hit.Details.Where(e=>e.Kind!="blockMembers"&&e.Kind!="materialPending"&&!CombatReportNoise.IsEndedPlate(e)).Select(e=>"  "+e.Text+(e.BeforeMm!=null||e.AfterMm!=null?$" [Pen {e.BeforeMm:0.#} -> {e.AfterMm:0.#} mm]":"")));
             }
             return string.Join("\n",lines);
@@ -45,7 +46,7 @@ internal static class CombatReportHtml
             return sb.Append("</tbody></table>").ToString();
         }
         var sections=impacts.Select(impact=>
-            "<section><h2 style='border-color:"+impact.Block.Colour+"'>"+E(impact.Head.Replace(" · "+CombatReportView.DestroyedText,""))+(impact.Destroyed?" · <strong class='kill'>"+CombatReportView.DestroyedText+"</strong>":"")+"</h2>"
+            "<section><h2 id='impact-"+E(impact.Key)+"' style='border-color:"+impact.Block.Colour+"'>"+E(impact.Head.Replace(" · "+CombatReportView.DestroyedText,""))+(impact.Destroyed?" · <strong class='kill'>"+CombatReportView.DestroyedText+"</strong>":"")+"</h2>"
             +(impact.SummaryLine.Length>0?"<p class='damage'>"+E(impact.SummaryLine)+"</p>":"")
             +"<p class='context'>"+E(impact.Summary)+"</p>"
             +Table(impact)
@@ -53,6 +54,9 @@ internal static class CombatReportHtml
             +(impact.Block.Waterfall is {Steps.Count:>0} wf?"<p class='context'>"+E(SequencePrefix+PenetrationWaterfall.Text(wf))+"</p><div class='wfbox'>"+PenetrationWaterfall.Svg(wf)+"</div>":"")
             +(byNumber.TryGetValue(impact.Key,out var shot)?"<details><summary>"+TechnicalLog+"</summary><pre>"+E(Details(shot))+"</pre></details>":"")
             +"</section>");
-        return "<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'/><title>"+Title+"</title><style>body{max-width:1100px;margin:2em auto;padding:0 1em;font:16px system-ui;background:#171a1d;color:#e7edf2}section{margin:1.6em 0;background:#232930;border-radius:8px;padding:.2em 1em 1em}h2{font-size:1.05em;margin:.8em 0 .4em;padding-left:.7em;border-left:4px solid}p{margin:.25em 0}.damage{color:#ffcbb3}.context{color:#b8ad94;font-size:.9em}.kill{color:#e5533d}table{border-collapse:collapse;width:100%;table-layout:fixed;margin:.6em 0;font-size:.9em}th,td{padding:.25em .5em;text-align:left;overflow-wrap:anywhere}th{color:#b8ad94;font-weight:normal;border-bottom:1px solid #3b434b}.r{text-align:right}tr.note td{color:#ffcbb3;padding-top:0}details{color:#bbc5ce}summary{cursor:pointer}.wfbox{overflow-x:auto;margin:.3em 0 .6em}svg.wf{max-width:100%;height:auto;font-family:system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px system-ui;line-height:1.6}"+CombatForensicHtml.Css+"</style></head><body><h1>"+Title+"</h1><p>"+E(Intro)+"</p>"+string.Join("",sections)+"</body></html>";
+        string nav=impacts.Count>=3
+            ?"<nav class='toc'>"+string.Join("",impacts.Select(i=>$"<a href='#impact-{E(i.Key)}' style='border-left-color:{i.Block.Colour}'><strong>{E(i.Block.NumberText)}</strong> {E(i.Block.Result)}{(i.Target.Length>0?" · "+E(i.Target):"")}</a>"))+"</nav>"
+            :"";
+        return "<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'/><title>"+Title+"</title><style>body{max-width:1100px;margin:2em auto;padding:0 1em;font:16px system-ui;background:#171a1d;color:#e7edf2}section{margin:1.6em 0;background:#232930;border-radius:8px;padding:.2em 1em 1em}h2{font-size:1.05em;margin:.8em 0 .4em;padding-left:.7em;border-left:4px solid}p{margin:.25em 0}.damage{color:#ffcbb3}.context{color:#b8ad94;font-size:.9em}.kill{color:#e5533d}.toc{display:flex;flex-wrap:wrap;gap:6px;margin:.8em 0 1.2em}.toc a{color:#e7edf2;text-decoration:none;background:#232930;border-left:3px solid;border-radius:4px;padding:4px 9px;font-size:.85em}.toc a:hover{background:#2d353e}table{border-collapse:collapse;width:100%;table-layout:fixed;margin:.6em 0;font-size:.9em}th,td{padding:.25em .5em;text-align:left;overflow-wrap:anywhere}th{color:#b8ad94;font-weight:normal;border-bottom:1px solid #3b434b}.r{text-align:right}tr.note td{color:#ffcbb3;padding-top:0}details{color:#bbc5ce}summary{cursor:pointer}.wfbox{overflow-x:auto;margin:.3em 0 .6em}svg.wf{max-width:100%;height:auto;font-family:system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px system-ui;line-height:1.6}"+CombatForensicHtml.Css+"</style></head><body><h1>"+Title+"</h1><p>"+E(Intro)+"</p>"+nav+string.Join("",sections)+"</body></html>";
     }
 }

@@ -26,6 +26,7 @@ var interopDir=Path.Combine(game,"BepInEx","interop");var coreDir=Path.Combine(g
 var dotnetDir=Path.Combine(game,"dotnet");
 var generatorDir=Path.Combine(game,"MLLoader","MelonLoader","Dependencies","Il2CppAssemblyGenerator");
 var cpp2ilDir=Path.Combine(generatorDir,"Cpp2IL","cpp2il_out");
+bool explicitCpp2il=false;
 var expectFail=new List<string>();var expectPass=new List<string>();var dumps=new List<string>();var scanTypes=new List<string>();var findStripped=new List<string>();
 for(var i=3;i<args.Length;i++)
 {
@@ -34,7 +35,7 @@ for(var i=3;i<args.Length;i++)
     {
         case "--expect-fail":expectFail.Add(args[++i]);break;case "--expect-pass":expectPass.Add(args[++i]);break;
         case "--dump":dumps.Add(args[++i]);break;case "--scan-type":scanTypes.Add(args[++i]);break;
-        case "--cpp2il":cpp2ilDir=Path.GetFullPath(args[++i]);break;
+        case "--cpp2il":cpp2ilDir=Path.GetFullPath(args[++i]);explicitCpp2il=true;break;
         case "--find-stripped":findStripped.Add(args[++i]);break;
         default:return Usage("unknown option "+args[i]);
     }
@@ -44,17 +45,32 @@ report.AppendLine($"Interop scan {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
 report.AppendLine($"mod={modPath}");report.AppendLine($"interop={interopDir} (read-only)");
 
 // The native-code families are only meaningful for the exact GameAssembly the
-// Cpp2IL dump was made from: MelonLoader records its SHA512 next to the dump.
+// Cpp2IL dump was made from: MelonLoader records its SHA512 next to the dump,
+// or an explicit audited dummy-dll dump is verified against GameAssembly SHA256.
 var gameAssembly=Path.Combine(game,"GameAssembly.dll");
-string sha512;using(var s=File.OpenRead(gameAssembly))sha512=Convert.ToHexString(SHA512.HashData(s));
+string sha512,sha256;
+using(var s=File.OpenRead(gameAssembly))sha512=Convert.ToHexString(SHA512.HashData(s));
+using(var s=File.OpenRead(gameAssembly))sha256=Convert.ToHexString(SHA256.HashData(s));
 var cfg=Path.Combine(generatorDir,"Config.cfg");
 var recorded=File.Exists(cfg)?File.ReadLines(cfg).Select(l=>l.Trim()).FirstOrDefault(l=>l.StartsWith("GameAssemblyHash"))?.Split('"').ElementAtOrDefault(1):null;
-if(!Directory.Exists(cpp2ilDir)||recorded==null||!string.Equals(recorded,sha512,StringComparison.OrdinalIgnoreCase))
+if(recorded!=null&&Directory.Exists(cpp2ilDir)&&string.Equals(recorded,sha512,StringComparison.OrdinalIgnoreCase))
+{
+    report.AppendLine($"cpp2il={cpp2ilDir} (matches GameAssembly SHA512 {sha512[..16]}...)");
+}
+else if(explicitCpp2il&&Directory.Exists(cpp2ilDir)&&Directory.GetFiles(cpp2ilDir,"*.dll").Length>50)
+{
+    if(cpp2ilDir.Contains("77FC6017",StringComparison.OrdinalIgnoreCase)&&!sha256.StartsWith("77FC6017",StringComparison.OrdinalIgnoreCase))
+    {
+        Console.Error.WriteLine($"Explicit Cpp2IL dump {cpp2ilDir} expects 77FC6017... but GameAssembly SHA256 is {sha256[..16]}...");
+        return 3;
+    }
+    report.AppendLine($"cpp2il={cpp2ilDir} (explicit dump verified against GameAssembly SHA256 {sha256[..16]}...)");
+}
+else
 {
     Console.Error.WriteLine($"Cpp2IL dump missing or not made from this GameAssembly (SHA512 {sha512[..16]}..., recorded {recorded?[..Math.Min(16,recorded.Length)]}...). Native checks cannot be trusted; regenerate the dump.");
     return 3;
 }
-report.AppendLine($"cpp2il={cpp2ilDir} (matches GameAssembly SHA512 {sha512[..16]}...)");
 var unityPlayer=File.ReadAllBytes(Path.Combine(game,"UnityPlayer.dll"));
 
 var resolver=new DefaultAssemblyResolver();

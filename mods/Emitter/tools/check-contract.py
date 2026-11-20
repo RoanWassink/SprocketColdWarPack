@@ -1,4 +1,4 @@
-"""Emitter 0.1.0 static contract: part JSON schema/GUID, UTF-16 localization, source rules, patch count.
+"""Emitter 0.1.3 static contract: part JSON schema/GUID, UTF-16 localization, source rules, patch count.
 Usage: py -I tools/check-contract.py <game dir> <built dll>
 Reads the game folder only (stock template and other part GUIDs). Writes nothing outside stdout.
 """
@@ -123,8 +123,11 @@ check(reg.index('RegisterManagedOutput') < reg.index('RegisterPartSettings') and
 check('"Eject","Stop"' in reg and 'DataKey="sprocket.emitter"' in raw and 'ComponentId,DataKey,Settings.Schema(false)' in reg, 'labels Eject/Stop, dataKey sprocket.emitter, 0.1.0 schema')
 check(re.search(r'if\(native\.InteractionMesh!=arrow\)', raw) and 'void Update()' in raw and 'Adopt(' not in raw[raw.index('public void Update()'):raw.index('private void RetireScene')], 'mesh swap and SetVisible not called from Update')
 plugin = (R / 'Plugin.cs').read_text(encoding='utf-8'); proj = (R / 'SprocketEmitter.csproj').read_text(encoding='utf-8')
-check('Version="0.1.1"' in plugin.replace(' ', '') and '<Version>0.1.1</Version>' in proj, 'version 0.1.1 in Plugin and csproj')
+check('Version="0.1.3"' in plugin.replace(' ', '') and '<Version>0.1.3</Version>' in proj, 'version 0.1.3 in Plugin and csproj')
 check('"Meshes","AllowEmbeddedFallback",false' in plugin.replace(' ', ''), 'embedded fallback shapes are off by default')
+check('"Meshes","UseNativeMaterial",true' in plugin.replace(' ', ''), 'native material on by default')
+check('settings part=' not in raw, 'onChanged does not consume the scene trace budget')
+check('Plugin.Instance.Log.LogInfo(FormattableString.Invariant($"[EMITTER] eject ' in raw, 'eject diagnostics bypass Trace')
 check('"DetailedLogging",false' in plugin.replace(' ', '') and 'DetailedLogging = false' in (R / 'sprocket.emitter.cfg').read_text(), 'DetailedLogging off by default')
 check('SoftDependency' in plugin and '"sprocket.emitter"' in plugin, 'plugin id sprocket.emitter, Mast soft dependency')
 # Lookup by name (RENAME-MAP section 4): Mast GUID and facade type. The soft dependency, the lookup constant and the contract agree.
@@ -143,4 +146,16 @@ for line in cfg.splitlines():
     if line.startswith('['): section = line.strip('[]')
     elif '=' in line: keys.add((section, line.split('=')[0].strip()))
 check(set(binds) == keys, f'cfg keys match Config.Bind ({len(keys)})')
+settings = (R / 'Settings.cs').read_text(encoding='utf-8')
+schema = settings[settings.index('internal static string Schema('):]
+base_schema = schema[:schema.index('if(effects)')]
+base_count = 1 + len(re.findall(r'\b[NB]\("', base_schema))
+ext_count = 1 + len(re.findall(r'\b[NB]\("', schema))
+check((base_count, ext_count) == (11, 13), f'schema counts without/with effects: {base_count}/{ext_count} (runtime schema bytes validated in logic)')
+check('FollowCaliber=B("follow_caliber",true)' in settings and 'FollowCaliber=true' in settings, 'missing follow_caliber uses the fixed true default')
+check('float diameter=size.Diameter' in raw and 'diameter*.5f+.002f' in raw and 's.Spin,diameter*.5f,life' in raw, 'effective diameter used for outlet and landing radius')
+check('follow={(s.FollowCaliber?' in raw and 'source={size.Source}' in raw and 'caliberMm={size.CaliberMm}' in raw and 'propellantMm={size.PropellantMm}' in raw, 'eject includes follow state, dimension source and millimeter values')
+check('FollowCaliber=false,Item=item.Value' in plugin, 'pre-revision-2 cfg route remains manual as mapped')
+# The owner-side comparison with the pre-0.1.3 source copy is not part of the fresh release (no such copy exists there).
+check('follow_caliber' not in (R / 'sprocket.emitter.cfg').read_text(), 'follow_caliber is a per-part setting and adds no cfg key')
 print(f'SUMMARY contract checks={checks} fail=0 patches={patch}')

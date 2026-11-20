@@ -63,17 +63,20 @@ internal sealed class VolumetricRenderer
     private float loadStarted;
     private AssetRoute route;
     private bool fallbackTried;
-    private Mesh? muzzleMesh,dustMesh;
+    private Mesh? muzzleMesh,dustMesh,explosionMesh;
     private Material? material;
-    private Volume[]? volumes,dust;
-    private float[] births=Array.Empty<float>(),dustBirths=Array.Empty<float>();
-    private bool[] active=Array.Empty<bool>(),dustActive=Array.Empty<bool>();
+    private Volume[]? volumes,dust,explosions;
+    private float[] births=Array.Empty<float>(),dustBirths=Array.Empty<float>(),explosionBirths=Array.Empty<float>(),explosionLifetimes=Array.Empty<float>();
+    private bool[] active=Array.Empty<bool>(),dustActive=Array.Empty<bool>(),explosionActive=Array.Empty<bool>();
     private int[] emitFrame=Array.Empty<int>();
     private bool[] firstUpdatePending=Array.Empty<bool>();
     private string[] anchorInfo=Array.Empty<string>();
-    private Light[]? flashes;
+    private Light[]? flashes,impactFlashes;
     private float[] flashBirths=Array.Empty<float>(),flashPeak=Array.Empty<float>();
     private bool[] flashActive=Array.Empty<bool>();
+    private float[] impactFlashBirths=Array.Empty<float>(),impactFlashPeak=Array.Empty<float>(),impactFlashDur=Array.Empty<float>();
+    private byte[] impactFlashKind=Array.Empty<byte>();
+    private bool[] impactFlashActive=Array.Empty<bool>();
     private int seedSerial,shots;
     private bool hasDirection,hasCalibreScale,disposed;
     internal LoadState State{get;private set;}=LoadState.Idle;
@@ -93,13 +96,31 @@ internal sealed class VolumetricRenderer
     internal bool DustEnabled{get;}
     internal bool LegacySmoke{get;private set;}
     internal string PuffStatus{get;private set;}="not loaded";
+    internal string SparkStatus{get;private set;}="not loaded";
+    internal string WaveStatus{get;private set;}="not loaded";
     private PuffRenderer? puffs;
-    private readonly int maxPuffs;private readonly float windSpeed,windDirection;private readonly PuffTuning tuning;
+    private SparkRenderer? sparks;
+    private BlastWaveRenderer? waves;
+    private readonly int maxPuffs,maxSparks,maxImpactVolumes;
+    private readonly float windSpeed,windDirection,muzzleFireIntensity;
+    private readonly bool muzzleSparks,muzzleShockwave;
+    private readonly PuffTuning tuning;
+    private readonly SparkTuning sparkTuning;
+    private readonly ImpactTuning impactTuning;
+    private readonly ImpactMath.DuplicateFilter dedup=new();
+    private readonly ImpactMath.ClusterLimiter cluster=new();
     // Volume lifetime: 0.3.0 keeps only the fire/blast + jet (0.6 s) unless legacy smoke.
     private float VolumeLifetime=>LegacySmoke?EffectMath.HeavyLifetime:EffectMath.VolumeFireLifetime;
-    internal VolumetricRenderer(Transform parent,string bundlePath,int steps,int maxVolumes,float maxDistance,float densityFactor,float scaleFactor,bool muzzleLight,bool groundDust,bool legacySmoke=false,int maxPuffs=160,float windSpeed=2.5f,float windDirection=200f,PuffTuning? tuning=null)
+    internal VolumetricRenderer(Transform parent,string bundlePath,int steps,int maxVolumes,float maxDistance,float densityFactor,float scaleFactor,bool muzzleLight,bool groundDust,bool legacySmoke=false,int maxPuffs=320,float windSpeed=2.5f,float windDirection=200f,PuffTuning? tuning=null,float muzzleFireIntensity=1.3f,bool muzzleSparks=true,bool muzzleShockwave=true,int maxSparks=1600,int maxImpactVolumes=6,ImpactTuning? impactTuning=null,SparkTuning? sparkTuning=null)
     {
         this.tuning=tuning??PuffTuning.Default;
+        this.impactTuning=impactTuning??ImpactTuning.Default;
+        this.sparkTuning=sparkTuning??SparkTuning.Default;
+        this.muzzleFireIntensity=EffectMath.Safe(muzzleFireIntensity,1.3f,.3f,3f);
+        this.muzzleSparks=muzzleSparks;
+        this.muzzleShockwave=muzzleShockwave;
+        this.maxSparks=EffectMath.SparkCapacity(maxSparks);
+        this.maxImpactVolumes=EffectMath.ImpactVolumeCapacity(maxImpactVolumes);
         LegacySmoke=legacySmoke;this.maxPuffs=maxPuffs;this.windSpeed=windSpeed;this.windDirection=windDirection;
         LightEnabled=muzzleLight;DustEnabled=groundDust;
         this.parent=parent;
@@ -290,12 +311,44 @@ internal sealed class VolumetricRenderer
             PuffStatus="unavailable";LegacySmoke=true;
             SelfTest("load-puffs",false,"SixWayPuff material/arrays missing or unsupported in the bundle; falling back to the 0.2.3 volume smoke + dust");
         }
+        Material? FindMaterial(string sname)
+        {
+            foreach(var asset in assets)
+            {
+                if(asset==null)continue;
+                var m=asset.TryCast<Material>();
+                if(m!=null&&m.shader!=null&&m.shader.name==sname&&m.shader.isSupported)return m;
+            }
+            return null;
+        }
+        var sparkSource=FindMaterial(EffectMath.SparkShaderName);
+        if(sparkSource!=null)
+        {
+            sparks=new SparkRenderer(parent,sparkSource,maxSparks){Tuning=sparkTuning};
+            SparkStatus=$"{EffectMath.SparkShaderName}, pool {sparks.Capacity}, intensity x{sparkTuning.Intensity:F2}";
+            SelfTest("load-sparks",true,SparkStatus);
+        }
+        else{SparkStatus="unavailable";SelfTest("load-sparks",false,"ImpactSpark shader/material missing or unsupported in bundle");}
+        var waveSource=FindMaterial(EffectMath.BlastWaveShaderName);
+        if(waveSource!=null)
+        {
+            waves=new BlastWaveRenderer(parent,waveSource,64);
+            WaveStatus=$"{EffectMath.BlastWaveShaderName}, pool {waves.Capacity}";
+            SelfTest("load-waves",true,WaveStatus);
+        }
+        else{WaveStatus="unavailable";SelfTest("load-waves",false,"BlastWave shader/material missing or unsupported in bundle");}
         muzzleMesh=CreateProxyMesh(U(EffectMath.MuzzleBoxMin),U(EffectMath.MuzzleBoxMax));
         volumes=new Volume[Capacity];
         births=new float[Capacity];
         active=new bool[Capacity];
         emitFrame=new int[Capacity];firstUpdatePending=new bool[Capacity];anchorInfo=new string[Capacity];
         for(var i=0;i<Capacity;i++)volumes[i]=new Volume(parent,muzzleMesh,mat,"Volumetric muzzle "+i);
+        explosionMesh=CreateProxyMesh(U(ImpactMath.ExplosionProxyMin),U(ImpactMath.ExplosionProxyMax));
+        explosions=new Volume[maxImpactVolumes];
+        explosionBirths=new float[maxImpactVolumes];
+        explosionLifetimes=new float[maxImpactVolumes];
+        explosionActive=new bool[maxImpactVolumes];
+        for(var i=0;i<maxImpactVolumes;i++)explosions[i]=new Volume(parent,explosionMesh,mat,"Volumetric explosion "+i);
         if(DustEnabled&&LegacySmoke)
         {
             dustMesh=CreateProxyMesh(U(EffectMath.DustBoxMin),U(EffectMath.DustBoxMax));
@@ -323,13 +376,36 @@ internal sealed class VolumetricRenderer
                     light.enabled=false;go.SetActive(true);
                     flashes[i]=light;
                 }
-                SelfTest("flash-light",true,$"{count} HDRP point light(s), peak {EffectMath.FlashPeakCandela:F0} cd, {EffectMath.FlashDuration*1000:F0} ms, no shadows");
+                SelfTest("flash-light",true,$"{count} HDRP point light(s), peak {EffectMath.FlashPeakCandela*muzzleFireIntensity:F0} cd, {EffectMath.FlashDuration*1000:F0} ms, no shadows");
             }
             catch(Exception ex){SelfTest("flash-light",false,ex.GetType().Name+": "+ex.Message+" (smoke continues without light)");DestroyFlashes();}
         }
         else Plugin.Instance.Log.LogInfo("SelfTest flash-light SKIP: MuzzleLight=false");
+        if(impactTuning.ImpactLights)
+        {
+            try
+            {
+                const int icount=4;
+                impactFlashes=new Light[icount];impactFlashBirths=new float[icount];impactFlashPeak=new float[icount];impactFlashDur=new float[icount];impactFlashKind=new byte[icount];impactFlashActive=new bool[icount];
+                for(var i=0;i<icount;i++)
+                {
+                    var go=new GameObject("Impact flash light "+i){hideFlags=HideFlags.HideAndDontSave};
+                    go.transform.SetParent(parent,false);
+                    var light=go.AddComponent<Light>();
+                    light.type=LightType.Point;light.shadows=LightShadows.None;light.range=ImpactMath.ExplosionFlashRange;
+                    light.color=new Color(1f,.72f,.34f,1f);light.intensity=0;
+                    try{go.AddComponent<UnityEngine.Rendering.HighDefinition.HDAdditionalLightData>();}catch{}
+                    light.enabled=false;go.SetActive(true);
+                    impactFlashes[i]=light;
+                }
+                SelfTest("impact-lights",true,$"{icount} HDRP point light(s) for explosions/impacts/cookoffs, no shadows");
+            }
+            catch(Exception ex){SelfTest("impact-lights",false,ex.GetType().Name+": "+ex.Message);DestroyImpactFlashes();}
+        }
+        else Plugin.Instance.Log.LogInfo("SelfTest impact-lights SKIP: ImpactLights=false");
     }
     private static Vector3 U(System.Numerics.Vector3 v)=>new(v.X,v.Y,v.Z);
+    private static System.Numerics.Vector3 N(Vector3 v)=>new(v.x,v.y,v.z);
     private static Mesh CreateProxyMesh(Vector3 lo,Vector3 hi)
     {
         // Same local box as _BoxMin/_BoxMax in HeavyMuzzle.shader (set per volume).
@@ -385,8 +461,8 @@ internal sealed class VolumetricRenderer
         volume.Block.SetFloat("_Seed",seed);
         volume.Block.SetFloat("_Steps",Steps);
         volume.Block.SetFloat("_Density",density);
-        volume.Block.SetFloat("_FireStrength",EffectMath.HeavyFireStrength);
-        volume.Block.SetFloat("_FireLuminance",EffectMath.HeavyFireLuminance);
+        volume.Block.SetFloat("_FireStrength",EffectMath.HeavyFireStrength*Math.Max(1f,muzzleFireIntensity));
+        volume.Block.SetFloat("_FireLuminance",EffectMath.HeavyFireLuminance*muzzleFireIntensity);
         volume.Block.SetFloat("_CurlStrength",EffectMath.HeavyCurlStrength);
         volume.Block.SetColor("_SmokeColor",new Color(EffectMath.HeavySmokeR,EffectMath.HeavySmokeG,EffectMath.HeavySmokeB,1f));
         volume.Block.SetFloat("_Lifetime",VolumeLifetime);
@@ -402,8 +478,13 @@ internal sealed class VolumetricRenderer
         var light=EmitFlash(origin+forward*(EffectMath.FlashForward*scale),scale,now);
         var groundHit=FindGround(origin,scale,out var groundPoint,out var groundDrop);
         var ground=LegacySmoke?EmitDust(groundHit,groundPoint,groundDrop,forward,scale,seed,now):(groundHit?$"{groundDrop:F1}m-below":"no-ground");
-        var puffText=puffs!=null?puffs.Emit(origin,forward,up,scale,groundHit&&DustEnabled?groundPoint:null,Mathf.Sqrt((position-origin).sqrMagnitude)):"puffs=off";
-        return $"slot={slot} density={density:F2} (x{DensityFactor:F2}) scale={scale:F2} (x{ScaleFactor:F2}) seed={seed:F2} light={light} dust={ground} {puffText}";
+        var camDist=Mathf.Sqrt((position-origin).sqrMagnitude);
+        var puffText=puffs!=null?puffs.Emit(origin,forward,up,scale,groundHit&&DustEnabled?groundPoint:null,camDist):"puffs=off";
+        var groundY=groundHit?groundPoint.y:origin.y-2.2f;
+        var sparkLod=camDist>600?.25f:camDist>200?.55f:1f;
+        var sparkCount=muzzleSparks&&sparks!=null?sparks.EmitMuzzle(origin,forward,scale,groundY,sparkLod):0;
+        if(waves!=null&&camDist<=800f)waves.EmitMuzzle(origin,forward,scale,muzzleFireIntensity,muzzleShockwave);
+        return $"slot={slot} density={density:F2} (x{DensityFactor:F2}) scale={scale:F2} (x{ScaleFactor:F2}) seed={seed:F2} light={light} dust={ground} sparks={sparkCount} {puffText}";
     }
     // Where the anchor (= the MuzzleFlashEffect transform) sits relative to the
     // cannon transform it is parented to, and to the foremost geometry along the
@@ -432,16 +513,175 @@ internal sealed class VolumetricRenderer
         }
         catch(Exception ex){return "anchor diagnostic failed: "+ex.GetType().Name;}
     }
+    private static bool FiniteV(Vector3 v)=>float.IsFinite(v.x)&&float.IsFinite(v.y)&&float.IsFinite(v.z);
+    internal string? EmitImpact(ImpactKind kind,Vector3 pos,Vector3 normal,Vector3 velocity,float calibreMm)
+    {
+        if(!Ready||!impactTuning.Enabled||!FiniteV(pos))return null;
+        var camera=Camera.main;if(camera==null)return null;
+        var delta=camera.transform.position-pos;
+        if(delta.sqrMagnitude>impactTuning.MaxDistance*impactTuning.MaxDistance)return null;
+        var now=Time.time;
+        if(!dedup.Accept(kind,N(pos),now))return null;
+        var cl=cluster.Evaluate(kind,N(pos),now);
+        if(cl.ReplacePrevious)
+        {
+            if(cl.ReplacedVolSlot>=0&&explosions!=null&&cl.ReplacedVolSlot<explosions.Length)
+            {explosionActive[cl.ReplacedVolSlot]=false;explosions[cl.ReplacedVolSlot].Root.SetActive(false);}
+            if(cl.ReplacedLightSlot>=0&&impactFlashes!=null&&cl.ReplacedLightSlot<impactFlashes.Length&&impactFlashes[cl.ReplacedLightSlot]!=null)
+            {impactFlashActive[cl.ReplacedLightSlot]=false;impactFlashes[cl.ReplacedLightSlot]!.intensity=0;impactFlashes[cl.ReplacedLightSlot]!.enabled=false;}
+            waves?.CancelNear(pos,now);
+        }
+        var vel=FiniteV(velocity)?velocity:Vector3.zero;
+        var norm=U(ImpactMath.ResolveOutwardAxis(N(normal),N(vel)));
+        var scale=kind switch
+        {
+            ImpactKind.Era=>ImpactMath.EraScale(impactTuning.ScaleMultiplier),
+            ImpactKind.Heat=>ImpactMath.HeatScale(calibreMm,impactTuning.ScaleMultiplier),
+            ImpactKind.Hesh=>ImpactMath.HeshScale(calibreMm,impactTuning.ScaleMultiplier),
+            ImpactKind.Aphe=>ImpactMath.ApheScale(calibreMm,impactTuning.ScaleMultiplier),
+            _=>ImpactMath.ImpactScale(calibreMm,impactTuning.ScaleMultiplier)
+        };
+        var camDist=Mathf.Sqrt(delta.sqrMagnitude);
+        var sparkLod=(camDist>750f?.2f:camDist>240f?.55f:1f)*cl.SparkMul;
+        float groundY;
+        if(kind==ImpactKind.EnvironmentImpact)groundY=pos.y;
+        else groundY=FindGround(pos+Vector3.up*.4f,Math.Max(scale,1f),out var gp,out _)?gp.y:pos.y-1.5f;
+        var sparkCount=0;var puffCount=0;var volSlot=-1;var lightSlot=-1;var lightDesc="off";
+        if(kind is ImpactKind.Era or ImpactKind.Heat or ImpactKind.Hesh)
+        {
+            var rot=Quaternion.LookRotation(norm,Mathf.Abs(norm.y)<.9f?Vector3.up:Vector3.forward);
+            var (life,diskRatio)=kind switch
+            {
+                ImpactKind.Era=>(ImpactMath.EraVolumeLifetime,ImpactMath.EraDiskRatio),
+                ImpactKind.Heat=>(ImpactMath.HeatVolumeLifetime,ImpactMath.HeatDiskRatio),
+                _ =>(ImpactMath.HeshVolumeLifetime,ImpactMath.HeshDiskRatio)
+            };
+            if(cl.SpawnVolume&&impactTuning.ExplosionFireballIntensity>0f)
+                volSlot=EmitExplosionVolume(pos,rot,scale,life,ImpactMath.ExplosionSootR,ImpactMath.ExplosionSootG,ImpactMath.ExplosionSootB,4f,diskRatio,ImpactMath.DirectionalBoxMin,ImpactMath.DirectionalBoxMax,now);
+            if(cl.SpawnWave&&waves!=null&&camDist<=1000f)waves.EmitImpact(kind,pos,norm,scale,impactTuning.Shockwaves);
+            if(impactTuning.Sparks&&sparks!=null)sparkCount=sparks.EmitImpact(kind,pos,norm,vel,scale,groundY,sparkLod);
+            if(puffs!=null&&cl.PuffMul>0f)puffCount=kind switch
+            {
+                ImpactKind.Era=>puffs.EmitEra(pos,norm,scale,impactTuning.ExplosionFireballIntensity,camDist,cl.PuffMul),
+                ImpactKind.Heat=>puffs.EmitHeat(pos,norm,scale,impactTuning.ExplosionFireballIntensity,camDist,cl.PuffMul),
+                _ =>puffs.EmitHesh(pos,norm,scale,impactTuning.ExplosionFireballIntensity,camDist,cl.PuffMul)
+            };
+            if(cl.SpawnLight)lightDesc=EmitImpactLight(pos+norm*(.24f*scale),scale,kind,now,out lightSlot);
+            cluster.SetSlots(cl.EntryIndex,volSlot,lightSlot);
+        }
+        else if(kind is ImpactKind.Explosion or ImpactKind.Aphe)
+        {
+            var isAphe=kind==ImpactKind.Aphe;
+            var life=isAphe?ImpactMath.ApheVolumeLifetime:ImpactMath.ExplosionVolumeLifetime;
+            if(cl.SpawnVolume&&impactTuning.ExplosionFireballIntensity>0f)
+                volSlot=EmitExplosionVolume(pos,Quaternion.identity,scale,life,ImpactMath.ExplosionSootR,ImpactMath.ExplosionSootG,ImpactMath.ExplosionSootB,2f,99f,ImpactMath.ExplosionBoxMin,ImpactMath.ExplosionBoxMax,now);
+            if(cl.SpawnWave&&waves!=null&&camDist<=1000f)waves.EmitImpact(kind,pos,norm,scale,impactTuning.Shockwaves);
+            if(impactTuning.Sparks&&sparks!=null)sparkCount=sparks.EmitImpact(kind,pos,norm,vel,scale,groundY,sparkLod);
+            if(puffs!=null&&cl.PuffMul>0f)puffCount=isAphe
+                ?puffs.EmitArmourImpact(pos,norm,scale,false,camDist,cl.PuffMul)
+                :puffs.EmitExplosion(pos,norm,scale,impactTuning.ExplosionFireballIntensity,camDist,cl.PuffMul);
+            if(cl.SpawnLight)lightDesc=EmitImpactLight(pos+norm*(.35f*scale),scale,kind,now,out lightSlot);
+            cluster.SetSlots(cl.EntryIndex,volSlot,lightSlot);
+        }
+        else if(kind==ImpactKind.EnvironmentImpact)
+        {
+            if(impactTuning.Sparks&&sparks!=null)sparkCount=sparks.EmitImpact(kind,pos,norm,vel,scale,groundY,sparkLod);
+            if(puffs!=null&&cl.PuffMul>0f)puffCount=puffs.EmitGroundImpact(pos,norm,scale,camDist);
+        }
+        else
+        {
+            if(cl.SpawnWave&&waves!=null&&camDist<=850f)waves.EmitImpact(kind,pos,norm,scale,false);
+            if(impactTuning.Sparks&&sparks!=null)sparkCount=sparks.EmitImpact(kind,pos,norm,vel,scale,groundY,sparkLod);
+            if(puffs!=null&&cl.PuffMul>0f)puffCount=puffs.EmitArmourImpact(pos,norm,scale,kind==ImpactKind.Ricochet,camDist,cl.PuffMul);
+            if(cl.SpawnLight)lightDesc=EmitImpactLight(pos+norm*.22f,scale,kind,now,out lightSlot);
+            cluster.SetSlots(cl.EntryIndex,volSlot,lightSlot);
+        }
+        return $"kind={kind} cal={calibreMm:F0}mm scale={scale:F2} cluster={cl.Tag} axis=({norm.x:F2},{norm.y:F2},{norm.z:F2}) sparks={sparkCount} puffs={puffCount} vol={volSlot} light={lightDesc}";
+    }
+    internal string? EmitCookoff(Vector3 pos,float mass,float impulse)
+    {
+        if(!Ready||!impactTuning.Enabled||!impactTuning.CookoffEffects||!FiniteV(pos))return null;
+        var camera=Camera.main;if(camera==null)return null;
+        var delta=camera.transform.position-pos;
+        if(delta.sqrMagnitude>impactTuning.MaxDistance*impactTuning.MaxDistance)return null;
+        var now=Time.time;
+        if(!dedup.Accept(ImpactKind.Cookoff,N(pos),now))return null;
+        var scale=ImpactMath.CookoffScale(mass,impulse,impactTuning.ScaleMultiplier);
+        var camDist=Mathf.Sqrt(delta.sqrMagnitude);
+        var sparkLod=camDist>850f?.25f:camDist>280f?.6f:1f;
+        var groundY=FindGround(pos+Vector3.up*.4f,scale,out var gp,out _)?gp.y:pos.y-1.5f;
+        var volSlot=impactTuning.ExplosionFireballIntensity>0f
+            ?EmitExplosionVolume(pos,Quaternion.identity,scale*1.15f,ImpactMath.CookoffVolumeLifetime,ImpactMath.CookoffSootR,ImpactMath.CookoffSootG,ImpactMath.CookoffSootB,3f,99f,ImpactMath.ExplosionBoxMin,ImpactMath.ExplosionBoxMax,now)
+            :-1;
+        if(waves!=null&&camDist<=1200f)waves.EmitImpact(ImpactKind.Cookoff,pos,Vector3.up,scale,impactTuning.Shockwaves);
+        var sparkCount=impactTuning.Sparks&&sparks!=null?sparks.EmitImpact(ImpactKind.Cookoff,pos,Vector3.up,Vector3.zero,scale,groundY,sparkLod):0;
+        var puffCount=puffs!=null?puffs.EmitCookoff(pos,scale,impactTuning.ExplosionFireballIntensity,camDist):0;
+        var lightDesc=EmitImpactLight(pos+Vector3.up*.5f,scale,ImpactKind.Cookoff,now,out _);
+        return $"kind=Cookoff mass={mass:F1} impulse={impulse:F0} scale={scale:F2} sparks={sparkCount} puffs={puffCount} vol={volSlot} light={lightDesc}";
+    }
+    private int EmitExplosionVolume(Vector3 pos,Quaternion rot,float scale,float lifetime,float sr,float sg,float sb,float mode,float smokeFadeEnd,System.Numerics.Vector3 boxMin,System.Numerics.Vector3 boxMax,float now)
+    {
+        if(explosions==null||explosionBirths.Length==0)return -1;
+        var slot=EffectMath.SelectSlot(explosionBirths,explosionActive);
+        var v=explosions[slot];
+        seedSerial=(seedSerial+1)%100000;
+        var seed=(seedSerial*0.61803398875f)%97f;
+        explosionBirths[slot]=now;explosionLifetimes[slot]=lifetime;explosionActive[slot]=true;
+        v.Root.transform.position=pos;v.Root.transform.rotation=rot;v.Root.transform.localScale=Vector3.one*scale;
+        var fi=impactTuning.ExplosionFireballIntensity;
+        v.Block.SetFloat("_Age",.001f);
+        v.Block.SetFloat("_Seed",seed);
+        v.Block.SetFloat("_Steps",Steps);
+        v.Block.SetFloat("_Density",EffectMath.HeavyDensity*DensityFactor*1.35f);
+        v.Block.SetFloat("_FireStrength",ImpactMath.ExplosionFireStrength*fi);
+        v.Block.SetFloat("_FireLuminance",ImpactMath.ExplosionFireLuminance*fi);
+        v.Block.SetFloat("_CurlStrength",1.2f);
+        v.Block.SetColor("_SmokeColor",new Color(sr,sg,sb,1f));
+        v.Block.SetFloat("_Lifetime",lifetime);
+        v.Block.SetFloat("_SmokeFadeEnd",smokeFadeEnd);
+        v.Block.SetFloat("_DepthClamp",1f);
+        v.Block.SetFloat("_Mode",mode);
+        Box(v.Block,U(boxMin),U(boxMax));
+        v.Renderer.SetPropertyBlock(v.Block);
+        v.Root.SetActive(true);
+        return slot;
+    }
     private string EmitFlash(Vector3 at,float scale,float now)
     {
         if(flashes==null||flashes.Length==0)return "off";
         var i=EffectMath.SelectSlot(flashBirths,flashActive);
         var light=flashes[i];if(light==null)return "missing";
         light.transform.position=at;
-        flashPeak[i]=EffectMath.FlashPeakCandela*scale*scale;
+        flashPeak[i]=EffectMath.FlashPeakCandela*scale*scale*muzzleFireIntensity;
         flashBirths[i]=now;flashActive[i]=true;
         light.intensity=flashPeak[i]*EffectMath.FlashCurve(.001f);light.enabled=true;
         return $"{flashPeak[i]:F0}cd";
+    }
+    private string EmitImpactLight(Vector3 at,float scale,ImpactKind kind,float now,out int slotOut)
+    {
+        slotOut=-1;
+        if(impactFlashes==null||impactFlashes.Length==0)return "off";
+        var i=EffectMath.SelectSlot(impactFlashBirths,impactFlashActive);
+        slotOut=i;
+        var light=impactFlashes[i];if(light==null)return "missing";
+        light.transform.position=at;
+        var (baseCd,range,dur,col)=kind switch
+        {
+            ImpactKind.Cookoff=>(ImpactMath.CookoffFlashCandela,ImpactMath.CookoffFlashRange,ImpactMath.CookoffFlashDuration,new Color(1f,.62f,.20f,1f)),
+            ImpactKind.Explosion=>(ImpactMath.ExplosionFlashCandela,ImpactMath.ExplosionFlashRange,ImpactMath.ExplosionFlashDuration,new Color(1f,.80f,.44f,1f)),
+            ImpactKind.Hesh=>(ImpactMath.HeshFlashCandela,ImpactMath.HeshFlashRange,ImpactMath.HeshFlashDuration,new Color(1f,.82f,.45f,1f)),
+            ImpactKind.Heat=>(ImpactMath.HeatFlashCandela,ImpactMath.HeatFlashRange,ImpactMath.HeatFlashDuration,new Color(1f,.88f,.56f,1f)),
+            ImpactKind.Era=>(ImpactMath.EraFlashCandela,ImpactMath.EraFlashRange,ImpactMath.EraFlashDuration,new Color(1f,.86f,.52f,1f)),
+            ImpactKind.Aphe=>(ImpactMath.ApheFlashCandela,ImpactMath.ApheFlashRange,ImpactMath.ApheFlashDuration,new Color(1f,.78f,.36f,1f)),
+            _ =>(ImpactMath.ImpactFlashCandela,ImpactMath.ImpactFlashRange,ImpactMath.ImpactFlashDuration,new Color(1f,.84f,.45f,1f))
+        };
+        light.range=range;
+        light.color=col;
+        impactFlashPeak[i]=baseCd*Math.Clamp(scale*scale,.20f,4f);
+        impactFlashDur[i]=dur;impactFlashKind[i]=(byte)kind;impactFlashBirths[i]=now;impactFlashActive[i]=true;
+        var f=kind==ImpactKind.Cookoff?ImpactMath.CookoffLightCurve(.001f):ImpactMath.TimedLightCurve(.001f,dur);
+        light.intensity=impactFlashPeak[i]*f;light.enabled=true;
+        return $"{impactFlashPeak[i]:F0}cd";
     }
     // Ground below the muzzle: the lowest hit within reach (skips the own hull/
     // turret above the terrain). No hit (cliff edge, airborne) = no dust.
@@ -489,7 +729,10 @@ internal sealed class VolumetricRenderer
             if(anchorInfo[i].Length>0)Plugin.Instance.Trace($"Shot timing+anchor slot {i}: emit frame {emitFrame[i]} renders _Age=0.001; first update after {Time.frameCount-emitFrame[i]} frame(s) at age {now-births[i]:F3} s; {anchorInfo[i]}");
         }
         UpdatePool(volumes,births,active,VolumeLifetime,now,camera,"Volume");
+        if(explosions!=null)UpdateExplosionPool(now,camera);
         puffs?.UpdateFrame(now,camera);
+        sparks?.UpdateFrame(now,camera);
+        waves?.UpdateFrame(now,camera);
         if(dust!=null)UpdatePool(dust,dustBirths,dustActive,EffectMath.DustLifetime,now,camera,"Dust");
         if(flashes!=null)
             for(var i=0;i<flashes.Length;i++)
@@ -500,6 +743,34 @@ internal sealed class VolumetricRenderer
                 if(!float.IsFinite(age)||age<0||age>=EffectMath.FlashDuration||f<=0){flashActive[i]=false;flashes[i].intensity=0;flashes[i].enabled=false;continue;}
                 flashes[i].intensity=flashPeak[i]*f;
             }
+        if(impactFlashes!=null)
+            for(var i=0;i<impactFlashes.Length;i++)
+            {
+                if(!impactFlashActive[i]||impactFlashes[i]==null)continue;
+                var age=now-impactFlashBirths[i];
+                var k=impactFlashKind[i];
+                var dur=impactFlashDur[i]>0f?impactFlashDur[i]:ImpactMath.ExplosionFlashDuration;
+                var f=k==(byte)ImpactKind.Cookoff?ImpactMath.CookoffLightCurve(age):ImpactMath.TimedLightCurve(age,dur);
+                if(!float.IsFinite(age)||age<0||age>=dur||f<=0){impactFlashActive[i]=false;impactFlashes[i].intensity=0;impactFlashes[i].enabled=false;continue;}
+                impactFlashes[i].intensity=impactFlashPeak[i]*f;
+            }
+    }
+    private void UpdateExplosionPool(float now,Camera? camera)
+    {
+        if(explosions==null)return;
+        var maxDistSq=impactTuning.MaxDistance*impactTuning.MaxDistance;
+        for(var i=0;i<explosions.Length;i++)
+        {
+            if(!explosionActive[i])continue;
+            var v=explosions[i];
+            var life=explosionLifetimes[i];
+            var age=now-explosionBirths[i];
+            if(!float.IsFinite(age)||age<=0||age>=life){explosionActive[i]=false;v.Root.SetActive(false);continue;}
+            if(camera==null||(camera.transform.position-v.Root.transform.position).sqrMagnitude>maxDistSq){if(v.Root.activeSelf)v.Root.SetActive(false);continue;}
+            if(!v.Root.activeSelf)v.Root.SetActive(true);
+            v.Block.SetFloat("_Age",MathF.Max(age,.001f));
+            v.Renderer.SetPropertyBlock(v.Block);
+        }
     }
     private void UpdatePool(Volume[] pool,float[] born,bool[] on,float lifetime,float now,Camera? camera,string label)
     {
@@ -534,8 +805,10 @@ internal sealed class VolumetricRenderer
     }
     internal void Clear()
     {
-        ClearPool(volumes,active,"Volume");ClearPool(dust,dustActive,"Dust");puffs?.Clear();
+        ClearPool(volumes,active,"Volume");ClearPool(dust,dustActive,"Dust");ClearPool(explosions,explosionActive,"Explosion");
+        puffs?.Clear();sparks?.Clear();waves?.Clear();dedup.Clear();cluster.Clear();
         if(flashes!=null)for(var i=0;i<flashes.Length;i++){flashActive[i]=false;if(flashes[i]!=null){flashes[i].intensity=0;flashes[i].enabled=false;}}
+        if(impactFlashes!=null)for(var i=0;i<impactFlashes.Length;i++){impactFlashActive[i]=false;if(impactFlashes[i]!=null){impactFlashes[i].intensity=0;impactFlashes[i].enabled=false;}}
     }
     private static void ClearPool(Volume[]? pool,bool[] on,string label)
     {
@@ -552,12 +825,17 @@ internal sealed class VolumetricRenderer
         if(flashes!=null)foreach(var l in flashes)if(l!=null)Object.Destroy(l.gameObject);
         flashes=null;
     }
+    private void DestroyImpactFlashes()
+    {
+        if(impactFlashes!=null)foreach(var l in impactFlashes)if(l!=null)Object.Destroy(l.gameObject);
+        impactFlashes=null;
+    }
     internal void Dispose()
     {
         if(disposed)return;
         disposed=true;
         if(State!=LoadState.Failed)State=LoadState.Idle;
-        foreach(var pool in new[]{volumes,dust})
+        foreach(var pool in new[]{volumes,dust,explosions})
         {
             if(pool==null)continue;
             for(var i=0;i<pool.Length;i++)
@@ -567,11 +845,14 @@ internal sealed class VolumetricRenderer
                 Object.Destroy(pool[i].Root);
             }
         }
-        volumes=null;dust=null;
-        DestroyFlashes();
+        volumes=null;dust=null;explosions=null;
+        DestroyFlashes();DestroyImpactFlashes();
         puffs?.Dispose();puffs=null;
+        sparks?.Dispose();sparks=null;
+        waves?.Dispose();waves=null;
         if(muzzleMesh!=null){Object.Destroy(muzzleMesh);muzzleMesh=null;}
         if(dustMesh!=null){Object.Destroy(dustMesh);dustMesh=null;}
+        if(explosionMesh!=null){Object.Destroy(explosionMesh);explosionMesh=null;}
         if(material!=null){Object.Destroy(material);material=null;}
         bundleRequest=null;assetRequest=null;
         // An in-flight async load cannot be cancelled; the bundle (if it arrives)

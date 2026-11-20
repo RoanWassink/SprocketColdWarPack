@@ -1,38 +1,49 @@
 # Sprocket Cupolas
 
-Adds a commander's cupola in the style of the T-90A (not an exact copy) to the Sprocket designer. It keeps the game's own commander, viewport and cook-off behaviour and replaces only the visible meshes.
+Cupolas adds a commander's cupola in the style of the T-90A (not an exact copy) to the tank designer. It keeps the game's own commander, viewport and cook-off behaviour and replaces only what you see.
+
+![Mast, hinge, turntable, emitter and cupola](../../docs/img/mast-hinge-rotator-emitter-cupola.png)
 
 - Version: 0.1.0
 - Plugin GUID: `sprocket.cupolas`
-- Requires: no other plugin
-- Optional: Sprocket Telescopic Mast (`sprocket.telescopicmast`), used only to register the part icon. Without it the native fallback icon is shown and the part works as usual.
+- Needs: no other mod
+- Works together with: Sprocket Telescopic Mast, which is used only to show the part icon. Without it the game's fallback icon appears and the part works as usual.
 - Game version tested: 0.2.56.2
 
-## Features
+## What it adds
 
-- One part, "Cupola T-90A", in the cupola category (tags cupola, commander, ussr), with a part date of 1992.01.01. Scale 0.5 to 2.
-- A detailed ring (about 0.67 m across at scale 1) with a projecting sight head, and a separate lid. The lid is a static model: it does not open or close.
-- Built on a clone of the stock German cupola, so the commander, viewport and cook-off use the native code. A cook-off may hide the lid.
-- Collision, damage and mass stay those of the stock cupola (0 kg, 0 model cost); the visible ring is not extra armour.
-- Replaces the model meshes of a placed cupola at runtime, on all native LOD levels, with generated UV charts and the native materials. Ghost previews keep the stock shape.
-- Conservative checks: if the vehicle layout is ambiguous or the paint atlas cannot be inspected, the stock cupola is kept and a reason is logged.
-- No Harmony patches, no UI, no controls and no saved data of its own.
-- Approved models and icon were made with OpenSCAD; the sources are in `Assets/approved`.
+- One part, "Cupola T-90A", in the cupola category (tags cupola, commander, ussr), available from part date 1992.01.01. Scale 0.5 to 2.
+- A detailed ring, about 0.67 m across at scale 1, with a sight head that sticks out, and a separate lid. The lid is a fixed model and does not open or close.
+- The commander, the viewport and the cook-off work as in the game's own German cupola, which this part is built on. A cook-off may hide the lid.
+- Collision, damage and mass stay those of the stock cupola (0 kg, 0 model cost). The visible ring is no extra armour.
 
-## Settings and keys
+## How to use it
 
-- Config file: `BepInEx\config\sprocket.cupolas.cfg` (shipped with the mod; do not overwrite an existing file when copying). The only entry is `Diagnostics.DetailedLogging`, default false (set it to true for verbose log lines: READY, SCAN, REJECT, ADOPT, SWAP, STATE, BALANCE, RELEASE).
-- No keys.
-- Shipping data: part definition (`t90aCupolaPart.json`), English localization (`t90aCupola.xml`) under `Sprocket_Data\StreamingAssets`, and DLL and icon in `BepInEx\plugins\SprocketCupolas\`.
+1. Open the part list in the designer and choose the cupola category.
+2. Select "Cupola T-90A" and place it on the turret roof, as you would the stock cupola.
+3. Scale it between 0.5 and 2 if needed and paint it like any other part. Ghost previews while you place it still show the stock shape. The new shape appears once the part is placed.
+4. Mirroring on the centre line of the vehicle is one of the points that still has to be checked in game (see Known limits).
 
-## Status
+<!-- SCREENSHOT: cupola-designer.png (the Cupola T-90A placed on a turret in the designer) -->
+<!-- SCREENSHOT: cupola-closeup.png (a close-up of the ring, the sight head and the lid) -->
 
-- Installed on 2026-11-11 with a hash check, but not yet tested in game; no in-game test result has been recorded.
-- Open in-game checks (see `LIVE-ACCEPTANCE.md`): placement and selection in the designer, camo, all zoom levels, mirroring on the centre line, test drive and return to the designer, save and reload, and stock mass and cost.
-- The whole pack was renamed and has not been re-tested in game yet.
+If the vehicle layout is unclear or the paint atlas cannot be read, the mod keeps the stock cupola and writes the reason in the log.
+
+## Settings
+
+The settings file is `BepInEx\config\sprocket.cupolas.cfg`. It is shipped with the mod, so do not overwrite an existing file when you copy the pack. It has one entry: `Diagnostics.DetailedLogging`, false by default. Set it to true for a more detailed log.
+
+The mod has no keys, no windows and no saved data of its own.
+
+## Known limits
+
+- The cupola was installed on 2026-11-11, but no in-game test result has been recorded.
+- Still to check in game: placement and selection in the designer, camo paint, all zoom levels, mirroring on the centre line, a test drive and the return to the designer, saving and reloading, and the stock mass and cost.
+- The lid is a fixed model and does not move.
+- The pack was renamed and has not been re-tested in game since.
 
 ## Building
 
-.NET project in this folder (`SprocketCupolas.csproj`, net6.0). It builds against the game's interop assemblies: `dotnet build -c Release -p:GameDir=<path to Sprocket folder>`. `Verify.ps1` runs the offline checks, and `Build-Package.ps1 -Out <empty folder>` stages the shipped files in the game folder layout. The STL exports are not part of the repository; the OBJ files and OpenSCAD sources are.
+A .NET project in this folder (`SprocketCupolas.csproj`, net6.0). It builds against the game's interop assemblies: `dotnet build -c Release -p:GameDir=<path to Sprocket folder>`. `Verify.ps1` runs the offline checks, and `Build-Package.ps1 -Out <empty folder>` stages the shipped files in the game folder layout. The models and the icon were made with OpenSCAD, and the sources are in `Assets/approved`. The STL exports are not in the repository; the OBJ files and OpenSCAD sources are.
 
 Docs: [GUIDE.md](GUIDE.md) (developer notes), [CHANGELOG.md](CHANGELOG.md), [GEOMETRY-AND-EVIDENCE.md](GEOMETRY-AND-EVIDENCE.md), [LIVE-ACCEPTANCE.md](LIVE-ACCEPTANCE.md). Licence: MIT (see the repository LICENSE). Author: Nero.

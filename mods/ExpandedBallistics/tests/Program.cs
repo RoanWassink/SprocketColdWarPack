@@ -1,4 +1,26 @@
 using SprocketExpandedBallistics;
+if(args.Contains("--feat99-only")){var n=0;var bad=0;Feat02299HeatAndAmmoTests.Run((ok,t)=>{n++;Console.WriteLine((ok?"PASS ":"FAIL ")+t);if(!ok){bad++;Environment.ExitCode=1;}});Console.WriteLine($"FEAT99 ONLY: {n} checks, {bad} failures");return;}
+if(args.Contains("--feat98-only")){var n=0;var bad=0;Feat02298ReportPolishTests.Run((ok,t)=>{n++;Console.WriteLine((ok?"PASS ":"FAIL ")+t);if(!ok){bad++;Environment.ExitCode=1;}});Console.WriteLine($"FEAT98 ONLY: {n} checks, {bad} failures");return;}
+if(args.Contains("--feat97-only")){var n=0;var bad=0;Feat02297SolidColliderTests.Run((ok,t)=>{n++;Console.WriteLine((ok?"PASS ":"FAIL ")+t);if(!ok){bad++;Environment.ExitCode=1;}});Console.WriteLine($"FEAT97 ONLY: {n} checks, {bad} failures");return;}
+if(args.Contains("--feat96-only")){var n=0;var bad=0;Feat02296StageCellBindingTests.Run((ok,t)=>{n++;Console.WriteLine((ok?"PASS ":"FAIL ")+t);if(!ok){bad++;Environment.ExitCode=1;}});Console.WriteLine($"FEAT96 ONLY: {n} checks, {bad} failures");return;}
+if(args.Contains("--feat95-only")){var n=0;var bad=0;Feat02295GameBuildGateTests.Run((ok,t)=>{n++;Console.WriteLine((ok?"PASS ":"FAIL ")+t);if(!ok){bad++;Environment.ExitCode=1;}});Console.WriteLine($"FEAT95 ONLY: {n} checks, {bad} failures");return;}
+if(args.Contains("--feat94-only")){var n=0;var bad=0;Feat02294EraPlacementTests.Run((ok,t)=>{n++;Console.WriteLine((ok?"PASS ":"FAIL ")+t);if(!ok){bad++;Environment.ExitCode=1;}});Console.WriteLine($"FEAT94 ONLY: {n} checks, {bad} failures");return;}
+if(args.Contains("--feat92-only")){var n=0;var bad=0;Feat02292AtgmSightHudTests.Run((ok,t)=>{n++;Console.WriteLine((ok?"PASS ":"FAIL ")+t);if(!ok){bad++;Environment.ExitCode=1;}});Console.WriteLine($"FEAT92 ONLY: {n} checks, {bad} failures");return;}
+if(args.Contains("--feat91-only")){var n=0;var bad=0;Feat02291ModuleLayersTests.Run((ok,t)=>{n++;Console.WriteLine((ok?"PASS ":"FAIL ")+t);if(!ok){bad++;Environment.ExitCode=1;}});Console.WriteLine($"FEAT91 ONLY: {n} checks, {bad} failures");return;}
+if(args.Contains("--feat90-only")){var n=0;var bad=0;Feat02290NativeDivisorTests.Run((ok,t)=>{n++;Console.WriteLine((ok?"PASS ":"FAIL ")+t);if(!ok){bad++;Environment.ExitCode=1;}});Console.WriteLine($"FEAT90 ONLY: {n} checks, {bad} failures");return;}
+// 0.22.89: targeted runs while building ("--classes A,B": the static Run(Action<bool,string>) of each named test class, in that order)
+if(args.Length>1&&args[0]=="--classes"){var n=0;var bad=0;foreach(var name in args[1].Split(',',StringSplitOptions.RemoveEmptyEntries)){var type=typeof(Feat02289AtgmBoxHeSkirtTests).Assembly.GetType("SprocketExpandedBallistics."+name)??throw new Exception("no test class "+name);var run=type.GetMethod("Run",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.NonPublic,new[]{typeof(Action<bool,string>)})??throw new Exception("no Run(Action<bool,string>) in "+name);var before=bad;run.Invoke(null,new object[]{(Action<bool,string>)((ok,text)=>{n++;if(!ok){bad++;Environment.ExitCode=1;Console.WriteLine("FAIL "+text);}})});Console.WriteLine($"{name}: {(bad==before?"pass":(bad-before)+" failure(s)")}");}Console.WriteLine($"CLASSES: {n} checks, {bad} failures");return;}
+if(args.Contains("--feat89-only")){var n=0;var bad=0;Feat02289AtgmBoxHeSkirtTests.Run((ok,t)=>{n++;Console.WriteLine((ok?"PASS ":"FAIL ")+t);if(!ok){bad++;Environment.ExitCode=1;}});Console.WriteLine($"FEAT89 ONLY: {n} checks, {bad} failures");return;}
+if(args.Contains("--feat88-only")){var n=0;var bad=0;Feat02288DerivedThicknessTests.Run((ok,t)=>{n++;Console.WriteLine((ok?"PASS ":"FAIL ")+t);if(!ok){bad++;Environment.ExitCode=1;}});Console.WriteLine($"FEAT88 ONLY: {n} checks, {bad} failures");return;}
+if(args.Contains("--feat87-only")){var n=0;var bad=0;Feat02287AtgmSightTests.Run((ok,t)=>{n++;Console.WriteLine((ok?"PASS ":"FAIL ")+t);if(!ok){bad++;Environment.ExitCode=1;}});Console.WriteLine($"FEAT87 ONLY: {n} checks, {bad} failures");return;}
+if(args.Contains("--feat86-only")){var n=0;var bad=0;Feat02286HeTests.Run((ok,t)=>{n++;Console.WriteLine((ok?"PASS ":"FAIL ")+t);if(!ok){bad++;Environment.ExitCode=1;}});Console.WriteLine($"FEAT86 ONLY: {n} checks, {bad} failures");return;}
+if(args.Contains("--feat84-only")){var n=0;var bad=0;Feat02284SolidBandsTests.Run((ok,t)=>{n++;Console.WriteLine((ok?"PASS ":"FAIL ")+t);if(!ok){bad++;Environment.ExitCode=1;}});Console.WriteLine($"FEAT84 ONLY: {n} checks, {bad} failures");return;}
+if(args.Contains("--feat83-only")){var n=0;var bad=0;Feat02283SolidOverlayTests.Run((ok,t)=>{n++;Console.WriteLine((ok?"PASS ":"FAIL ")+t);if(!ok){bad++;Environment.ExitCode=1;}});Console.WriteLine($"FEAT83 ONLY: {n} checks, {bad} failures");return;}
+if(args.Contains("--feat82-only")){var n=0;var bad=0;Feat02282SolidBlockFullTests.Run((ok,t)=>{n++;Console.WriteLine((ok?"PASS ":"FAIL ")+t);if(!ok){bad++;Environment.ExitCode=1;}});Console.WriteLine($"FEAT82 ONLY: {n} checks, {bad} failures");return;}
+if(args.Contains("--feat81-only")){var n=0;var bad=0;Feat02281SolidForensicTests.Run((ok,t)=>{n++;Console.WriteLine((ok?"PASS ":"FAIL ")+t);if(!ok){bad++;Environment.ExitCode=1;}});Console.WriteLine($"FEAT81 ONLY: {n} checks, {bad} failures");return;}
+if(args.Contains("--feat80-only")){var n=0;var bad=0;Feat02280FollowFrontTests.Run((ok,t)=>{n++;Console.WriteLine((ok?"PASS ":"FAIL ")+t);if(!ok){bad++;Environment.ExitCode=1;}});Console.WriteLine($"FEAT80 ONLY: {n} checks, {bad} failures");return;}
+if(args.Contains("--feat79-only")){var n=0;var bad=0;Feat02279SolidMarkTests.Run((ok,t)=>{n++;Console.WriteLine((ok?"PASS ":"FAIL ")+t);if(!ok){bad++;Environment.ExitCode=1;}});Console.WriteLine($"FEAT79 ONLY: {n} checks, {bad} failures");return;}
+if(args.Contains("--feat78-only")){var n=0;var bad=0;Feat02278HeshTests.Run((ok,t)=>{n++;Console.WriteLine((ok?"PASS ":"FAIL ")+t);if(!ok){bad++;Environment.ExitCode=1;}});Console.WriteLine($"FEAT78 ONLY: {n} checks, {bad} failures");return;}
 if(args.Contains("--feat77-only")){var n=0;var bad=0;Feat02277SolidBlockTests.Run((ok,t)=>{n++;Console.WriteLine((ok?"PASS ":"FAIL ")+t);if(!ok){bad++;Environment.ExitCode=1;}});Console.WriteLine($"FEAT77 ONLY: {n} checks, {bad} failures");return;}
 if(args.Contains("--trace76")){Trace76.Run();return;}
 if(args.Contains("--feat76-only")){Feat02276RobustTests.Run((ok,t)=>{Console.WriteLine((ok?"PASS ":"FAIL ")+t);if(!ok)Environment.ExitCode=1;},args.Contains("--before"),!args.Contains("--no-measure"));return;}
@@ -1130,7 +1152,7 @@ Check(new ComponentDamage("destroyed",true).Merge(new("damaged",false)).Text=="d
 Check(!new ComponentDamage("damaged",false).Merge(new("wounded",false)).Fatal,"damage cannot become inferred death");
 Check(DamageFeedTruth.Label("<Custom>\nplate","fallback")=="Customplate","custom labels plain sanitized text");
 Check(DamageFeedTruth.Label("  ","Plate #4")=="Plate #4","empty name uses truthful ID fallback");
-Check(DamageFeedTruth.Label(new string('x',100),"fallback").Length==32,"native labels bounded");
+Check(DamageFeedTruth.Label(new string('x',100),"fallback").Length==48,"native labels bounded (0.22.81: 48 characters)");
 Check(DamageFeedTruth.StructureLabel("Upper glacis","Unnamed Structure","Plate #4")=="Upper glacis","saved instance name overrides unnamed template");
 Check(DamageFeedTruth.StructureLabel("Driver bulkhead","Turret","Plate #4")=="Driver bulkhead","saved instance label wins over differently named template");
 Check(DamageFeedTruth.StructureLabel(null,"Front plate","Plate #4")=="Front plate","missing instance mesh uses named template");
@@ -1138,7 +1160,7 @@ Check(DamageFeedTruth.StructureLabel("<>\r\n", "Front plate","Plate #4")=="Front
 Check(DamageFeedTruth.StructureLabel(null,null,"Plate #196")=="Plate #196","missing names retain exact component ID fallback");
 Check(DamageFeedTruth.StructureLabel("  ","<>\n","Plate #196")=="Plate #196","empty sanitized names retain truthful ID fallback");
 Check(DamageFeedTruth.StructureLabel("<Upper>\nglacis","Wrong template","Plate #4")=="Upperglacis","instance labels sanitized consistently");
-Check(DamageFeedTruth.StructureLabel(new string('x',100),"template","Plate #4").Length==32,"saved instance labels bounded for HUD");
+Check(DamageFeedTruth.StructureLabel(new string('x',100),"template","Plate #4").Length==48,"saved instance labels bounded for HUD (0.22.81: 48 characters)");
 var feed=new DamageFeedBuffer();feed.Add(1,new[]{"ERA 500 -> 346 mm","Penetrated plate 40 mm left"});
 Check(feed.Visible(8.99).Count==2,"ERA and layer outcomes coexist until expiration");
 Check(feed.Visible(9).Count==0,"feed rows expire at eight seconds");
@@ -1541,6 +1563,21 @@ Fix02234Tests.Run(Check);Fix02235Tests.Run(Check);Fix02236Tests.Run(Check);Feat0
 Feat02252SpentRenderTests.Run(Check);Fix02251ChainReviewTests.Run(Check);Feat02253ComposerFillTests.Run(Check);Feat02254ComposerFixTests.Run(Check);ComposerFillBlueprintEvidence.RunCoverage(Check);ComposerFillBlueprintEvidence.RunConform(Check);ComposerFillBlueprintEvidence.RunShell(Check);ComposerFillBlueprintEvidence.RunShellDepth(Check);ComposerFillBlueprintEvidence.RunLayerFaces(Check);ComposerFillBlueprintEvidence.RunLayerBox(Check);ComposerFillBlueprintEvidence.RunLayerShape(Check);ComposerFillBlueprintEvidence.RunLayerAccept(Check);ComposerFillBlueprintEvidence.RunLayerDirection(Check);ComposerFillBlueprintEvidence.RunNegativeTm(Check);ComposerFillBlueprintEvidence.RunOpenBox(Check);ComposerFillBlueprintEvidence.RunPainted(Check);ComposerFillBlueprintEvidence.RunRobust(Check);ComposerFillBlueprintEvidence.RunUniform(Check);ComposerFillBlueprintEvidence.RunRelayer(Check);Feat02270HousingLookTests.Run(Check);Feat02272ModuleIconTests.Run(Check);Feat02273WtVariantTests.Run(Check);Feat02274OverlayApplyTests.Run(Check);Feat02275FollowWallTests.Run(Check);Feat02275ReviewFixTests.Run(Check);
 Feat02276RobustTests.Run(Check);
 Feat02277SolidBlockTests.Run(Check);
+Feat02278HeshTests.Run(Check);
+Feat02279SolidMarkTests.Run(Check);
+Feat02280FollowFrontTests.Run(Check);
+Feat02281SolidForensicTests.Run(Check);
+Feat02282SolidBlockFullTests.Run(Check);
+Feat02283SolidOverlayTests.Run(Check);
+Feat02284SolidBandsTests.Run(Check);
+Feat02286HeTests.Run(Check);
+Feat02287AtgmSightTests.Run(Check);
+Feat02288DerivedThicknessTests.Run(Check);
+Feat02289AtgmBoxHeSkirtTests.Run(Check);
+Feat02290NativeDivisorTests.Run(Check);
+Feat02291ModuleLayersTests.Run(Check);
+Feat02292AtgmSightHudTests.Run(Check);
+Feat02299HeatAndAmmoTests.Run(Check);
 if(collected.Count>0){foreach(var f in collected)Console.Error.WriteLine("COLLECTED FAILURE: "+f);throw new Exception(collected.Count+" collected failures");}
 Console.WriteLine($"ATGM flight and tracer checks PASS: {checks} total checks.");
 

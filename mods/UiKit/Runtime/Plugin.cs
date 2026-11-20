@@ -5,8 +5,10 @@ using HarmonyLib;
 using SprocketKeybinds;
 namespace SprocketUiKit;
 
+/// <summary>Not part of the public contract. BepInEx plugin entry point.</summary>
 [BepInPlugin(UiKit.PluginGuid, "Sprocket UI Kit", UiKit.Version)]
-[BepInDependency(Keybinds.PluginGuid, ">=0.1.3 <0.2.0")]
+[BepInDependency(Keybinds.PluginGuid, ">=0.1.10 <0.2.0")]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public sealed class Plugin : BasePlugin
 {
     internal static Plugin Instance = null!;
@@ -19,6 +21,8 @@ public sealed class Plugin : BasePlugin
     internal static void Trace(string message) => Instance.Log.LogInfo(message);
     private readonly List<Harmony> harmonies = new();
 
+    /// <summary>Not part of the public contract. BepInEx startup entry point.</summary>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public override void Load()
     {
         Instance = this;
@@ -30,6 +34,16 @@ public sealed class Plugin : BasePlugin
         BlockKeysWhilePanelFocused = Config.Bind("Input", "BlockKeysWhilePanelFocused", true, "Disable game actions while a normal Kit panel owns keyboard focus; mod keybinds and native UI stay active.");
         SuspendGameKeys = Config.Bind("Input", "SuspendGameKeysWhileTyping", true, "While a kit text field has focus, disable the game's keyboard actions (restored on blur).");
         var skip = Config.Bind("Input", "SkipBlockTargets", "", "Comma-separated input-block targets to leave unpatched, e.g. 'ScopeCameraController.ProcessInputs' or 'Fire'.");
+
+        Keybinds.RegisterModMetadata(UiKit.PluginGuid, "Nero", "UI Kit");
+        ModSettings.Register(UiKit.PluginGuid, DetailedLogging, new SettingOptions { Label = "Detailed logging" });
+        ModSettings.Register(UiKit.PluginGuid, ScaleFactor);
+        ModSettings.Register(UiKit.PluginGuid, FontSource, new SettingOptions { RequiresRestart = true });
+        ModSettings.Register(UiKit.PluginGuid, BlockGameplay);
+        ModSettings.Register(UiKit.PluginGuid, BlockKeysWhilePanelFocused);
+        ModSettings.Register(UiKit.PluginGuid, SuspendGameKeys);
+        ModSettings.Register(UiKit.PluginGuid, skip, new SettingOptions { Advanced = true, RequiresRestart = true });
+        SettingsMenu.Register();
 
         // Optional parts never stop the kit (and its dependents) from loading.
         PatchGroup("pointer", typeof(PointerHooks), "designer click-through guard");
@@ -52,9 +66,11 @@ public sealed class Plugin : BasePlugin
         try { h.PatchAll(hooks); harmonies.Add(h); return true; }
         catch (Exception ex) { try { h.UnpatchSelf(); } catch { } Log.LogWarning($"[UI Kit] Optional hooks for {what} unavailable: {ex.Message}"); return false; }
     }
+    /// <summary>Not part of the public contract. BepInEx shutdown entry point.</summary>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public override bool Unload()
     {
-        try { Kit.Shutdown(); Demo.Unregister(); }
+        try { SettingsMenu.Unregister(); Kit.Shutdown(); Demo.Unregister(); }
         finally { foreach (var h in harmonies) h.UnpatchSelf(); }
         return true;
     }

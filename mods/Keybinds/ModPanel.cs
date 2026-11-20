@@ -11,7 +11,8 @@ namespace SprocketKeybinds;
 // Owns presentation only: existing mod registrations, IDs and save data are unchanged.
 internal static class ModPanel
 {
-    private static GameObject? panel, launcher;
+    private static GameObject? panel, launcher, settingsLauncher;
+    private static TMP_Text? settingsValue;
     private static RectTransform? content, titleBar, footer, scrollArea, freeBlock, warningRow;
     private static TMP_Text? help, freeTitle, freeNote, warningText;
     private static RectTransform? escapeHint;
@@ -63,7 +64,7 @@ internal static class ModPanel
     }
     internal static void Ensure(SettingsMenu menu, GameObject templateRoot, RebindActionUI template)
     {
-        if (panel != null) return;
+        if (panel != null) { RefreshSettingsLauncher(); return; }
         PanelStyle.Initialize(template.ActionLabel.font);
         PanelStyle.SetScale(PanelStyle.ReferenceScale(Screen.height, PanelStyle.CanvasScale(menu.keymappingGUI.transform)));
         var panelRect = Rect("ModKeybinds.Panel", menu.keymappingGUI.transform);
@@ -103,36 +104,61 @@ internal static class ModPanel
         PanelStyle.Outline(panelRect, PanelStyle.Frame, 6);
         CreateFreeKeys(); Chrome(); panel.SetActive(false);
 
-        var staging = new GameObject("ModKeybinds.LauncherStaging"); staging.SetActive(false);
+        launcher = CreateLauncher(templateRoot, "ModKeybinds.Open", "Mod keybinds", Open, out _);
+        settingsLauncher = CreateLauncher(templateRoot, "ModSettings.Open", "Mod settings",
+            () => Plugin.Safe(OpenSettings), out settingsValue);
+        RefreshSettingsLauncher();
+    }
+    private static GameObject CreateLauncher(GameObject templateRoot, string name, string label, Action click, out TMP_Text value)
+    {
+        var staging = new GameObject(name + ".LauncherStaging"); staging.SetActive(false);
         try
         {
-            launcher = Object.Instantiate(templateRoot, staging.transform, false).Cast<GameObject>();
-            launcher.name = "ModKeybinds.Open";
-            var ui = launcher.GetComponentInChildren<RebindActionUI>(true);
+            var row = Object.Instantiate(templateRoot, staging.transform, false).Cast<GameObject>();
+            row.name = name;
+            var ui = row.GetComponentInChildren<RebindActionUI>(true);
             ui.enabled = false;
-            ui.ActionLabel.text = "Mod keybinds";
+            ui.ActionLabel.text = label;
             ui.BindingText.text = "Open";
-            foreach (var tab in launcher.GetComponentsInChildren<Sprocket.UI.Tab>(true))
+            value = ui.BindingText;
+            foreach (var tab in row.GetComponentsInChildren<Sprocket.UI.Tab>(true))
             {
                 bool opens = ui.BindingText.transform.IsChildOf(tab.transform);
                 if (!opens) { tab.gameObject.SetActive(false); continue; }
                 tab.Clicked = null; tab.onClick = new UnityEvent();
-                tab.onClick.AddListener(DelegateSupport.ConvertDelegate<UnityAction>((Action)Open));
+                tab.onClick.AddListener(DelegateSupport.ConvertDelegate<UnityAction>(click));
                 tab.enabled = true; tab.interactable = true; tab.SetState(Sprocket.Selection.TabState.Normal);
             }
-            foreach (var button in launcher.GetComponentsInChildren<UnityEngine.UI.Button>(true))
+            foreach (var button in row.GetComponentsInChildren<UnityEngine.UI.Button>(true))
             {
                 if (button.GetComponent<Sprocket.UI.Tab>() != null) continue;
                 if (!ui.BindingText.transform.IsChildOf(button.transform)) { button.gameObject.SetActive(false); continue; }
                 button.onClick = new UnityEngine.UI.Button.ButtonClickedEvent();
-                button.onClick.AddListener(DelegateSupport.ConvertDelegate<UnityAction>((Action)Open));
+                button.onClick.AddListener(DelegateSupport.ConvertDelegate<UnityAction>(click));
                 button.interactable = true;
             }
             Object.Destroy(ui);
-            launcher.transform.SetParent(templateRoot.transform.parent, false);
-            launcher.transform.SetAsLastSibling(); launcher.SetActive(true);
+            row.transform.SetParent(templateRoot.transform.parent, false);
+            row.transform.SetAsLastSibling(); row.SetActive(true);
+            return row;
         }
         finally { Object.Destroy(staging); }
+    }
+    private static void OpenSettings()
+    {
+        if (!ModSettings.HasPresenter) { RefreshSettingsLauncher(); return; }
+        ModSettings.Open();
+        if (settingsValue != null) settingsValue.text = "Opens after Settings";
+    }
+    private static void RefreshSettingsLauncher()
+    {
+        if (settingsLauncher == null || settingsValue == null) return;
+        bool enabled = ModSettings.HasPresenter;
+        settingsValue.text = enabled ? "Open" : "Needs UI Kit";
+        foreach (var tab in settingsLauncher.GetComponentsInChildren<Sprocket.UI.Tab>(true))
+            if (settingsValue.transform.IsChildOf(tab.transform)) tab.interactable = enabled;
+        foreach (var button in settingsLauncher.GetComponentsInChildren<UnityEngine.UI.Button>(true))
+            if (button.GetComponent<Sprocket.UI.Tab>() == null && settingsValue.transform.IsChildOf(button.transform)) button.interactable = enabled;
     }
     private static void Chrome() => PanelStyle.Guard(() =>
     {
@@ -372,6 +398,8 @@ internal static class ModPanel
     {
         if (panel != null) Object.Destroy(panel);
         if (launcher != null) Object.Destroy(launcher);
+        if (settingsLauncher != null) Object.Destroy(settingsLauncher);
+        settingsLauncher = null; settingsValue = null;
         panel = null; launcher = null; content = null; titleBar = footer = scrollArea = freeBlock = warningRow = escapeHint = null;
         help = freeTitle = freeNote = warningText = null; authorButton = packButton = null; authorBorder = packBorder = null;
         freeKeyLayoutPending = false; freeGroups.Clear(); headers.Clear(); parentHeaders.Clear(); clearButtons.Clear();

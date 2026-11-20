@@ -80,7 +80,7 @@ internal static class Fix02251ChainReviewTests
         var close=reactions.Substring(reactions.IndexOf("internal static void Close(",StringComparison.Ordinal));
         check(Regex.IsMatch(close,@"^internal static void Close\(PenetrationSimulation sim,short index,int countBefore\)\s*\{\s*var write=Restore\(sim\.Pointer,index\);"),"Close restores before anything else");
         var responses=Read("RuntimeArmourResponses.cs");
-        check(Regex.IsMatch(responses,@"finally\s*\{\s*// 0\.22\.28: the block is done[^\n]*\n\s*try\{if\(current!=null\)NativeMaterialReactions\.Close\(current\.Sim,current\.Index,current\.CountBefore\);\}"),
+        check(Regex.IsMatch(Feat02278HeshTests.Unhesh(responses),@"finally\s*\{\s*// 0\.22\.28: the block is done[^\n]*\n\s*try\{if\(current!=null\)NativeMaterialReactions\.Close\(current\.Sim,current\.Index,current\.CountBefore\);\}"),
             "the SimulateFragment finalizer restores in a finally block (exception, early return, native stop or deflection)");
         check(responses.Contains("[HarmonyFinalizer,HarmonyPatch(typeof(CompoundStructure),nameof(CompoundStructure.SimulateFragment))]"),"restore runs in a Harmony finalizer, which also runs when native throws");
         var sources=Directory.GetFiles(root,"*.cs",SearchOption.AllDirectories).Where(p=>!p.Contains(Path.DirectorySeparatorChar+"tests"+Path.DirectorySeparatorChar)&&!p.Contains(Path.DirectorySeparatorChar+"obj"+Path.DirectorySeparatorChar)).ToArray();

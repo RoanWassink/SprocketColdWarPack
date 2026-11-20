@@ -2,8 +2,10 @@ using System.Globalization;
 namespace SprocketUiKit;
 
 /// <summary>Screen corner (or edge centre) a HUD is anchored to.</summary>
+/// <summary>BottomCentre UI data and behavior.</summary>
 public enum HudCorner { TopLeft, TopRight, BottomLeft, BottomRight, TopCentre, BottomCentre }
 /// <summary>Lamp colour: on (green), warning (amber), error (red).</summary>
+/// <summary>Error UI data and behavior.</summary>
 public enum LampKind { On, Warning, Error }
 
 /// <summary>What Esc does, in priority order (pure, tested).</summary>

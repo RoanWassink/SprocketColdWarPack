@@ -35,6 +35,15 @@ internal static class Feat02270HousingLookTests
         public void Destroy(FakeMesh m){if(!m.Destroyed){m.Destroyed=true;Destroyed++;}}
         public int Submeshes(FakeMesh m)=>m.Submeshes;
     }
+    /// <summary>0.22.89 adapted: BOX-EVIDENCE.json equal to a reference apart from its "blueprintSha256" value, which must be the SHA256 of the user's T-80BVM blueprint now.</summary>
+    internal static bool BoxEvidenceSameApartFromInput(string reference,string current)
+    {
+        var oldText=File.ReadAllText(reference);var newText=File.ReadAllText(current);
+        var oldHash=System.Text.RegularExpressions.Regex.Match(oldText,"\"blueprintSha256\": \"([0-9A-F]{64})\"");
+        var nowHash=Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(ComposerFillBlueprintEvidence.UserBlueprint)));
+        var tag="\"blueprintSha256\": \""+nowHash+"\"";
+        return oldHash.Success&&oldHash.Groups[1].Value!=nowHash&&System.Text.RegularExpressions.Regex.Matches(newText,System.Text.RegularExpressions.Regex.Escape(tag)).Count==1&&newText.Replace(tag,"\"blueprintSha256\": \""+oldHash.Groups[1].Value+"\"",StringComparison.Ordinal)==oldText;
+    }
     internal static void Run(Action<bool,string> sink)
     {
         int checks=0;void Check(bool ok,string message){checks++;sink(ok,"FEAT70 housing look: "+message);}

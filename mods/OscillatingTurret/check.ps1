@@ -1,19 +1,21 @@
 # Build and test Sprocket Oscillating Turret, one transcript. Nothing is installed and the game folder is only read.
 #   powershell -NoProfile -File .\check.ps1 -GameDir <folder with BepInEx\core and BepInEx\interop> -WorkDir <scratch folder> `
-#       [-GameRoot <game folder to read>] [-NativeMethodsJson <all-native-methods.json>]
+#       [-GameRoot <game folder to read>] [-NativeMethodsJson <all-native-methods.json> -Cpp2ILDir <dummy DLL folder>]
 # Steps: 1 mesh data regenerated from the STLs must equal src\HeavyTrunnionMeshData.cs; 2 build (0 errors) and a second,
 # non-incremental build that must give the same SHA256 (deterministic, no pdb path in the DLL); 3 part JSONs and localization
 # next to the DLL equal their sources; 4 the test project (needs the built DLL); 5 the ICF audit of the native hook targets
-# (only with -NativeMethodsJson; needs the game's MLLoader Cpp2IL output, read only); 6 SHA256 summary.
+# (only with -NativeMethodsJson; needs -Cpp2ILDir, read only); 6 SHA256 summary.
 # Exit 0 only when everything passes. Log: <WorkDir>\check.log.
 param(
   [Parameter(Mandatory = $true)][string]$GameDir,
   [Parameter(Mandatory = $true)][string]$WorkDir,
   [string]$GameRoot = 'C:\Program Files (x86)\Steam\steamapps\common\Sprocket',
   [string]$NativeMethodsJson = '',
+  [string]$Cpp2ILDir = '',
   [string]$Configuration = 'Release'
 )
 $ErrorActionPreference = 'Stop'
+if ($NativeMethodsJson -and -not $Cpp2ILDir) { throw '-NativeMethodsJson requires -Cpp2ILDir' }
 $root = $PSScriptRoot
 $project = Join-Path $root 'src\SprocketOscillatingTurret.csproj'
 $tests = Join-Path $root 'tests\OT.Tests.csproj'
@@ -82,7 +84,7 @@ if ($testExit -ne 0) { Say "TESTS FAILED exit=$testExit"; Finish 1 }
 if ($NativeMethodsJson) {
   $meta = Join-Path $WorkDir 'icf-metadata.json'
   $report = Join-Path $WorkDir 'icf-targets.json'
-  $export = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'tests\Export-IcfMetadata.ps1') -GameDir $GameRoot -Output $meta 2>&1
+  $export = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'tests\Export-IcfMetadata.ps1') -GameDir $GameRoot -Cpp2ILDir $Cpp2ILDir -Output $meta 2>&1
   $exportExit = $LASTEXITCODE
   $export | ForEach-Object { Say "metadata: $_" }
   if ($exportExit -ne 0) { Say "METADATA EXPORT FAILED exit=$exportExit"; Finish 1 }

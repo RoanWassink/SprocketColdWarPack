@@ -1,8 +1,8 @@
 # Sprocket Expanded Ballistics
 
-A BepInEx IL2CPP plugin that adds **APFSDS long/short rod, APHE, HE, HEAT, HESH and guided ATGM** profiles to Sprocket.
+A vibe-coded BepInEx IL2CPP plugin that adds **APFSDS long/short rod, APHE, HE, HEAT, HESH and guided ATGM** profiles to Sprocket.
 
-The shell module bundles AI missile aiming/guidance, finite motor burn and coasting, a gun-launched SACLOS example and separate launcher/gun-launched sounds. The latest gun-launched sound has its level matched to the launcher sound, a shorter fade-in and its silent tail removed. Player guidance and AI aiming were accepted in gameplay testing; exact audible balance against stock cannon fire can vary and has not been comprehensively checked.
+Built with AI assistance. The shell module bundles AI missile aiming/guidance, finite motor burn and coasting, a gun-launched SACLOS example and separate launcher/gun-launched sounds. The latest gun-launched sound has its level matched to the launcher sound, a shorter fade-in and its silent tail removed. Player guidance and AI aiming were accepted in gameplay testing; exact audible balance against stock cannon fire can vary and has not been comprehensively checked.
 
 ## Requirements
 
@@ -139,7 +139,7 @@ Output: `bin\Release\net6.0\SprocketExpandedBallistics.dll`. Game/loader assembl
 
 ## Credits
 
-Created by Nero. The native inspector integration follows the pattern used by Hans21223's *Sprocket Quality of Life*.
+Created by Nero with AI assistance. The native inspector integration follows the pattern used by Hans21223's *Sprocket Quality of Life*.
 
 ## License
 

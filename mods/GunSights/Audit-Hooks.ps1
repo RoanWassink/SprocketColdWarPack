@@ -16,7 +16,7 @@ Get-ChildItem (Join-Path $GameDir 'BepInEx\interop\Sprocket*.dll')|ForEach-Objec
 $plugin=[Mono.Cecil.AssemblyDefinition]::ReadAssembly($Dll)
 $result=@()
 try {
- foreach($name in @('SightChoices','ScopeRuntime')){
+ foreach($name in @('SightChoices','ScopeRuntime','SightPersistence')){
   $type=$plugin.MainModule.Types|Where-Object Name -eq $name
   foreach($m in $type.Methods){
    $patches=@($m.CustomAttributes|Where-Object {$_.AttributeType.FullName -eq 'HarmonyLib.HarmonyPatch'})

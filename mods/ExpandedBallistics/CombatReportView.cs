@@ -93,10 +93,36 @@ internal static class CombatReportView
         =>v.Layer?.AirGapMm is {} gap?GapName(v.Layer,gap):parts.Length==1?PlateName(parts[0].Name,parts[0].Entity)+CombatLayerContinuity.Suffix(v.Crossing):parts.Length>1?$"{CombatReportLanguage.ArrayName} ({parts.Length} plates)":v.Layer?.Parts.FirstOrDefault() is {} first?ModuleName(first)+CombatLayerContinuity.Suffix(v.Crossing):CombatReportLanguage.Module(v.Name);
     private static string PlateCell(CombatHitView v,CombatLayerPart[] parts)
     {
-        var name=Plate(v,parts);var suffix=CombatLayerContinuity.Suffix(v.Crossing);
-        // Keep the qualifier intact on its own line in the fixed-width native table.
-        return suffix.Length>0&&name.EndsWith(suffix,StringComparison.Ordinal)
-            ?Clean(name[..^suffix.Length],Fit(1))+"\n"+suffix.TrimStart():Clean(name,Fit(1));
+        var name=Plate(v,parts);
+        var lines=new List<string>();
+        var suffix=CombatLayerContinuity.Suffix(v.Crossing);
+        string? crossing=null,tag=null;
+        if(suffix.Length>0&&name.EndsWith(suffix,StringComparison.Ordinal))
+        {
+            name=name[..^suffix.Length].TrimEnd();
+            crossing=suffix.TrimStart();
+        }
+        bool derived=name.EndsWith(LayeredPlateReport.DerivedLabel,StringComparison.Ordinal);
+        if(derived)name=name[..^LayeredPlateReport.DerivedLabel.Length].TrimEnd();
+        if(name.EndsWith(" [Solid block]",StringComparison.Ordinal))
+        {
+            name=name[..^" [Solid block]".Length].TrimEnd();
+            tag="[Solid block]";
+        }
+        else if(derived)
+        {
+            tag="(from path)";
+        }
+        if(tag==null&&name.StartsWith(CombatReportLanguage.ArrayName+" (",StringComparison.Ordinal)&&name.EndsWith(")",StringComparison.Ordinal))
+        {
+            int open=CombatReportLanguage.ArrayName.Length+1;
+            tag=name[open..];
+            name=CombatReportLanguage.ArrayName;
+        }
+        lines.Add(Clean(name,Fit(1)));
+        if(tag!=null)lines.Add(Clean(tag,Fit(1)));
+        if(crossing!=null)lines.Add(crossing);
+        return string.Join("\n",lines);
     }
     /// <summary>0.22.41: a vehicle module or crew position as the report names it ("ammunition stowage", "main gun", "Crew").</summary>
     internal static string ModuleName(CombatLayerPart part)=>part.Armour?PlateName(part.Name,part.Entity):CombatReportLanguage.Module(IsNumericName(part.Name)?PlateName(part.Name,part.Entity):part.Name);

@@ -52,7 +52,7 @@ internal static class Feat02276RobustTests
    foreach(var e in second["edges"]!.AsArray())first["edges"]!.AsArray().Add(e!.GetValue<int>()+offset);foreach(var e in second["edgeFlags"]!.AsArray())first["edgeFlags"]!.AsArray().Add(e!.GetValue<int>());
    foreach(var f in second["faces"]!.AsArray()){var copy=f!.DeepClone();for(int j=0;j<copy["v"]!.AsArray().Count;j++)copy["v"]![j]=copy["v"]![j]!.GetValue<int>()+offset;first["faces"]!.AsArray().Add(copy);}
    var mask=new bool[12];for(int i=0;i<6;i++)mask[i]=true;mask[6]=true;
-   var partial=LayerFaces.Convert(first.ToJsonString(),recipe,null,Density,Vector3.UnitZ,5,null,mask);C(partial.Plan.FollowWall?.Warning==true&&partial.Sources.Any(s=>s.Converted),"above-one-third wall share produces a warning and a plan");
+   var partial=LayerFaces.Convert(first.ToJsonString(),recipe,null,Density,Vector3.UnitZ,5,null,mask);C(partial.Plan.FollowWall!=null&&partial.Sources.Any(s=>s.Converted),"a partial selection produces a plan with its diagnostic (0.22.80: the fully selected box has no back and runs to the chosen thickness; the yellow warning is tested in FEAT80)");
    C(partial.Plan.Summary.Contains("of 7 selected faces got layers")&&partial.Plan.Summary.Contains("kept as steel wall"),"honest summary with count and selected area");
    var thin=first.DeepClone();foreach(var f in thin["faces"]!.AsArray())for(int j=0;j<f!["t"]!.AsArray().Count;j++)f["t"]![j]=1;
    var thinResult=LayerFaces.Convert(thin.ToJsonString(),recipe,null,Density,Vector3.UnitZ,5,null,mask);
@@ -63,7 +63,7 @@ internal static class Feat02276RobustTests
    FollowWallDump.TryWrite(dir,324,attempt with{Summary="overwritten"},messages.Add);C(messages.Count==0&&Directory.GetFiles(dir,"*.json").Length==1&&File.ReadAllText(path).Contains("overwritten"),"one diagnostic file overwritten per plate");
    FollowWallDump.TryWrite(path,324,attempt,messages.Add);C(messages.Count==1,"dump write failure logs once and does not throw");
    var panel=File.ReadAllText(Path.Combine(root,"CassetteComposerPanel.cs"));C(panel.Contains("prepared.Plan.FollowWall?.Warning!=true?StatusKind.Success:StatusKind.Warning"),"partial high-wall success is visibly yellow in panel");
-   bool none=false;try{LayerFaces.Convert(first.ToJsonString(),recipe,null,Density,Vector3.UnitZ,5,null,Enumerable.Repeat(true,12).ToArray());}catch(FollowWallFailure e){none=e.Message.Contains("None of the selected faces")&&e.Faces.Length==12;}C(none,"zero-layer refusal keeps typed outcomes for every selected face");
+   bool none=false;try{LayerFaces.Convert(Feat02280FollowFrontTests.Pentagon(),recipe,null,Density,Vector3.UnitZ,5,null,new[]{true});}catch(FollowWallFailure e){none=e.Message.Contains("None of the selected faces")&&e.Faces.Length==1;} // 0.22.80: a fully selected box now converts; no face of a pentagon can hold layersC(none,"zero-layer refusal keeps typed outcomes for every selected face");
   }
   File.WriteAllText(Path.Combine(output,"FEAT76-"+(before?"BEFORE":"RESULT")+".json"),JsonSerializer.Serialize(new{passed=fail==0,checks=count,failures=fail,cases=rows},new JsonSerializerOptions{WriteIndented=true}));Console.WriteLine($"FEAT76 {(before?"BEFORE":"PASS")}: {count} checks, {fail} failures");
  }

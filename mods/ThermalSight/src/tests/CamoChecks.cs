@@ -56,6 +56,20 @@ internal static class CamoChecks
             Reject(Change("f ","usemtl GlassAccident"),"unknown surface");
             Reject(lines.Where((_,i)=>i!=Array.FindIndex(lines,l=>l.StartsWith("f "))),"missing face");
         }
+        // 0.4.1: authored meshes (FCS, T72, IR) get metric housing UVs from the same generator.
+        using var housing=JsonDocument.Parse(File.ReadAllText(Path.Combine(root,"uv_tools/manifest-housing.json")));
+        var housingNames=housing.RootElement.EnumerateObject().Select(p=>p.Name).ToHashSet();
+        check(housingNames.SetEquals(new[]{"fcs-console.obj","t72-style-sight.obj","ir-searchlight.obj"}),"housing UV manifest lists FCS, T72 and IR");
+        foreach(var item in housing.RootElement.EnumerateObject())
+        {
+            string file=Path.Combine(assets,item.Name);
+            check(Hash(file)==item.Value.GetProperty("output_sha256").GetString(),item.Name+" package hash");
+            check(Hash(Path.Combine(root,"uv_tools/add_uv.py"))==item.Value.GetProperty("generator_sha256").GetString(),item.Name+" generator hash");
+            check(Hash(Path.Combine(root,"uv_tools/original",item.Name))==item.Value.GetProperty("source_sha256").GetString(),item.Name+" original hash");
+            var faces=File.ReadLines(file).Where(l=>l.StartsWith("f ")).ToArray();
+            check(faces.Length==item.Value.GetProperty("triangles").GetInt32() && faces.All(f=>f.Split(' ',StringSplitOptions.RemoveEmptyEntries).Skip(1).All(t=>t.Split('/').Length==3 && t.Split('/').All(x=>x.Length>0))),item.Name+" every face has v/vt/vn");
+            check(File.ReadLines(file).Where(l=>l.StartsWith("vt ")).All(l=>l.Split(' ',StringSplitOptions.RemoveEmptyEntries).Skip(1).All(x=>float.TryParse(x,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out var v)&&float.IsFinite(v)&&Math.Abs(v)<=100)),item.Name+" finite UVs in reader range");
+        }
         // The audit table is the runtime contract: no glass or dark surface may be listed as paint.
         using var audit=JsonDocument.Parse(File.ReadAllText(Path.Combine(root,"uv_tools/camo-surfaces.json")));
         var auditedAssets=new HashSet<string>();var auditedParts=new HashSet<string>();

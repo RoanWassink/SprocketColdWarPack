@@ -37,6 +37,7 @@ internal static class AmmoLoadoutHud
         Destroy();retryAt=Time.unscaledTime+5;
     }
     internal static void Hide()=>view=null;
+    internal static void RefreshNow()=>nextData=0;
     internal static void Destroy()
     {
         try{if(hud!=null)UiKit.DestroyHud(hud);}catch(Exception){}

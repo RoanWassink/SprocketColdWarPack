@@ -20,7 +20,7 @@ internal static class Feat02277SolidBlockTests
     }
     private const int Plate=501;
     /// <summary>The production files 0.22.77 may change on top of 0.22.76 (Solid block; the VerifyCopy addendum of 14-11).</summary>
-    internal static bool IsPlanned(string rel)=>rel is "RuntimeGroupedProtection.cs" or "CompositePlate.cs" or "CheekShellFill.cs" or "Plugin.cs" or "SprocketExpandedBallistics.csproj" or "RELEASE-NOTES.md";
+    internal static bool IsPlanned(string rel)=>rel is "RuntimeGroupedProtection.cs" or "CompositePlate.cs" or "CheekShellFill.cs" or "Plugin.cs" or "SprocketExpandedBallistics.csproj" or "RELEASE-NOTES.md"||Feat02278HeshTests.IsPlanned(rel)||Feat02279SolidMarkTests.IsPlanned(rel)||Feat02281SolidForensicTests.IsPlanned(rel)||Feat02282SolidBlockFullTests.IsPlanned(rel)||Feat02286HeTests.IsPlanned(rel)||Feat02287AtgmSightTests.IsPlanned(rel)||Feat02288DerivedThicknessTests.IsPlanned(rel)||Feat02289AtgmBoxHeSkirtTests.IsPlanned(rel)||Feat02290NativeDivisorTests.IsPlanned(rel); // 0.22.90 and 0.22.89 too; 0.22.78, 0.22.79 and 0.22.81: their planned files count too (0.22.86 and 0.22.87 too)
     // ---------------- geometry: a hollow box (outer box, skins grown inward) and an analytic ray ----------------
     private static (double T0,double T1)? Slab(double[] o,double[] d,double[] min,double[] max)
     {
@@ -121,7 +121,7 @@ internal static class Feat02277SolidBlockTests
         // ---------- marker ----------
         Check(CompositePlate.SolidBlockName=="Composite armour plate [Solid block]"&&CompositePlate.IsSolidBlock("Composite armour plate [Solid block]")&&CompositePlate.IsSolidBlock("Composite armour plate [Solid block] [FW75:x]"),"the marker is the mesh name 'Composite armour plate [Solid block]' (the [Layers] pattern; a saved-front suffix is ignored)");
         Check(!CompositePlate.IsSolidBlock(null)&&!CompositePlate.IsSolidBlock(CompositePlate.Name)&&!CompositePlate.IsSolidBlock(CompositePlate.LayersName)&&!CompositePlate.IsSolidBlock(CompositePlate.BackplaneName)&&!CompositePlate.IsSolidBlock("Composite armour plate [solid block]"),"no other plate name carries the marker");
-        Check(CompositePlate.ModeFromName(CompositePlate.SolidBlockName)==ThicknessMode.Uniform&&CompositePlate.LayoutFromName(CompositePlate.SolidBlockName)==null&&!CompositePlate.IsName(CompositePlate.SolidBlockName),"the marker changes no thickness mode, layout or plate identity (identity stays the recipe material)");
+        Check(CompositePlate.ModeFromName(CompositePlate.SolidBlockName)==ThicknessMode.SolidBlock /* 0.22.82 (B): Solid block is a mode of its own; it was Uniform */&&CompositePlate.LayoutFromName(CompositePlate.SolidBlockName)==null&&!CompositePlate.IsName(CompositePlate.SolidBlockName),"the marker changes no thickness mode, layout or plate identity (identity stays the recipe material)");
 
         // ---------- 1. a closed box of 500 mm, skin 5 mm, straight and at 30 degrees, three recipes ----------
         foreach(var id in new[]{"t80u","t80u_hull","t72m1"})
@@ -317,7 +317,7 @@ internal static class Feat02277SolidBlockTests
     private static int RunVerifyCopy(Action<bool,string> check,string root,string output,IReadOnlyDictionary<string,CassetteMaterial> materials,MaterialReactionCatalogue reactions,IReadOnlyList<CassettePreset> presets)
     {
         int n=0;void C(bool ok,string m){n++;check(ok,"VerifyCopy: "+m);}
-        var dumpPath=Path.Combine(root,"tests","fixtures","follow-wall","follow-wall-plate-324-object293.json");
+        var dumpPath=Path.Combine(root,"tests","fixtures","Object-293-follow-wall-plate-324.json");
         using var dump=JsonDocument.Parse(File.ReadAllText(dumpPath));
         var mesh=dump.RootElement.GetProperty("mesh").GetRawText();var mask=dump.RootElement.GetProperty("selection").EnumerateArray().Select(x=>x.GetBoolean()).ToArray();
         var selected=Enumerable.Range(0,mask.Length).Where(i=>mask[i]).Select(i=>i+1).ToArray();

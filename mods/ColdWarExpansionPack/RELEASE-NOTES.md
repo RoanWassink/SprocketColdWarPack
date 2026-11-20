@@ -9,4 +9,6 @@ Eras (fresh release): the pack now adds three eras of its own, Coldwar1 (from 19
 The plugin and config use `sprocket.coldwarexpansionpack`. Optional pack grouping recognizes the Hydropneumatic, Telescopic Mast, Thermal Sight and Smoke Launchers plugins.
 
 
+[Support development](https://www.paypal.com/donate/?hosted_button_id=7PE3SDBETXFQ6).
+
 <!-- sp-compat {"hamish.sprocket": "0.2.55.5", "bepinex.bepinex": "6.0.0-be.788"} -->

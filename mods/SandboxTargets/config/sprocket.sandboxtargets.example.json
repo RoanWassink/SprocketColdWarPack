@@ -1,9 +1,0 @@
-{
-  "enabled": true,
-  "targets": [
-    { "distance": 150, "lateral": -15, "blueprint": null, "facing": "towards" },
-    { "distance": 250, "lateral": 15, "blueprint": null, "facing": "towards" },
-    { "distance": 350, "lateral": -30, "blueprint": null, "facing": "towards" },
-    { "distance": 500, "lateral": 30, "blueprint": null, "facing": "towards" }
-  ]
-}

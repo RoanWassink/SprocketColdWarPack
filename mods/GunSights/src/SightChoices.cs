@@ -10,14 +10,17 @@ using SerializationInfo = Il2CppSystem.Runtime.Serialization.SerializationInfo;
 namespace SprocketGunSights;
 
 /// <summary>
-/// Per placed sight: the chosen catalogue variant, saved with the sight through the
-/// native component state (same path as the Thermal Sight profile choice).
+/// Per placed sight: the chosen catalogue variant and the "Sight follows gun" choice.
+/// Both are saved in the blueprint object state by <see cref="SightPersistence"/>
+/// (sprocketGunSightsV1). The component SaveData/LoadData route below is the older
+/// variant-only path; it stays as a load fallback.
 /// </summary>
 [HarmonyPatch]
 internal static class SightChoices
 {
     internal const string SaveKey = "sprocketGunSightVariant";
     private static readonly Dictionary<IntPtr, string> chosen = new();
+    private static readonly Dictionary<IntPtr, bool> follow = new();
     private static readonly HashSet<string> warned = new();
 
     internal static SightVariant Variant(GunnerSight sight)
@@ -29,6 +32,52 @@ internal static class SightChoices
     }
 
     internal static bool Saved(GunnerSight sight) => chosen.ContainsKey(sight.Pointer);
+
+    internal static bool IsAtgmGuidance(GunnerSight sight) =>
+        string.Equals(sight.VehicleObject?.GUID, SightCatalogue.AtgmGuidanceSightGuid, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Explicit "Sight follows gun" choice, or null when this sight uses [View] DefaultSightFollowsGun.</summary>
+    internal static bool? FollowChoice(GunnerSight sight) => follow.TryGetValue(sight.Pointer, out var f) ? f : null;
+
+    /// <summary>true = view stays along the sight part (TurretView override); false = native view following the gun.</summary>
+    internal static bool Static(GunnerSight sight) =>
+        SightViewPolicy.Static(FollowChoice(sight), Plugin.DefaultSightFollowsGun, IsAtgmGuidance(sight));
+
+    internal static void SetFollow(GunnerSight sight, bool value)
+    {
+        follow[sight.Pointer] = value;
+        Plugin.Log.LogInfo($"[Gun sights] Sight {sight.VUID.Value} set to {(value ? "follows gun" : "stays static")}.");
+    }
+
+    /// <summary>Row for the object-state envelope; null when nothing was chosen on this sight.</summary>
+    internal static SightStateEntry? SavedEntry(GunnerSight sight)
+    {
+        string? id = chosen.TryGetValue(sight.Pointer, out var v) && SightStateData.ValidId(v) ? v : null;
+        bool? f = IsAtgmGuidance(sight) ? null : FollowChoice(sight);
+        return id == null && f == null ? null : new SightStateEntry(sight.VUID.Value, id, f);
+    }
+
+    /// <summary>
+    /// Batch restore after InstantiateStructured: same store as Select and SetFollow, without the
+    /// date gate (a saved identity stays authoritative, like the LoadData path). null clears.
+    /// </summary>
+    internal static void Restore(GunnerSight sight, string? variant, bool? followGun)
+    {
+        if (variant == null) chosen.Remove(sight.Pointer); else chosen[sight.Pointer] = variant;
+        if (followGun is { } f) follow[sight.Pointer] = f; else follow.Remove(sight.Pointer);
+        ScopeRuntime.SightChanged(sight.Pointer);
+    }
+
+    // Limited diagnostics: one line when a sight becomes active in the scope (max 40 per session).
+    private static int activationLogs;
+    internal static void LogActivation(GunnerSight sight)
+    {
+        if (activationLogs >= 40) return;
+        activationLogs++;
+        var mode = IsAtgmGuidance(sight) ? "free view (ATGM guidance, excluded)"
+            : (Static(sight) ? "stays static" : "follows gun") + (FollowChoice(sight) != null ? " (saved choice)" : $" (default, DefaultSightFollowsGun={Plugin.DefaultSightFollowsGun})");
+        Plugin.Log.LogInfo($"[Gun sights] Sight {sight.VUID.Value} active: {mode}; variant {Variant(sight).Id}{(Saved(sight) ? " (saved)" : " (date default)")}.");
+    }
 
     internal static DateTime? Date(VehicleComponent component)
     {
@@ -65,7 +114,7 @@ internal static class SightChoices
         Plugin.Log.LogInfo($"[Gun sights] Sight {sight.VUID.Value} set to {variant.Id} ({variant.Name}).");
     }
 
-    internal static void Clear() { chosen.Clear(); warned.Clear(); }
+    internal static void Clear() { chosen.Clear(); follow.Clear(); warned.Clear(); }
 
     private static void Warn(string area, Exception ex)
     { if (warned.Add(area)) Plugin.Log.LogWarning($"[Gun sights] {area}: {ex.Message}"); }
@@ -75,8 +124,8 @@ internal static class SightChoices
     {
         try
         {
-            // Only an explicit choice is written; untouched sights keep the era default
-            // and their saved data stays exactly native.
+            // Legacy variant-only key, kept: whether any native path (undo, copy) still reads
+            // component SaveData could not be ruled out. On load the object-state envelope wins.
             if (chosen.TryGetValue(__instance.Pointer, out var id)) __0.AddValue(SaveKey, id);
         }
         catch (Exception ex) { Warn("Save sight", ex); }
@@ -103,7 +152,7 @@ internal static class SightChoices
     }
 
     [HarmonyPostfix, HarmonyPatch(typeof(VehicleComponent), nameof(VehicleComponent.ReleaseInternal))]
-    private static void Release(VehicleComponent __instance) => chosen.Remove(__instance.Pointer);
+    private static void Release(VehicleComponent __instance) { chosen.Remove(__instance.Pointer); follow.Remove(__instance.Pointer); }
 
     // ------------------------------------------------------------------ inspector
     private static bool open = true;
@@ -176,6 +225,27 @@ internal static class SightChoices
                     ui.InfoField($"Saved sight needs {current.AvailableFrom:yyyy-MM-dd}; stock sight is used until then. The saved choice is kept.", 3,
                         new UnityEngine.Color(.6f, .6f, .6f));
                 if (!Saved(sight)) ui.InfoField("Default for this vehicle's date; choose to fix it on this sight.", 2);
+                if (IsAtgmGuidance(sight))
+                    ui.InfoField("Sight follows gun: not used here. The ATGM guidance sight always keeps its own free view.", 2,
+                        new UnityEngine.Color(.6f, .6f, .6f));
+                else
+                {
+                    var follows = !Static(sight);
+                    ui.ToggleField("Sight follows gun", follows,
+                        DelegateSupport.ConvertDelegate<Il2CppSystem.Action<bool>>((Action<bool>)(v =>
+                        {
+                            try
+                            {
+                                if (sight.VehicleObject.Released) return;
+                                SetFollow(sight, v);
+                                __instance.RequestRedraw();
+                            }
+                            catch (Exception ex) { Warn("Follow gun toggle", ex); }
+                        }))!,
+                        "On: the game's own view, aimed with the gun (up and down), stock aim circle shown. Off: the view stays along this sight part (stays static), for sights that should not elevate.");
+                    if (FollowChoice(sight) == null)
+                        ui.InfoField($"Default ({(Plugin.DefaultSightFollowsGun ? "follows gun" : "stays static")}); click to fix it on this sight.", 2);
+                }
                 var linked = Linked(sight);
                 ui.InfoField(linked.Count == 0 ? "Not assigned to any weapon yet." : "Assigned to: " + string.Join(", ", linked.Select(l => l.Name)), 2);
                 if (string.Equals(sight.VehicleObject?.GUID, SightCatalogue.AtgmGuidanceSightGuid, StringComparison.OrdinalIgnoreCase) && linked.Any(l => !l.Launcher))

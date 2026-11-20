@@ -51,7 +51,9 @@ public sealed partial class OrdersHost : MonoBehaviour
     private DeathmatchGameMode? mode;
     private VehicleBehaviour? player, target;
     private IntPtr issuing;
-    private float nextScan;
+    private float nextScan, nextBoundsCapture;
+    private int mapKeyCheckFrame = -1, mapClosedFrame = -1;
+    private bool boundsDiagnosed;
     private readonly QuickMenu quick = new();
     private NumberMenu menu => quick.Menu;
     private VehicleBehaviour[] menuUnits = Array.Empty<VehicleBehaviour>(), menuTargets = Array.Empty<VehicleBehaviour>();
@@ -69,6 +71,18 @@ public sealed partial class OrdersHost : MonoBehaviour
         Current = this;
         try
         {
+            if (mapKeyCheckFrame >= 0 && Time.frameCount > mapKeyCheckFrame)
+            {
+                if (!mapOpen && player != null && Plugin.Detailed) Plugin.Info("AI Orders map key pressed but the panel did not open");
+                mapKeyCheckFrame = -1;
+            }
+            if (Plugin.MapKey.WasPressedThisFrame && Plugin.Detailed)
+            {
+                Plugin.Info($"AI Orders map key: panelOpen={mapOpen}; player={player != null}; context={SprocketUiKit.UiKit.Context}");
+                // The Kit may already have toggled this frame. Only check presses intended to open.
+                if (!mapOpen && mapClosedFrame != Time.frameCount) mapKeyCheckFrame = Time.frameCount;
+            }
+            ExpireMapFeedback();
             if (player != null && Time.timeScale > 0f && !SprocketKeybinds.Keybinds.IsConfiguring && !SprocketUiKit.UiKit.TextInputActive)
             {
                 // BindToggle only works for Kit panels, so poll the existing F9 keybind here.
@@ -99,11 +113,17 @@ public sealed partial class OrdersHost : MonoBehaviour
             if (mode?.Pointer != active.Pointer || player?.Pointer != controlled.Pointer)
             {
                 var sceneChanged = mode?.Pointer != active.Pointer;
-                Reset(); mode = active; player = controlled; CaptureBounds();
+                Reset(); mode = active; player = controlled;
+                followForward = player.transform.forward; followForward.y = 0; followForward = followForward.normalized;
+                if (followForward.sqrMagnitude < .1f) followForward = Vector3.forward;
+                lastLeaderPosition = player.Position;
                 if (sceneChanged) { numbers.Clear(); names.Clear(); contacts.Clear(); gameOrdered.Clear(); DiscardMapTexture(); }
+                CaptureBounds();
                 // Build the topo map in the background so it is ready when opened.
                 if (mapTexture == null && heightRow < 0) StartMapBuild();
             }
+            if (Time.unscaledTime >= nextBoundsCapture) CaptureBounds();
+            else RefreshBattleArea();
             if (Time.timeScale <= 0f) { pending = null; return; }
             Scan();
             var command = pending; pending = null;
@@ -502,8 +522,7 @@ public sealed partial class OrdersHost : MonoBehaviour
     private void MoveSelected(Vector3 point, bool queue)
     {
         var tanks = SelectedTanks();
-        if (tanks.Length == 0) { status = "Select allies in the list or on the map first."; return; }
-        if (!InsideBounds(point)) { status = "That point is outside the battle area."; return; }
+        if (RefuseOrder(point, tanks.Length, queue ? MapClickAction.Waypoint : MapClickAction.Move)) return;
         var from = Vector3.zero;
         foreach (var t in tanks) from += t.Position;
         from /= tanks.Length;
@@ -527,13 +546,16 @@ public sealed partial class OrdersHost : MonoBehaviour
         }
         status = $"{(queue ? "Waypoint added" : "Move")}: {count} unit(s).";
         Plugin.Info(status);
+        if (count > 0) ShowMapFeedback(point, OrderRefusal.None);
     }
 
     [HideFromIl2Cpp]
-    private void AttackSelected(VehicleBehaviour enemy)
+    private void AttackSelected(VehicleBehaviour enemy, Vector3? clicked = null)
     {
+        var tanks = SelectedTanks();
+        if (RefuseOrder(clicked ?? enemy.Position, tanks.Length, MapClickAction.Attack)) return;
         var count = 0;
-        foreach (var tank in SelectedTanks())
+        foreach (var tank in tanks)
         {
             var unit = Claim(tank, Kind.Attack);
             if (unit == null) continue;
@@ -775,27 +797,56 @@ public sealed partial class OrdersHost : MonoBehaviour
         if (owned.Count > 0) Plugin.Info($"Order session reset: releasing {owned.Count} unit(s); player or battle context changed.");
         foreach (var u in owned.Values.ToArray()) Release(u, true);
         CloseMap();
+        ClearMapFeedback();
+        boundsDiagnosed = false;
+        mapKeyCheckFrame = -1;
         quick.MapClosed();
         selected.Clear(); allies.Clear(); enemies.Clear(); player = null; target = null; pending = null; quick.Close(); menuUnits = Array.Empty<VehicleBehaviour>(); menuTargets = Array.Empty<VehicleBehaviour>(); bounds = null;
     }
     [HideFromIl2Cpp]
     private void CaptureBounds()
     {
-        followForward = player!.transform.forward; followForward.y = 0; followForward = followForward.normalized;
-        if (followForward.sqrMagnitude < .1f) followForward = Vector3.forward;
-        lastLeaderPosition = player.Position;
+        nextBoundsCapture = Time.unscaledTime + 1f;
+        var candidates = UObject.FindObjectsOfType<WorldBounds>()
+            .Where(c => c != null && !c.WasCollected && c.gameObject.activeInHierarchy && c.gameObject.scene.name == mode!.gameObject.scene.name).ToArray();
         var smallest = float.PositiveInfinity;
         WorldBounds? best = null;
-        foreach (var candidate in UObject.FindObjectsOfType<WorldBounds>())
+        foreach (var candidate in candidates)
         {
-            if (candidate == null || !candidate.gameObject.activeInHierarchy || candidate.gameObject.scene.name != mode!.gameObject.scene.name) continue;
-            bounds = candidate;
             var area = candidate.size.x * candidate.size.z;
-            if (float.IsFinite(area) && area > 0 && area < smallest && InsideBounds(player!.Position))
+            if (float.IsFinite(area) && area > 0 && area < smallest && ReadBattleArea(candidate).Contains(player!.Position.x, player.Position.y, player.Position.z, 16))
             { smallest = area; best = candidate; }
         }
         bounds = best;
-        if (Plugin.Detailed) Plugin.Info($"AI Orders map bounds: found={bounds != null}; scene={mode!.gameObject.scene.name}.");
+        var changed = RefreshBattleArea();
+        if (!Plugin.Detailed || (!changed && boundsDiagnosed)) return;
+        boundsDiagnosed = true;
+        Plugin.Info($"AI Orders map bounds: candidates={candidates.Length}; found={bounds != null}; scene={mode!.gameObject.scene.name}.");
+        foreach (var candidate in candidates)
+        {
+            var t = candidate.transform; var centre = t.TransformPoint(candidate.centre); var scale = t.lossyScale;
+            var size = candidate.size;
+            var contains = ReadBattleArea(candidate).Contains(player!.Position.x, player.Position.y, player.Position.z, 16);
+            Plugin.Info(FormattableString.Invariant($"AI Orders map bounds candidate: chosen={candidate.Pointer == bounds?.Pointer}; centre=({centre.x:F1}, {centre.y:F1}, {centre.z:F1}); size=({Math.Abs(size.x * scale.x):F1}, {Math.Abs(size.z * scale.z):F1}) m; yaw={t.eulerAngles.y:F1}; containsPlayer={contains}."));
+        }
+    }
+    [HideFromIl2Cpp]
+    private static BattleArea ReadBattleArea(WorldBounds value)
+    {
+        var m = value.transform.worldToLocalMatrix; var c = value.centre;
+        var s = value.size; var scale = value.transform.lossyScale;
+        return new BattleArea(value.Pointer, m.m00, m.m01, m.m02, m.m03 - c.x,
+            m.m20, m.m21, m.m22, m.m23 - c.z, s.x, s.z, scale.x, scale.z);
+    }
+    [HideFromIl2Cpp]
+    private bool RefreshBattleArea()
+    {
+        BattleArea? current = bounds == null || bounds.WasCollected ? null : ReadBattleArea(bounds);
+        if (!MapPolicy.NeedsRebuild(battleArea, current)) return false;
+        battleArea = current;
+        DiscardMapTexture();
+        if (player != null) StartMapBuild();
+        return true;
     }
     [HideFromIl2Cpp]
     private void Diagnose(Unit unit)
@@ -816,14 +867,7 @@ public sealed partial class OrdersHost : MonoBehaviour
     [HideFromIl2Cpp]
     private bool InsideBounds(Vector3 point)
     {
-        if (bounds == null || bounds.WasCollected || !float.IsFinite(point.x) || !float.IsFinite(point.z)) return false;
-        var scale = bounds.transform.lossyScale;
-        var minScale = Math.Min(Math.Abs(scale.x), Math.Abs(scale.z));
-        if (!float.IsFinite(minScale) || minScale < .001f) return false;
-        var local = bounds.transform.InverseTransformPoint(point) - bounds.centre;
-        var size = bounds.size;
-        var margin = 16f / minScale;
-        return float.IsFinite(size.x) && float.IsFinite(size.z) && Math.Abs(local.x) <= size.x / 2 - margin && Math.Abs(local.z) <= size.z / 2 - margin;
+        return battleArea?.Contains(point.x, point.y, point.z, 16) ?? false;
     }
     [HideFromIl2Cpp]
     internal bool Allows(CommanderAI commander, Order order) => !Controls(commander) || commander.Pointer == issuing;

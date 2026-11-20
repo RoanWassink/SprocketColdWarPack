@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
  <PropertyGroup>
   <TargetFramework>net6.0</TargetFramework><LangVersion>12</LangVersion><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
-  <Version>0.1.9</Version>
+  <Version>0.1.10</Version>
   <GameDir Condition="'$(GameDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Sprocket</GameDir>
   <DebugType>none</DebugType><DebugSymbols>false</DebugSymbols><Deterministic>true</Deterministic>
   <PathMap>$(MSBuildProjectDirectory)=/SprocketKeybinds/src</PathMap>

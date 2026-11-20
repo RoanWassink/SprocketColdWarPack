@@ -39,6 +39,21 @@ internal static class RuntimeAtgmAmmoBox
     {if(!boxes.TryGetValue(rack.Pointer,out var state))boxes[rack.Pointer]=state=new(rack);return state;}
     private static void Guard(string area,Action action)
     {try{action();}catch(Exception ex){if(warnings.Add(area))Plugin.ModLog.LogWarning("[ATGM ammo box] "+area+": "+ex.Message);}}
+    // 0.22.89 begin
+    // User 16-11, "ja bouw het vangnet exact hetzelfde": the safety net of Carousel 0.2.28 for every hook of the box. Each hook body runs in a guard (its
+    // TryCast included); an error keeps the game's own behaviour for that call and gives one warning per area. Saving and loading a vehicle never stop on
+    // the box. While no launcher is fed by a box (every vehicle without one), the per-frame hooks return after one count test.
+    private static void Warn(string area,Exception ex)
+    {try{if(warnings.Add(area))Plugin.ModLog.LogWarning("[ATGM ammo box] "+area+" failed; native behaviour kept for that call (logged once): "+ex.Message);}catch{/* logging never changes the game */}}
+    private static bool Guarded(string area,Action action){try{action();return true;}catch(Exception ex){Warn(area,ex);return false;}}
+    /// <summary>The synthetic contributor of a binding stops contributing: the crew's own loading carries on as without the box.</summary>
+    private static void Idle(LoadContributeTask contributor){try{contributor.efficiency=0;contributor.commandEfficiency=0;contributor.operateCount=0;}catch(Exception ex){Warn("Contributor idle",ex);}}
+    /// <summary>The operables the Validate prefix replaced and the list it set, so the finalizer restores only its own change (Carousel's prefix and finalizer run around it).</summary>
+    private sealed class OperablesSwap{internal Il2CppSystem.Collections.Generic.IEnumerable<VehicleOperable>? Original;internal IntPtr Kept;}
+    /// <summary>The old switch [ATGM Launcher Tests] AutomaticAmmoBox is no longer read; one log line when the user's file still holds it. Never throws.</summary>
+    internal static void NoteLegacyKey(string? configPath,BepInEx.Logging.ManualLogSource log)
+    {try{if(string.IsNullOrEmpty(configPath)||!File.Exists(configPath))return;var value=AtgmAmmoBoxRules.LegacySwitch(File.ReadAllText(configPath));if(value!=null)log.LogInfo(AtgmAmmoBoxRules.LegacyNote(value));}catch{/* a note only, never blocks loading */}}
+    // 0.22.89 end
     private static int Count<T>(Il2CppSystem.Collections.Generic.IReadOnlyList<T> list)=>list.Cast<Il2CppSystem.Collections.Generic.IReadOnlyCollection<T>>().Count;
     private static List<Cannon> Cannons(AmmoRack rack,bool dedicatedOnly=true)
     {
@@ -116,15 +131,19 @@ internal static class RuntimeAtgmAmmoBox
     [HarmonyPrefix,HarmonyPatch(typeof(LoadTask),nameof(LoadTask.UpdateRequest)),HarmonyPriority(Priority.Last)]
     private static void SelectSource(LoadTask __instance)
     {
+        if(loaders.Count==0)return; // 0.22.89: no box feed bound: nothing to do, no allocation
+        Guard("Select source",()=>{ // 0.22.89
         var cannon=__instance.target?.TryCast<WeaponBehaviour>()?.mount?.TryCast<Cannon>();
         if(cannon==null||!RuntimeAtgmLauncher.IsLauncher(cannon)||!loaders.ContainsKey(cannon.Pointer))return;
-        Guard("Select source",()=>Choose(__instance,cannon));
+        Choose(__instance,cannon); // 0.22.89 replaced
+        }); // 0.22.89
     }
     [HarmonyPrefix,HarmonyPatch(typeof(LoadTask),nameof(LoadTask.Update))]
     private static void Speed(LoadTask __instance,ref float __0,ref float __1,ref float __2)
     {
         try
         {
+        if(loaders.Count==0)return; // 0.22.89
         var cannon=__instance.target?.TryCast<WeaponBehaviour>()?.mount?.TryCast<Cannon>();
         if(cannon==null||!loaders.TryGetValue(cannon.Pointer,out var binding))return;
         if(__instance.State==LoadState.NeverLoaded)Guard("Bootstrap supply",()=>Choose(__instance,cannon));
@@ -135,7 +154,7 @@ internal static class RuntimeAtgmAmmoBox
     }
     [HarmonyPostfix,HarmonyPatch(typeof(LoadTask),nameof(LoadTask.UpdateRequest))]
     private static void Timings(LoadTask __instance)
-    {var c=__instance.target?.TryCast<WeaponBehaviour>()?.mount?.TryCast<Cannon>();if(c!=null&&loaders.TryGetValue(c.Pointer,out var b)&&Active(b))Timing(__instance,c);}
+    {if(loaders.Count==0)return;Guard("Loading phases",()=>{var c=__instance.target?.TryCast<WeaponBehaviour>()?.mount?.TryCast<Cannon>();if(c!=null&&loaders.TryGetValue(c.Pointer,out var b)&&Active(b))Timing(__instance,c);});} // 0.22.89 replaced
     [HarmonyPostfix,HarmonyPatch(typeof(Cannon),nameof(Cannon.EnableBehaviour))]
     private static void Attach(Cannon __instance)
     {
@@ -145,13 +164,27 @@ internal static class RuntimeAtgmAmmoBox
             var weapon=__instance.Behaviour;var task=weapon?.LoadTask?.TryCast<LoadTask>();if(task==null||weapon==null)return;
             var contributor=loaders.TryGetValue(__instance.Pointer,out var binding)&&binding.Task.Pointer==task.Pointer?binding.Contributor:new LoadContributeTask{efficiency=1,commandEfficiency=1,operateCount=1};
             var old=weapon.LoadTaskContributors;
+            var written=false; // 0.22.89
+            try // 0.22.89
+            { // 0.22.89
             if(old==null||!old.Any(c=>c.Pointer==contributor.Pointer))
             {
                 var array=new Il2CppReferenceArray<ILoadTaskContributor>((old?.Length??0)+1);
                 if(old!=null)for(int i=0;i<old.Length;i++)array[i]=old[i];
-                array[array.Length-1]=contributor.Cast<ILoadTaskContributor>();weapon.LoadTaskContributors=array;
+                array[array.Length-1]=contributor.Cast<ILoadTaskContributor>();weapon.LoadTaskContributors=array;written=true; // 0.22.89 replaced
             }
             loaders[__instance.Pointer]=new(__instance,task,contributor);Choose(task,__instance);
+            } // 0.22.89
+            catch // 0.22.89
+            { // 0.22.89
+                // 0.22.89 begin
+                // As Carousel 0.2.28: the weapon's own contributor array back as it was, no binding, and the synthetic contributor idles, so the crew's
+                // own loading carries on; the outer guard gives the one warning.
+                if(written){try{weapon.LoadTaskContributors=old;}catch(Exception restore){Warn("Contributor restore",restore);}}
+                loaders.Remove(__instance.Pointer);Idle(contributor);
+                throw;
+                // 0.22.89 end
+            } // 0.22.89
         });
     }
     [HarmonyPrefix,HarmonyPatch(typeof(global::VehicleDesigner.AmmunitionStorage.WeaponLoadControllerAssemblyStage),nameof(global::VehicleDesigner.AmmunitionStorage.WeaponLoadControllerAssemblyStage.Execute))]
@@ -160,20 +193,25 @@ internal static class RuntimeAtgmAmmoBox
     [HarmonyPrefix,HarmonyPatch(typeof(VehicleWeaponLoadController),nameof(VehicleWeaponLoadController.Update))]
     private static void Refresh()
     {
+        try // 0.22.89
+        { // 0.22.89
         if(!Ready||loaders.Count==0||updateFrame==Time.frameCount)return;updateFrame=Time.frameCount;
-        foreach(var binding in loaders.Values.ToArray())Guard("Contributor eligibility",()=>
+        foreach(var binding in loaders.Values.ToArray())if(!Guarded("Contributor eligibility",()=> // 0.22.89 replaced
         {
             if(binding.Task.State!=LoadState.Loading&&!(binding.Task.State==LoadState.Loaded&&binding.Task.currentRequest==LoadRequest.Unused))Choose(binding.Task,binding.Cannon);
             var active=Active(binding);binding.Contributor.efficiency=active?1:0;binding.Contributor.commandEfficiency=active?1:0;binding.Contributor.operateCount=(byte)(active?1:0);
             if(!feedStates.TryGetValue(binding.Cannon.Pointer,out var previous)||previous!=active)
             {feedStates[binding.Cannon.Pointer]=active;if(ReleaseDiagnostics.Enabled)Plugin.ModLog.LogInfo($"[ATGM ammo box] {(active?"ACTIVE":"INACTIVE")} cannon={binding.Cannon.VUID.Value} state={binding.Task.State}; automatic contributor eligibility revalidated; native/manual loading retained.");}
-        });
+        }))Idle(binding.Contributor); // 0.22.89 replaced: an error idles that contributor (native loading)
+        } // 0.22.89
+        catch(Exception ex){Warn("VehicleWeaponLoadController.Update",ex);} // 0.22.89
     }
     [HarmonyPrefix,HarmonyPatch(typeof(WeaponBehaviour),nameof(WeaponBehaviour.LoaderEnableFraction),MethodType.Getter)]
     private static bool LoaderFraction(WeaponBehaviour __instance,ref float __result)
     {
         try
         {
+        if(loaders.Count==0)return true; // 0.22.89
         var c=__instance.mount?.TryCast<Cannon>();if(c==null||!loaders.TryGetValue(c.Pointer,out var binding))return true;
         if(Active(binding)){__result=1;return false;}
         var manual=__instance.LoadTaskContributors?.Where(x=>x.Pointer!=binding.Contributor.Pointer).ToArray();
@@ -182,7 +220,8 @@ internal static class RuntimeAtgmAmmoBox
         catch(Exception ex){Guard("Loader availability",()=>throw ex);return true;}
     }
     [HarmonyPrefix,HarmonyPatch(typeof(AllOperablesValidCriterion),nameof(AllOperablesValidCriterion.Validate))]
-    private static void Validate(AllOperablesValidCriterion __instance,out Il2CppSystem.Collections.Generic.IEnumerable<VehicleOperable>? __state)
+    [HarmonyPriority(Priority.Last)] // 0.22.89: after Carousel's prefix (Normal): the two removals nest
+    private static void Validate(AllOperablesValidCriterion __instance,out OperablesSwap? __state) // 0.22.89 replaced
     {
         __state=null;if(!Ready||boxes.Count==0)return;
         try
@@ -194,19 +233,20 @@ internal static class RuntimeAtgmAmmoBox
             if(breech!=null&&breech.loaderOperable?.Pointer==op.Pointer&&boxes.Values.Any(b=>b.Rack.Vehicle.Pointer==breech.Vehicle.Pointer&&Cannons(b.Rack).Any(c=>AtgmAmmoBoxRules.WaivesLoader(c.Vehicle.Pointer==breech.Vehicle.Pointer,RuntimeAtgmLauncher.IsLauncher(c),c.VUID.Value,breech.parentCannonVuid.Value,HasDesign(c)))))changed=true;
             else kept.Add(op);
         }
-        if(changed){__state=original;__instance.operables=kept.Cast<Il2CppSystem.Collections.Generic.IEnumerable<VehicleOperable>>();}
+        if(changed){var swap=new OperablesSwap{Original=original};__state=swap;var list=kept.Cast<Il2CppSystem.Collections.Generic.IEnumerable<VehicleOperable>>();__instance.operables=list;swap.Kept=list.Pointer;} // 0.22.89 replaced
         }
         catch(Exception ex){Guard("Loader validation",()=>throw ex);}
     }
     [HarmonyFinalizer,HarmonyPatch(typeof(AllOperablesValidCriterion),nameof(AllOperablesValidCriterion.Validate))]
-    private static void Restore(AllOperablesValidCriterion __instance,Il2CppSystem.Collections.Generic.IEnumerable<VehicleOperable>? __state)
-    {if(__state!=null)__instance.operables=__state;}
+    [HarmonyPriority(Priority.First)] // 0.22.89: before Carousel's finalizer (Normal): last in, first out
+    private static void Restore(AllOperablesValidCriterion __instance,OperablesSwap? __state) // 0.22.89 replaced
+    {try{if(__state is {Original:{} original} swap&&__instance.operables?.Pointer==swap.Kept)__instance.operables=original;}catch(Exception ex){Warn("AllOperablesValidCriterion.Validate restore",ex);}} // 0.22.89 replaced
     [HarmonyPrefix,HarmonyPatch(typeof(AmmoRack),nameof(AmmoRack.Build))]
     private static void BeforeRack(AmmoRack __instance)
     {
-        if(!Own(__instance))return;Guard("Box design",()=>
+        bool own=false;Guard("Box design",()=>{own=Own(__instance);if(own)Sync(State(__instance));});if(!own)return;Guard("Box mass reset",()=> // 0.22.89 replaced
         {
-            var b=State(__instance);Sync(b);
+            var b=State(__instance); // 0.22.89 replaced
             __instance.SetMass(Math.Max(0,__instance.GetMass(MassType.Mechanisms)-b.AddedMass),MassType.Mechanisms);
             __instance.SetCost(Math.Max(0,__instance.GetCost(MassType.Mechanisms,CostType.Assembly)-b.AddedCost),MassType.Mechanisms,CostType.Assembly);
             b.AddedMass=b.AddedCost=0;
@@ -215,8 +255,9 @@ internal static class RuntimeAtgmAmmoBox
     [HarmonyPostfix,HarmonyPatch(typeof(AmmoRack),nameof(AmmoRack.Build))]
     private static void AfterRack(AmmoRack __instance)
     {
-        if(!Own(__instance))return;Guard("Box mass/model",()=>
+        Guard("Box mass/model",()=> // 0.22.89 replaced
         {
+            if(!Own(__instance))return; // 0.22.89
             var b=State(__instance);b.AddedMass=(float)AtgmAmmoBoxRules.MechanismMass(__instance.Capacity);b.AddedCost=(float)AtgmAmmoBoxRules.MechanismCost(__instance.Capacity);
             __instance.SetMass(__instance.GetMass(MassType.Mechanisms)+b.AddedMass,MassType.Mechanisms);
             __instance.SetCost(__instance.GetCost(MassType.Mechanisms,CostType.Assembly)+b.AddedCost,MassType.Mechanisms,CostType.Assembly);
@@ -225,11 +266,11 @@ internal static class RuntimeAtgmAmmoBox
     }
     [HarmonyPostfix,HarmonyPatch(typeof(Cannon),nameof(Cannon.Build))]
     private static void CannonChanged(Cannon __instance)
-    {if(RuntimeAtgmLauncher.IsLauncher(__instance))foreach(var b in boxes.Values.Where(b=>b.Rack.Vehicle.Pointer==__instance.Vehicle.Pointer).ToArray())Guard("Sync box ammunition",()=>{var old=b.Profile;var id=b.Rack.ShellSizeBlueprintID;Sync(b);if(old!=b.Profile||id!=b.Rack.ShellSizeBlueprintID)b.Rack.RequestRebuild();});}
+    {if(boxes.Count==0)return;Guard("Sync box ammunition",()=>{if(RuntimeAtgmLauncher.IsLauncher(__instance))foreach(var b in boxes.Values.Where(b=>b.Rack.Vehicle.Pointer==__instance.Vehicle.Pointer).ToArray())Guard("Sync box ammunition",()=>{var old=b.Profile;var id=b.Rack.ShellSizeBlueprintID;Sync(b);if(old!=b.Profile||id!=b.Rack.ShellSizeBlueprintID)b.Rack.RequestRebuild();});});} // 0.22.89 replaced
     [HarmonyPostfix,HarmonyPatch(typeof(AmmoRackEditor),nameof(AmmoRackEditor.OnGUI))]
     private static void Draw(AmmoRackEditor __instance,IGUILayout __0)
     {
-        var rack=__instance.Component;if(!Own(rack))return;
+        AmmoRack rack;try{var component=__instance.Component;if(!Own(component))return;rack=component!;}catch(Exception ex){Warn("Box inspector",ex);return;} // 0.22.89 replaced
         Guard("Box inspector",()=>
         {
             var state=State(rack);var ui=__0.TryCast<IGUIElementDrawer>();if(ui==null)return;
@@ -257,17 +298,21 @@ internal static class RuntimeAtgmAmmoBox
     }
     [HarmonyPostfix,HarmonyPatch(typeof(VehicleObjectSerialization),nameof(VehicleObjectSerialization.ToBlueprint))]
     private static void Saved(VehicleObject __0,Sprocket.Vehicles.Serialization.VehicleObjectBlueprint __result)
-    {var parts=__0.Components;for(int i=0;i<Count(parts);i++)if(parts[i].TryCast<AmmoRack>() is {} r&&Own(r)){var b=State(r);__result.State.AddValue(EnabledKey,b.Enabled);__result.State.AddValue(ReferenceKey,b.Reference);__result.State.AddValue(ProfileKey,b.Profile);}}
+    {Guard("Save box",()=>{var parts=__0.Components;for(int i=0;i<Count(parts);i++)if(parts[i].TryCast<AmmoRack>() is {} r&&Own(r)){var b=State(r);__result.State.AddValue(EnabledKey,b.Enabled);__result.State.AddValue(ReferenceKey,b.Reference);__result.State.AddValue(ProfileKey,b.Profile);}});} // 0.22.89 replaced
     [HarmonyPostfix,HarmonyPatch(typeof(VehicleComponent),nameof(VehicleComponent.LoadData))]
     private static void Loaded(VehicleComponent __instance,SerializationInfo __0)
     {
+        try // 0.22.89
+        { // 0.22.89
         var r=__instance.TryCast<AmmoRack>();if(!Own(r))return;var b=State(r!);var keys=new HashSet<string>();var e=__0.GetEnumerator();while(e.MoveNext())keys.Add(e.Name);
         if(keys.Contains(EnabledKey))b.Enabled=__0.GetBoolean(EnabledKey);if(keys.Contains(ReferenceKey))b.Reference=__0.GetInt32(ReferenceKey);if(keys.Contains(ProfileKey))b.Profile=__0.GetString(ProfileKey);
+        } // 0.22.89
+        catch(Exception ex){Warn("VehicleComponent.LoadData box",ex);} // 0.22.89
     }
     [HarmonyPrefix,HarmonyPatch(typeof(Cannon),nameof(Cannon.DisableBehaviour))]
-    private static void Disabled(Cannon __instance){loaders.Remove(__instance.Pointer);reports.Remove(__instance.Pointer);feedStates.Remove(__instance.Pointer);}
+    private static void Disabled(Cannon __instance){try{loaders.Remove(__instance.Pointer);reports.Remove(__instance.Pointer);feedStates.Remove(__instance.Pointer);}catch(Exception ex){Warn("Cannon.DisableBehaviour",ex);}} // 0.22.89 replaced
     [HarmonyPrefix,HarmonyPatch(typeof(VehicleComponent),nameof(VehicleComponent.ReleaseInternal))]
-    private static void Released(VehicleComponent __instance){boxes.Remove(__instance.Pointer);loaders.Remove(__instance.Pointer);reports.Remove(__instance.Pointer);feedStates.Remove(__instance.Pointer);referenceReports.Remove(__instance.Pointer);}
+    private static void Released(VehicleComponent __instance){try{boxes.Remove(__instance.Pointer);loaders.Remove(__instance.Pointer);reports.Remove(__instance.Pointer);feedStates.Remove(__instance.Pointer);referenceReports.Remove(__instance.Pointer);}catch(Exception ex){Warn("VehicleComponent.ReleaseInternal",ex);}} // 0.22.89 replaced
 }
 
 

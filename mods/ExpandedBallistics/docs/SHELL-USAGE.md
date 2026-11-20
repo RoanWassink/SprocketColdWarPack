@@ -65,7 +65,7 @@ Each dedicated launcher starts with **one finite ready missile per new combat in
 
 After that shot, reload from compatible native ammunition with a crew loader, or use the optional **ATGM ammo box** automatic feed:
 
-1. With the game closed, set `AutomaticAmmoBox = true` under `[ATGM Launcher Tests]` in `sprocket.expandedballistics.cfg`, then restart. It is disabled by default.
+1. The automatic feed is on by default (`AutomaticFeed = true` under `[ATGM ammo box]` in `sprocket.expandedballistics.cfg`; to turn it off, set it to false with the game closed and restart). The old `AutomaticAmmoBox` under `[ATGM Launcher Tests]` is no longer read.
 2. Place the dedicated ammo box within **2 metres of the native loading points** of a matching dedicated launcher on the same vehicle.
 3. In the box editor, enable **Automatic feed** and choose its **Ammunition reference**, or use the nearest-launcher option. Match calibre, propellant and profile.
 4. Set native box size and fill. Capacity, ammunition mass, damage and consumption remain finite. Nearby matching launchers share that stock; ordinary racks do not refill it automatically.
@@ -156,5 +156,5 @@ dotnet build SprocketExpandedBallistics.csproj -c Release -p:GameDir="C:\Program
 dotnet run --project tests/ExpandedBallistics.Tests.csproj -c Release
 ```
 
-Native inspector integration follows the pattern used by Hans21223's Sprocket Quality of Life. [MIT](LICENSE) covers the plugin code; supplied audio is documented separately in [audio provenance](audio/README.md).
+Created with AI assistance. Native inspector integration follows the pattern used by Hans21223's Sprocket Quality of Life. [MIT](LICENSE) covers the plugin code; supplied audio is documented separately in [audio provenance](audio/README.md).
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.4 — 2026-11-18
+
+- Poort: GameAssembly van 18-11 (buildid 26757044) toegestaan na ICF/RVA-heraudit; hooks ongewijzigd.
+
+## 0.5.3 — 2026-11-16
+
+- Geweigerde kaartorders tonen 2 s een schermvast rood kruis met `Outside battle area` of `Select allies first`; een volgende klik wist de markering. Geen selectie gaat voor buiten het gebied, ook bij Attack. De statusregel blijft bestaan en weigeringen worden altijd gelogd met de actie en afstand tot de grens zonder de marge van 16 m.
+- Geslaagde Move en Waypoint tonen 1 s een blauwe doelring naast de route.
+- Terrein buiten het gedraaide/geschaalde gevechtsgebied wordt eenmaal per kaartopbouw met factor 0,5 verdonkerd. Een gewijzigd gebied herstart de gespreide opbouw; de grens is nu helder rood en 4 px dik.
+- DetailedLogging toont WorldBounds-kandidaten, gekozen wereldmidden, geschaalde maat en y-hoek, kaart/canvas/zoom bij openen en de gedeelde M-toetsstatus met controle een frame later. Alleen de publieke Kit-API blijft in gebruik.
+- Pure tests uitgebreid voor afstand, redenprioriteit, markeringstijd en gebiedswissels. Verify bewaakt precies drie ongewijzigde Harmony-patches. Niet geïnstalleerd; live kaartfeedback en de open 0.5.2-bewegingstests staan in TESTPLAN.md.
+
 ## 0.5.2 — 2026-10-31
 
 - Fix: een tank die stopte (bij aankomst of na Halt) bleef toch met ongeveer 10 m/s doorrijden richting vijanden. Dat gebeurde in het Expedition-gevecht van de 0.5.1-test. AI Orders zette alleen een HaltTask op de driver, en die houdt de gevechtsbeweging van de commandant niet tegen. Elke halt stuurt nu ook de native Halt-order van de game (`CombatOrder(CombatOrderType.Halt)`); die zet de HaltReason van de commandant.

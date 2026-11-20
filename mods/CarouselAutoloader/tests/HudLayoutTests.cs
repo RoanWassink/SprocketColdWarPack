@@ -288,9 +288,9 @@ internal static class HudLayoutTests
         }
         check(File.ReadAllText(Path.Combine(root, "AmmoHudAnchor.cs")).Contains("\"sprocket.expandedballistics\"") &&
               File.ReadAllText(Path.Combine(root, "AmmoHudAnchor.cs")).Contains("\"Ammunition HUD\""), "Expanded Ballistics GUID and config section");
-        check(File.ReadAllText(Path.Combine(root, "Plugin.cs")).Contains("public const string PluginVersion = \"0.2.34\";") &&
-              File.ReadAllText(Path.Combine(root, "SprocketCarouselAutoloader.csproj")).Contains("<Version>0.2.34</Version>") &&
-              File.ReadAllText(Path.Combine(root, "CHANGELOG.md")).Contains("## 0.2.34"), "version 0.2.34 in Plugin.cs, csproj and CHANGELOG");
+        check(File.ReadAllText(Path.Combine(root, "Plugin.cs")).Contains("public const string PluginVersion = \"0.3.4\";") &&
+              File.ReadAllText(Path.Combine(root, "SprocketCarouselAutoloader.csproj")).Contains("<Version>0.3.4</Version>") &&
+              File.ReadAllText(Path.Combine(root, "CHANGELOG.md")).Contains("## 0.3.4"), "version 0.3.4 in Plugin.cs, csproj and CHANGELOG");
         var plugin = File.ReadAllText(Path.Combine(root, "Plugin.cs"));
         check(plugin.Contains("SoftDependency") && !plugin.Contains(">=0.1.8"), "the kit stays a soft dependency without a version requirement");
     }

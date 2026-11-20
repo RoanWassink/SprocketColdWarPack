@@ -41,6 +41,17 @@ internal static class CombatForensicGeometry
     {
         double extent=m.Layers.Select(l=>l.StartMm+(l.PathMm??0)).DefaultIfEmpty(0).Max();
         float scale=(float)((Width-270)/Math.Max(200,extent));
+        // 0.22.91 (owner review 16-11): behind the last band, the frames of internal modules without a measured path, the marks of other layers without one and the
+        // residual label need room on the right. Only when they do not fit, the millimetre scale is reduced so they do; every other drawing keeps its scale.
+        {
+            var solidLayers=m.Layers.Where(l=>l.GapMm==null).ToArray();
+            int lastBand=Array.FindLastIndex(solidLayers,l=>l.PathMm is >0&&!(l.Internal&&!l.Grouped));
+            float needed=0;
+            for(int i=lastBand+1;i<solidLayers.Length;i++)if(solidLayers[i].PathMm is not >0&&solidLayers[i].ArrayFirst==0)needed+=solidLayers[i].Internal&&!solidLayers[i].Grouped?FrameWidth+10:14;
+            if(needed>0&&m.Outcome=="PENETRATED"&&m.Residual is >0)needed+=ResidualRoom;
+            float available=Width-24-(ForensicSection.Front+(float)(extent*scale));
+            if(needed>available&&extent>0)scale=Math.Min(scale,Math.Max(scale*.25f,(float)((Width-24-ForensicSection.Front-needed)/Math.Max(200,extent)))); // never larger than before; at most 4x smaller
+        }
         float y=Height/2,top=Height*.1f,bottom=Height*.9f;
         float[] Polygon(float entry,float exit,double angle,float? y0=null,float? y1=null)
         {
@@ -107,6 +118,8 @@ internal static class CombatForensicGeometry
                 bands.Add(new(layer,mk.X0,mk.X1,null,null,Array.Empty<float>(),Array.Empty<ForensicSubBand>()));
                 continue;
             }
+            // 0.22.91: a layer without a measured path that follows module frames is marked after them, in shot-line order (not under the frame of an earlier module).
+            if(layer.PathMm is not >0&&!layer.Grouped&&entry<markEnd+10){entry=exit=markEnd+10;markEnd=entry;}
             double? angle=member?.AngleDegrees,normal=member?.ThicknessMm;
             float[] polygon=Array.Empty<float>();var subs=new List<ForensicSubBand>();
             if(layer.PathMm!=null&&angle!=null){polygon=Polygon(entry,exit,angle.Value);subs=Split(layer.Sublayers,entry,exit,angle.Value);}
@@ -162,6 +175,8 @@ internal static class CombatForensicGeometry
     }
     /// <summary>0.22.72: the width of the dotted frame of an internal module without a measured path (not on the millimetre scale).</summary>
     internal const float FrameWidth=34;
+    /// <summary>0.22.91: the room the residual label needs behind the last frame (px).</summary>
+    internal const float ResidualRoom=190;
     internal const string NoDamage="no damage recorded";
     internal const string StateSevere="severe",StateDamaged="damaged",StateNone="none";
     /// <summary>0.22.72: "destroyed" and "incapacitated" are one state, "damaged" and "wounded" another, anything else (no damage recorded) a neutral one.</summary>
@@ -193,6 +208,7 @@ internal static class CombatForensicGeometry
             if(l.Internal&&!l.Grouped)continue; // 0.22.72: an internal module on its own carries its number in its label ("11 Gunner").
             var b=g.Bands.FirstOrDefault(b=>ReferenceEquals(b.Layer,l));
             float cx=g.X(l.StartMm+(l.PathMm??0)/2),ly=g.Top+12;
+            if(b!=null&&b.Polygon.Length==0&&!g.Drawn(l))cx=(b.EntryX+b.ExitX)/2; // 0.22.91: a layer without a band carries its number where it is marked
             // 0.22.71: a band that is cut short keeps its number on the part that is drawn.
             var plateBand=g.Drawn(l)?g.Arrays.SelectMany(a=>a.Plates).FirstOrDefault(p=>cx>=p.EntryX&&cx<=p.ExitX):null;
             float? bandTop=b?.Top??plateBand?.Top,bandBottom=b?.Bottom??plateBand?.Bottom;
@@ -246,6 +262,10 @@ internal static class CombatForensicGeometry
         {
             if(layer.Plate.Length>0&&layer.Plate!=layer.Name)parts.Add(layer.Plate);
             if(layer.Geometry.Length>0)parts.Add(layer.Geometry);
+            // 0.22.81/0.22.98: a solid block or an interval-widened plate states its length along the shot line.
+            if((layer.Solid||layer.PathFromIntervals)&&layer.PathMm is {} along)parts.Add($"{CombatForensics.N(along)} mm along the shot line");
+            // 0.22.91: a layered module states its constituents, the measured reduction and the sum of its confirmed intervals.
+            if(layer.ModuleIntervalsMm is {} intervals)parts.Add($"{layer.ModuleLayers!.Count} layers; measured {CombatForensics.N(layer.AbsorbedMm)} mm RHA-eq, confirmed intervals {CombatForensics.N(intervals)} mm RHA-eq");
             // 0.22.43: "Plate #508 · 55 mm at 23.8° · with fuel tank".
             if(layer.Grouped)parts.Add("with "+(ModuleKind(layer)=="crew position"?"crew position":layer.Module));
         }
@@ -259,7 +279,9 @@ internal static class CombatForensicGeometry
     internal static string PlateDetail(ForensicArrayPlate p)=>string.Join(" · ",new[]{p.Material==p.Name?"":p.Material,PlateGeometry(p.Part)}.Where(s=>s.Length>0));
     /// <summary>"Rolled Homogeneous Armour 4.6 mm, tilted 30°" for one constituent (its extent along the plate normal).</summary>
     internal static string SubDetail(CompositeSublayer s)=>$"{CombatForensics.N(s.NormalMm)} mm"+(s.TiltDegrees>0?$", tilted {CombatForensics.N(s.TiltDegrees)}°":"");
+    internal static bool IsStopSublayer(ForensicLayer layer,CompositeSublayer sub)=>layer.PlateStop!=null&&CombatForensics.StopSublayer(layer) is {} s&&s.Index==sub.Index;
+    internal static string SubDetail(ForensicLayer layer,CompositeSublayer s)=>SubDetail(s)+(IsStopSublayer(layer,s)?" · arrested here":"");
     /// <summary>Every fixed text the forensic screen shows (title, mode toggle, list title, notes, column heads).</summary>
     internal static readonly string[] FixedTexts={ForensicModel.Title,ForensicModel.ModeLabel,ForensicModel.ListTitle,ForensicModel.GeometryNote,ForensicModel.Footnote,
-        ForensicModel.FindingsTitle,ForensicModel.AdviceTitle,ForensicModel.ResidualLabel,"Increase between layers","Reduction between layers","Close"};
+        ForensicModel.FindingsTitle,ForensicModel.AdviceTitle,ForensicModel.ResidualLabel,"Increase between layers","Reduction between layers","Newer impact","Older impact","Close"};
 }

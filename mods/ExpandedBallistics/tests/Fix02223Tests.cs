@@ -250,8 +250,8 @@ internal static class Fix02223Tests
         check(Read("HitPanelHud.cs").Contains("WaterfallChart.Add(",StringComparison.Ordinal)&&Read("CombatReportPanel.cs").Contains("WaterfallChart.Add(",StringComparison.Ordinal),"the hit panel and the Kit report both add the waterfall");
         check(Read("WaterfallChart.cs").Contains(".Waterfall(",StringComparison.Ordinal),"the waterfall uses BarChart.Waterfall");
         var plugin=Read("Plugin.cs");
-        check(plugin.Contains("\"0.22.77\"",StringComparison.Ordinal)&&plugin.Contains("UiKit.PluginGuid, \">=0.1.7 <0.2.0\"",StringComparison.Ordinal)&&plugin.Contains("KitVersionGate.Supported",StringComparison.Ordinal),"version 0.22.77, dependency Kit >=0.1.7, runtime gate");
-        check(Read("SprocketExpandedBallistics.csproj").Contains("<Version>0.22.77</Version>",StringComparison.Ordinal)&&Read("RELEASE-NOTES.md").Contains("0.22.23 (Kit table",StringComparison.Ordinal)&&Read("RELEASE-NOTES.md").Contains("0.22.24 (crash fix",StringComparison.Ordinal)&&Read("RELEASE-NOTES.md").Contains("0.22.25 (line-of-sight correction",StringComparison.Ordinal)&&Read("RELEASE-NOTES.md").Contains("0.22.26 (the line-of-sight correction really",StringComparison.Ordinal),"csproj says 0.22.77; the 0.22.23 to 0.22.26 release notes are kept");
+        check(plugin.Contains("\"0.22.91\"",StringComparison.Ordinal)&&plugin.Contains("UiKit.PluginGuid, \">=0.1.7 <0.2.0\"",StringComparison.Ordinal)&&plugin.Contains("KitVersionGate.Supported",StringComparison.Ordinal),"version 0.22.82, dependency Kit >=0.1.7, runtime gate");
+        check(Read("SprocketExpandedBallistics.csproj").Contains("<Version>0.22.91</Version>",StringComparison.Ordinal)&&Read("RELEASE-NOTES.md").Contains("0.22.23 (Kit table",StringComparison.Ordinal)&&Read("RELEASE-NOTES.md").Contains("0.22.24 (crash fix",StringComparison.Ordinal)&&Read("RELEASE-NOTES.md").Contains("0.22.25 (line-of-sight correction",StringComparison.Ordinal)&&Read("RELEASE-NOTES.md").Contains("0.22.26 (the line-of-sight correction really",StringComparison.Ordinal),"csproj says 0.22.78; the 0.22.23 to 0.22.26 release notes are kept");
     }
 }
 

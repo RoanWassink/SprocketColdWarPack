@@ -1,7 +1,9 @@
 using UnityEngine;
 namespace SprocketUiKit;
 
+/// <summary>FooterButton UI data and behavior.</summary>
 public enum GraphHitKind { Canvas, Node, Port, Wire, FooterButton }
+/// <summary>GraphHit UI data and behavior.</summary>
 public readonly struct GraphHit
 {
     public GraphHitKind Kind { get; init; }

@@ -8,7 +8,7 @@
     <Nullable>enable</Nullable>
     <AssemblyName>SprocketGunSights</AssemblyName>
     <RootNamespace>SprocketGunSights</RootNamespace>
-    <Version>0.2.4</Version>
+    <Version>0.3.0</Version>
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
     <Deterministic>true</Deterministic>

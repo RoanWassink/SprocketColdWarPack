@@ -130,10 +130,15 @@ internal static class Tok
     internal const float FontTitle = 20, FontSection = 15, FontLabel = 14, FontValue = 13, FontSmall = 12, FontTag = 11;
 }
 
+/// <summary>Button appearance variants.</summary>
 public enum ButtonStyle { Normal, Primary, Quiet, Danger }
+/// <summary>Status message severity.</summary>
 public enum StatusKind { Info, Success, Warning, Error }
+/// <summary>Chip appearance variants.</summary>
 public enum ChipStyle { Context, Tag, Accent, Neutral }
+/// <summary>Text typography roles.</summary>
 public enum TextStyle { Title, Section, Label, Value, Small, Faint, BlockTitle, Heading, Keyword, Body }
+/// <summary>Built-in UI glyphs.</summary>
 public enum Icon { None, Close, Trash, Plus, Minus, ChevronDown, ChevronUp, ChevronRight, ArrowRight, Check, Warning, Help, Hinge, Dot, ChevronLeft, Maximize, Restore, ResizeGrip }
 
 /// <summary>One dropdown option; consecutive options with the same <see cref="Group"/> get one group heading.</summary>
@@ -199,4 +204,5 @@ internal static class Look
         return rows;
     }
 }
+/// <summary>Contexts in which a panel or HUD may appear.</summary>
 [Flags] public enum UiContexts { None = 0, Designer = 1, Game = 2, Other = 4, DesignerAndGame = Designer | Game, All = Designer | Game | Other }

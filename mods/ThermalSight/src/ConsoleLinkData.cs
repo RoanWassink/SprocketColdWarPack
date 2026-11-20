@@ -58,13 +58,7 @@ internal static class ConsoleLinkData
         }
         Validate(rows.ToArray());return rows.ToArray();
     }
-    private static void Properties(JsonElement node,params string[] allowed)
-    {
-        if(node.ValueKind!=JsonValueKind.Object)throw new InvalidDataException("Invalid FCS object.");
-        var names=new HashSet<string>();
-        foreach(var p in node.EnumerateObject())
-            if(!allowed.Contains(p.Name)||!names.Add(p.Name))throw new InvalidDataException("Unknown/duplicate FCS field.");
-    }
+    private static void Properties(JsonElement node,params string[] allowed)=>ObjectStateRows.Properties(node,"FCS",allowed);
     private static void Validate(ConsoleLinkEntry[] rows)
     {
         if(rows.Length>64||rows.Any(r=>r==null||r.Sight<0||r.Console<0)||rows.Select(r=>r.Sight).Distinct().Count()!=rows.Length)
@@ -74,11 +68,32 @@ internal static class ConsoleLinkData
         rows.Where(r=>sourceIds.Contains(r.Sight)).ToArray();
     internal static ConsoleLinkEntry[] Remap(IEnumerable<ConsoleLinkEntry> rows,IReadOnlyDictionary<int,int> map)
     {
-        var input=rows.ToArray();
-        var unique=input.GroupBy(r=>r.Sight).Where(g=>g.Count()==1).Select(g=>g.Single());
-        return unique.Where(r=>map.ContainsKey(r.Sight)&&map.ContainsKey(r.Console))
+        return ObjectStateRows.UniqueBySight(rows,r=>r.Sight).Where(r=>map.ContainsKey(r.Sight)&&map.ContainsKey(r.Console))
             .Select(r=>new ConsoleLinkEntry(map[r.Sight],map[r.Console])).ToArray();
     }
 }
 
 
+// Shared rules for every Thermal Sight envelope in the native object state (FCS links, sight profiles).
+internal static class ObjectStateRows
+{
+    // Keys this mod owns in the object state. A fresh save drops all of them and re-adds the current envelopes.
+    internal static readonly string[] OwnedKeys={ConsoleLinkData.Key,ConsoleLinkData.LegacyKey,ThermalProfileData.Key};
+    internal static bool Owned(string name)=>Array.IndexOf(OwnedKeys,name)>=0;
+    internal static IEnumerable<KeyValuePair<string,string>> Envelopes(IEnumerable<ConsoleLinkEntry> links,IEnumerable<ThermalProfileEntry> profiles)
+    {
+        var l=links.ToArray();var p=profiles.ToArray();
+        if(l.Length>0)yield return new(ConsoleLinkData.Key,ConsoleLinkData.Encode(l));
+        if(p.Length>0)yield return new(ThermalProfileData.Key,ThermalProfileData.Encode(p));
+    }
+    internal static void Properties(JsonElement node,string what,params string[] allowed)
+    {
+        if(node.ValueKind!=JsonValueKind.Object)throw new InvalidDataException($"Invalid {what} object.");
+        var names=new HashSet<string>();
+        foreach(var p in node.EnumerateObject())
+            if(!allowed.Contains(p.Name)||!names.Add(p.Name))throw new InvalidDataException($"Unknown/duplicate {what} field.");
+    }
+    // A source VUID that occurs in more than one row of a batch is ambiguous: drop all of its rows.
+    internal static IEnumerable<T> UniqueBySight<T>(IEnumerable<T> rows,Func<T,int> sight)=>
+        rows.ToArray().GroupBy(sight).Where(g=>g.Count()==1).Select(g=>g.Single());
+}

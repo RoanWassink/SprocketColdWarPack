@@ -61,6 +61,18 @@ internal static class BlueprintHooks
         }
         catch(Exception ex){Plugin.Warn("average power",ex);}
     }
+    [HarmonyPostfix,HarmonyPatch(typeof(EngineBlueprint),"get_Inertia")]
+    private static void Inertia(EngineBlueprint __instance,ref float __result)
+    {
+        if(Plans.NativeRead!=0||!EngineCharacterHooks.Enabled||!Plans.Modified(__instance))return;
+        __result*=(float)EngineCharacterRules.For(Plans.EffectiveKind(__instance)).InertiaMultiplier;
+    }
+    [HarmonyPostfix,HarmonyPatch(typeof(EngineBlueprint),"get_FrictionCoefficient")]
+    private static void Friction(EngineBlueprint __instance,ref float __result)
+    {
+        if(Plans.NativeRead!=0||!EngineCharacterHooks.Enabled||!Plans.Modified(__instance))return;
+        __result*=(float)EngineCharacterRules.For(Plans.EffectiveKind(__instance)).FrictionMultiplier;
+    }
 }
 
 

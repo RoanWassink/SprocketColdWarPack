@@ -20,17 +20,22 @@ public readonly record struct CasingSection(double CentreX,double Bottom,double 
 public sealed record CasingFit(CasingSection Motor,CasingSection Gearbox)
 {
     public const double SkinClearance=.008,SeamCover=.020,BridgeClearance=.012;
-    public static CasingFit FromCorners(IEnumerable<Vec3> engine,IEnumerable<Vec3> gearboxes)
+    public static CasingFit FromCorners(IEnumerable<Vec3> engine,IEnumerable<Vec3> gearboxes)=>
+        TryFromCorners(engine,gearboxes,out var fit)&&fit!=null?fit:throw new InvalidOperationException("No valid casing span between motor and gearbox");
+    public static bool TryFromCorners(IEnumerable<Vec3> engine,IEnumerable<Vec3> gearboxes,out CasingFit? fit)
     {
+        fit=null;
         var e=engine.ToArray();var g=gearboxes.ToArray();
+        if(e.Length==0||g.Length==0)return false;
         CasingSection Section(Vec3[] a,double z)=>new((a.Min(p=>p.X)+a.Max(p=>p.X))*.5,
             a.Min(p=>p.Y)-SkinClearance,a.Max(p=>p.X)-a.Min(p=>p.X)+SkinClearance*2,
             a.Max(p=>p.Y)-a.Min(p=>p.Y)+SkinClearance*2,z);
         var motor=Section(e,e.Max(p=>p.Z)-SeamCover);
         var gearbox=Section(g,g.Max(p=>p.Z)+SeamCover);
         if(gearbox.Z<=motor.Z+.001||motor.Width<=0||gearbox.Width<=0||motor.Height<=0||gearbox.Height<=0)
-            throw new InvalidOperationException("No valid casing span between motor and gearbox");
-        return new(motor,gearbox);
+            return false;
+        fit=new(motor,gearbox);
+        return true;
     }
     private static double Mix(double a,double b,double t)=>a+(b-a)*t;
     public Vec3 Warp(Vec3 unit)

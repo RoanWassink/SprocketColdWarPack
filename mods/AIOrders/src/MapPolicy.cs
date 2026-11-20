@@ -14,9 +14,44 @@ public sealed class MapSpace
 }
 
 public enum MapClickAction { None, Select, Toggle, Clear, Move, Waypoint, Attack }
+public enum OrderRefusal { None, NoSelection, Outside }
+
+// Cached inverse transform rows include rotation, scale, translation and the local centre.
+public readonly record struct BattleArea(nint Identity,
+    float X0, float X1, float X2, float X3, float Z0, float Z1, float Z2, float Z3,
+    float SizeX, float SizeZ, float ScaleX, float ScaleZ)
+{
+    public (float X, float Z) Local(float x, float y, float z) =>
+        (X0 * x + X1 * y + X2 * z + X3, Z0 * x + Z1 * y + Z2 * z + Z3);
+    public bool Contains(float x, float y, float z, float margin = 0)
+    {
+        var p = Local(x, y, z);
+        var scale = Math.Min(Math.Abs(ScaleX), Math.Abs(ScaleZ));
+        return float.IsFinite(scale) && scale >= .001f &&
+            float.IsFinite(SizeX) && float.IsFinite(SizeZ) &&
+            Math.Abs(p.X) <= SizeX / 2 - margin / scale && Math.Abs(p.Z) <= SizeZ / 2 - margin / scale;
+    }
+    public float EdgeDistance(float x, float y, float z)
+    {
+        var p = Local(x, y, z);
+        return MapPolicy.EdgeDistance(p.X, p.Z, SizeX, SizeZ, ScaleX, ScaleZ);
+    }
+}
 
 public static class MapPolicy
 {
+    // Signed distance in metres to the un-inset rectangle; outside corners use Euclidean distance.
+    public static float EdgeDistance(float x, float z, float sizeX, float sizeZ, float scaleX, float scaleZ)
+    {
+        var dx = (Math.Abs(x) - sizeX / 2) * Math.Abs(scaleX);
+        var dz = (Math.Abs(z) - sizeZ / 2) * Math.Abs(scaleZ);
+        return MathF.Sqrt(Math.Max(0, dx) * Math.Max(0, dx) + Math.Max(0, dz) * Math.Max(0, dz)) + Math.Min(0, Math.Max(dx, dz));
+    }
+    public static OrderRefusal Refusal(int selected, bool inside) => selected == 0 ? OrderRefusal.NoSelection : inside ? OrderRefusal.None : OrderRefusal.Outside;
+    public static bool MarkerVisible(float now, float started, bool refused) =>
+        float.IsFinite(now) && now >= started && now - started < (refused ? 2f : 1f);
+    public static bool NeedsRebuild(BattleArea? previous, BattleArea? current) => previous != current;
+
     public static MapClickAction Decide(int button, bool shift, bool allyHit, bool enemyHit) => button switch
     {
         0 when allyHit => shift ? MapClickAction.Toggle : MapClickAction.Select,

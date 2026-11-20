@@ -11,15 +11,22 @@ internal static class SpallGapModel
     // Only the chemical and sub-calibre cone bursts follow the rule (HEAT/HESH jets and APFSDS cones). Vanilla AP has no impact context and never gets here.
     internal static bool Applies(string? behavior)=>behavior is "heat" or "hesh" or "apfsds";
     // Distance in mm from the exit of a block to the next solid Enter hit. distanceM is in metres along the path, as the native hits are.
-    internal static double NextSolidGapMm(IReadOnlyList<float> distanceM,IReadOnlyList<bool> enter,IReadOnlyList<bool> solid,int exitIndex)
+    // Scans the full native buffer because native StructureIntersection arrays are not guaranteed to be sorted by distance.
+    internal static double NextSolidGapMm(IReadOnlyList<float> distanceM,IReadOnlyList<bool> enter,IReadOnlyList<bool> solid,int exitIndex,int entryIndex=-1)
     {
         if(exitIndex<0||exitIndex>=distanceM.Count||!float.IsFinite(distanceM[exitIndex]))return double.PositiveInfinity;
-        for(int k=exitIndex+1;k<distanceM.Count&&k<enter.Count&&k<solid.Count;k++)
+        var exitDist=distanceM[exitIndex];
+        var best=double.PositiveInfinity;
+        var n=Math.Min(distanceM.Count,Math.Min(enter.Count,solid.Count));
+        for(int k=0;k<n;k++)
         {
-            if(!enter[k]||!solid[k]||!float.IsFinite(distanceM[k]))continue;
-            return Math.Max(0,(distanceM[k]-distanceM[exitIndex])*1000.0);
+            if(k==exitIndex||k==entryIndex||!enter[k]||!solid[k]||!float.IsFinite(distanceM[k]))continue;
+            var d=distanceM[k];
+            if(d<exitDist||(d==exitDist&&entryIndex<0&&k<=exitIndex))continue;
+            var gapMm=Math.Max(0,(d-exitDist)*1000.0);
+            if(gapMm<best)best=gapMm;
         }
-        return double.PositiveInfinity;
+        return best;
     }
     // A burst is suppressed when a solid block follows closer than the minimum gap. 0 or less turns the rule off; an unknown gap never suppresses.
     internal static bool SuppressBurst(double minGapMm,double gapMm)=>minGapMm>0&&double.IsFinite(minGapMm)&&!double.IsNaN(gapMm)&&gapMm<minGapMm;

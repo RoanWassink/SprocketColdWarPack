@@ -9,13 +9,18 @@ using System.Security.Cryptography;
 
 namespace SprocketAIOrders;
 
-[BepInPlugin(Guid, "Sprocket AI Orders", "0.5.2")]
+[BepInPlugin(Guid, "Sprocket AI Orders", "0.5.4")]
 [BepInDependency(UiKit.PluginGuid, ">=0.1.2 <0.2.0")]
 [BepInDependency(Keybinds.PluginGuid, ">=0.1.7 <0.2.0")]
 [BepInDependency("sprocket.expedition", BepInDependency.DependencyFlags.SoftDependency)]
 public sealed class Plugin : BasePlugin
 {
     public const string Guid = "sprocket.aiorders";
+    private static readonly string[] SupportedGameAssemblyHashes =
+    {
+        "3E58082804D97CF32FFD400E7427E767EF9576D23DB71B2BE96FBB7F825FC17B", // Qualified before 2026-11-18.
+        "77FC601748991DC2101435C6B72C7A5A4B3DC3C68429B349C2EFEE711F6D5388", // 2026-11-18, Steam buildid 26757044.
+    };
     internal static Plugin Instance = null!;
     internal static ModKeybind Toggle = null!, MapKey = null!;
     internal static readonly List<ModKeybind> Digits = new();
@@ -32,7 +37,7 @@ public sealed class Plugin : BasePlugin
         OrdersHost.Stopped = false;
         using var file = File.OpenRead(Path.Combine(Paths.GameRootPath, "GameAssembly.dll"));
         using var sha = SHA256.Create();
-        if (Convert.ToHexString(sha.ComputeHash(file)) != "3E58082804D97CF32FFD400E7427E767EF9576D23DB71B2BE96FBB7F825FC17B")
+        if (!SupportedGameAssemblyHashes.Contains(Convert.ToHexString(sha.ComputeHash(file))))
         { Log.LogError("AI Orders disabled: unqualified native game version."); return; }
         try
         {
@@ -56,7 +61,7 @@ public sealed class Plugin : BasePlugin
             OrdersHost.Stopped = true;
             throw;
         }
-        Log.LogInfo("AI Orders 0.5.2 ready: non-modal F9 quick HUD and tactical map.");
+        Log.LogInfo("AI Orders 0.5.4 ready: non-modal F9 quick HUD and tactical map.");
     }
     public override bool Unload()
     {

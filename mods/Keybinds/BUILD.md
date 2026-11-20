@@ -1,29 +1,31 @@
-﻿# Building the source
+# Building 0.1.10 (FIX1)
 
-Nothing is installed or published by the build. Developers need .NET SDK 8 and a Sprocket 0.2.56.2 Experimental loader installation (BepInEx 6 IL2CPP) with generated interop. The plugin targets net6.0. All game/loader references use Private=false. No game binaries or generated caches are distributed.
+Nothing is installed or published. Use .NET SDK 8 and the reference-only BepInEx 6 IL2CPP layout for Sprocket 0.2.56.2 Experimental. Plugin and consumer target net6.0; all game references are Private=false. Build only against the copied gameref, never the real game installation.
 
 From this directory:
 
 ```powershell
-dotnet build -c Release
-dotnet run --project tests/Keybinds.Tests.csproj -c Release
-dotnet build examples/KeybindDemo.csproj -c Release
+$refs = Join-Path $env:USERPROFILE 'Documents\Codex\2026-11-13\herpak\gameref'
+$baseline = Join-Path $env:USERPROFILE 'Documents\Codex\2026-11-13\herpak\dist\keybinds\BepInEx\plugins\SprocketKeybinds\SprocketKeybinds.dll'
+dotnet build -c Release -p:GameDir=$refs
+dotnet run --project tests/Keybinds.Tests.csproj -c Release -p:GameDir=$refs -- $baseline bin/Release/net6.0/SprocketKeybinds.dll
+dotnet build examples/KeybindDemo.csproj -c Release -p:GameDir=$refs
 ```
 
-The DLL is `bin/Release/net6.0/SprocketKeybinds.dll`. The build is deterministic and writes no pdb.
+DLL: `bin/Release/net6.0/SprocketKeybinds.dll`. The deterministic build emits no pdb. Verify the new DLL's version **0.1.10** and GUID **sprocket.keybinds** with the metadata-only tests above; they do not load Unity wrappers from the plugin. The baseline must be 0.1.9, GUID sprocket.keybinds, SHA256 prefix `1EC9E2D611D0`, with exactly 44 exported ABI entries. Only the release constant value changes; all other old signatures, constants, flags and optional defaults remain exact. The legacy GUID normalization in ApiSurface is constrained by separately asserting both baseline and current GUID. Additions are listed in `logs/public-api-added.txt`.
 
-`GameDir` defaults to the standard Steam install. Point it at another folder with the same `BepInEx\core` and `BepInEx\interop` layout with `-p:GameDir=YOUR_GAME_DIRECTORY`; the build and the tests then never touch a real game folder. The example references the newly built project DLL.
+The reference BepInEx AcceptableValueList<T> requires IEquatable<T>, so an enum-list fixture cannot be instantiated; that subset test is explicitly SKIP. Normal enum and list tests still execute.
 
-The pure tests accept optional arguments `BASELINE_DLL NEW_DLL` to audit public member signatures and parameter defaults using metadata, without loading native wrappers. Pass an earlier build of this DLL as the baseline and the new build last:
+Tests link the managed registry to real BepInEx config types. They use temporary cfg files, verify disk reload, all kind rules, conversions, failure isolation, duplicate registration, reset, cache identity, author/pack grouping and registration order. Additional checks enforce protected-source hashes, all 10 Harmony targets, safe parameterless IL2CPP delegates (including ModSettings.cs) and unchanged Cancel behavior. The metadata bridge in the pure harness substitutes only Keybinds.Metadata, without instantiating the Unity plugin.
 
-```powershell
-dotnet run --project tests/Keybinds.Tests.csproj -c Release -- PREVIOUS\SprocketKeybinds.dll bin\Release\net6.0\SprocketKeybinds.dll
-```
+`SPROCKET_NATIVE_METHODS` overrides the native method dump; default is the workspace's `2026-10-04/dez/work/ammo-switch-research/all-native-methods.json`. Missing dump produces an explicit SKIP. A present dump must contain each target exactly once with an unshared, nonzero RVA. The target table is written to `logs/native-targets.md`.
 
-The audit normalizes only the values of `Plugin.PluginVersion` and `Keybinds.PluginGuid` (their field signatures and flags are still compared); the new DLL is separately required to contain version `0.1.9` and GUID `sprocket.keybinds`. Every other public constant, member signature and optional default is compared exactly.
+Optional `KEYBINDS_CONFIG` copies and checks an existing bindings JSON without writing the original. Style tests compare PanelStyle tokens to `tests/STYLE.md`. Game checks remain in NOTES.md.
 
-The environment variable `KEYBINDS_CONFIG` may point at a `sprocket.keybinds.json` file; the tests then copy it and check that every record is readable. The original is never written.
+Validation logs: `logs/build.log`, `logs/tests.log`, `logs/consumer-build.log`, and the brief's required name-scan log in logs/. The release-name checker scans the workspace (excluding bin, obj, .git and logs) plus the new DLL explicitly. Logs are excluded because their mandated filename and tool header contain the prohibited personal token; no source/DLL exceptions are added. Generated build caches stay excluded as the supplied checker defaults specify. Long build paths in logs are replaced with location labels.
 
-The style tests parse `tests/STYLE.md`, a snapshot of the UI Kit style guide (0.1.0), and compare the panel's colour tokens against it exactly.
+FIX1 validation checks that every Load call to RegisterButton, RegisterModMetadata, ModSettings.Register and Config.Bind is inside a lexical try block. The scanner ignores comments/strings, handles nested blocks and tests rejection in catch/finally or after an earlier try. It also checks all ModSetting presentation members have no setters and all SettingOptions members have public get/set accessors. The consumer demonstrates both an options initializer and reading a ModSetting property.
 
-Pure tests and interop compilation do not prove native gameplay; follow `NOTES.md` before installing or releasing.
+The existing unbound default is an empty string: ButtonBinding.Parse returns an empty path with no modifiers, ValidatePath skips control lookup for it, and ModKeybind serializes that empty path in its Button action bindings and enables the asset. Source/pure checks establish this; no native action is instantiated by the managed harness.
+
+The current diffstat and patch are relative to the previous 0.1.10 delivery, captured under obj/fix1-baseline before edits. Tests still compare the DLL's ABI to the specified 0.1.9 baseline, and logs/public-api-added.txt is regenerated for the property API.

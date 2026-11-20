@@ -4,6 +4,12 @@ public enum PowerpackTurboLayout { Compact, Outboard }
 public sealed record PowerpackModelSettings(bool Enabled=true,double SizeFactor=1,double LengthFactor=.9,
     double HeightFactor=1,PowerpackTurboLayout TurboLayout=PowerpackTurboLayout.Compact,double TransmissionVolumeFactor=1)
 {
+    public const double DefaultTurbineScale=0.80;
+    public PowerpackModelSettings ForKind(EngineKind kind,double turbineScale=DefaultTurbineScale)
+    {
+        double scale=Math.Clamp(double.IsFinite(turbineScale)?turbineScale:DefaultTurbineScale,0.60,1.00);
+        return kind==EngineKind.GasTurbine?this with {SizeFactor=SizeFactor*scale}:this;
+    }
     public PowerpackModelSettings Validate()
     {
         static void Range(double x,double min,double max,string name)

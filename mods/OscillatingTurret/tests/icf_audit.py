@@ -1,7 +1,7 @@
 """Fail-closed source inventory + Cecil inheritance/signatures + native RVA sharing audit.
 
 Run via check.ps1 (which refreshes the read-only Cecil export first):
-    py -I icf_audit.py <all-native-methods.json> <icf-metadata.json> <icf-targets report to write>
+    py -I icf_audit.py <all-native-methods.json> <icf-metadata.json> <icf-targets report to write> [previous icf-targets.json]
 <all-native-methods.json> is the native method dump (name, RVA, length) of the game's GameAssembly.dll; it is only read.
 tests\baseline-0.3.0.json is the frozen reference source of the runtime scope (see CHANGELOG 0.3.1).
 The REQUIRED set is only a coverage floor; it never supplies audit targets.
@@ -231,12 +231,12 @@ def main():
     sources = {str(p.relative_to(PROJECT / 'src')): p.read_text(encoding='utf-8-sig')
                for p in sorted((PROJECT / 'src').rglob('*.cs'))
                if not {'bin', 'obj'} & set(p.relative_to(PROJECT / 'src').parts)}
-    require(len(sys.argv) == 4, 'usage: icf_audit.py <all-native-methods.json> <icf-metadata.json> <icf-targets report to write>')
+    require(len(sys.argv) in (4, 5), 'usage: icf_audit.py <all-native-methods.json> <icf-metadata.json> <icf-targets report to write> [previous icf-targets.json]')
     dump_path, metadata_path, report_path = (pathlib.Path(a) for a in sys.argv[1:4])
     baseline = json.loads((PROJECT / 'tests/baseline-0.3.0.json').read_text(encoding='utf-8'))
     metadata = json.loads(metadata_path.read_text(encoding='utf-8-sig'))
     primary = json.loads(dump_path.read_text(encoding='utf-8-sig'))
-    require(metadata['gameSha256'] == '3E58082804D97CF32FFD400E7427E767EF9576D23DB71B2BE96FBB7F825FC17B',
+    require(metadata['gameSha256'] == '77FC601748991DC2101435C6B72C7A5A4B3DC3C68429B349C2EFEE711F6D5388',
             'GameAssembly changed; repeat native research before trusting the address dumps')
     # Enforce the narrow runtime scope of 0.3.1, including the whole cleanup body and fallbacks.
     for path, record in baseline.items():
@@ -284,6 +284,22 @@ def main():
     print('PASS inheritance, declared-only lookup and new safe-target discovery controls')
     distinct = {a['signature']: a for a in audit}
     rows = sorted(distinct.values(), key=lambda a: a['signature'])
+    if len(sys.argv) == 5:
+        previous_path = pathlib.Path(sys.argv[4])
+        previous = json.loads(previous_path.read_text(encoding='utf-8-sig'))
+        old = {a['requested']: a for a in previous['methods']}
+        require(set(old) == {a['requested'] for a in rows}, 'hook inventory changed from previous audit')
+        print('OLD/NEW HOOK TABLE: target | old RVA/length | new RVA/length | sharing | signature/declaring type')
+        shifted = 0
+        for a in rows:
+            b = old[a['requested']]
+            require(a['signature'] == b['signature'] and a['declaringType'] == b['declaringType'],
+                    'signature/declaring type changed: ' + a['requested'])
+            shifted += int(int(a['rva'], 16) != int(b['rva'], 16))
+            print(f'{a["requested"]} | {b["rva"]}/{b["length"]} | {a["rva"]}/{a["length"]} | '
+                  f'{"shared" if a["otherMethods"] else "unique"} | unchanged; {a["signature"]}; {a["declaringType"]}')
+        print(f'PASS previous audit comparison: {len(rows)} signatures/declaring types unchanged; {shifted} RVAs moved; '
+              f'previous report SHA256={hashlib.sha256(previous_path.read_bytes()).hexdigest().upper()}')
     report = {'gameSha256': metadata['gameSha256'], 'primaryDump': dump_path.name,
               'primaryDumpSha256': hashlib.sha256(dump_path.read_bytes()).hexdigest().upper(),
               'annotations': len(audit), 'targets': len(rows), 'unique': sum(not a['otherMethods'] for a in rows),

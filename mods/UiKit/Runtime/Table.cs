@@ -139,6 +139,7 @@ public sealed class Table<T> : Element
     private int PadX => (int)Tok.TableCellPadX;
     private int Gap => (int)Tok.TableColumnGap;
 
+    /// <summary>Build retained Unity views when the element is first shown.</summary>
     protected override void Build()
     {
         header = new BoxView(Rt!, "TableHeader", Tok.TableRadius, ShapeRaster.Corners.All, ring: false);

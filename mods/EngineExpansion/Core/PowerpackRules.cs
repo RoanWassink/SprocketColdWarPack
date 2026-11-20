@@ -56,9 +56,9 @@ public enum PowerpackStatus { Ready, NoDirectTransmission, ViaJunction, Conflict
 public sealed record LayoutModule(int Id,ModuleKind Kind,short Flags,int MirrorId=-1);
 // One record per layout connection, resolved to the modules of its provider and receiver ports.
 public sealed record LayoutConnection(int Id,int ProviderModule,int ReceiverModule,byte Flags);
-public sealed record PowerpackPlan(PowerpackStatus Status,int TransmissionId=-1,int ConnectionId=-1,bool Marked=false);
+public sealed record PowerpackPlan(PowerpackStatus Status,int TransmissionId=-1,int ConnectionId=-1,bool Marked=false,bool Partial=false);
 /// <summary>
-/// Twin transmission: engine output -> splitter junction -> two mirrored transmissions.
+/// Twin transmission: engine output -> splitter junction -> two transmissions.
 /// The plan names both modules and all three connections that the powerpack owns.
 /// </summary>
 public sealed record TwinPowerpackPlan(
@@ -70,7 +70,8 @@ public sealed record TwinPowerpackPlan(
     int EngineJunctionConnectionId=-1,
     int LeftConnectionId=-1,
     int RightConnectionId=-1,
-    bool Marked=false)
+    bool Marked=false,
+    bool Partial=false)
 {
     public int[] ModuleIds=>new[]{LeftTransmissionId,RightTransmissionId};
     public int[] ConnectionIds=>new[]{EngineJunctionConnectionId,LeftConnectionId,RightConnectionId};
@@ -199,6 +200,12 @@ public static class PowerpackRules
     /// output-plane placement is treated as a bad engine box (wrong space, stale bounds) and replaced.
     /// </summary>
     public const double PlacementSafetyNet=0.5;
+    /// <summary>2 cm flush tuck into the engine rear when internal collision filtering is enabled.</summary>
+    public const double DefaultMonoblockOverlap=0.02;
+    /// <summary>Keep every Abstracted connection strictly inside native ValidateLayout's 1.0 m limit.</summary>
+    public const double MaxAbstractedDistance=0.90;
+    /// <summary>Half-gap on either side of the engine centreline between back-to-back twin boxes.</summary>
+    public const double TwinCenterlineHalfGap=0.005;
 
     public static bool IsMarked(short moduleFlags,byte connectionFlags)=>
         (moduleFlags&PositionBetweenInputs)==PositionBetweenInputs&&(connectionFlags&Abstracted)!=0;
@@ -213,14 +220,16 @@ public static class PowerpackRules
         if(receiver.Kind==ModuleKind.Junction)return new(PowerpackStatus.ViaJunction);
         if(receiver.Kind!=ModuleKind.Transmission)return new(PowerpackStatus.NoDirectTransmission);
         if(IsMarked(receiver.Flags,connection.Flags))return new(PowerpackStatus.Ready,receiver.Id,connection.Id,true);
-        // Restoring clears exactly the bits that were set, so refuse layouts already using any of them.
-        if((receiver.Flags&AutoPosition)!=0||(connection.Flags&Abstracted)!=0)return new(PowerpackStatus.Conflict,receiver.Id,connection.Id);
-        return new(PowerpackStatus.Ready,receiver.Id,connection.Id,false);
+        // Output-auto flags on a transmission belong to splitter layouts and cannot be restored cleanly;
+        // partial/stale powerpack bits (e.g. PositionBetweenInputs or Abstracted left by native drags) remain healable/restorable.
+        if((receiver.Flags&SplitterBetweenOutputs)!=0)return new(PowerpackStatus.Conflict,receiver.Id,connection.Id);
+        bool partial=(receiver.Flags&PositionBetweenInputs)!=0||(connection.Flags&Abstracted)!=0;
+        return new(PowerpackStatus.Ready,receiver.Id,connection.Id,false,partial);
     }
 
     /// <summary>
     /// Recognises the native twin layout: one engine output into a splitter junction (0x70), and
-    /// exactly two mirrored transmissions fed by that junction. The splitter's native 0x70 is not a
+    /// two distinct transmissions fed by that junction. The splitter's native 0x70 is not a
     /// conflict; only powerpack bits that cannot be restored exactly are.
     /// </summary>
     public static TwinPowerpackPlan FindTwin(IReadOnlyList<LayoutModule> modules,IReadOnlyList<LayoutConnection> connections,int engineId)
@@ -237,9 +246,8 @@ public static class PowerpackRules
         if(outputs.Length!=2)return new(PowerpackStatus.NoDirectTransmission);
         if(!byId.TryGetValue(outputs[0].ReceiverModule,out var left)||!byId.TryGetValue(outputs[1].ReceiverModule,out var right))
             return new(PowerpackStatus.NoDirectTransmission);
-        if(left.Kind!=ModuleKind.Transmission||right.Kind!=ModuleKind.Transmission||left.MirrorId!=right.Id||right.MirrorId!=left.Id)
+        if(left.Kind!=ModuleKind.Transmission||right.Kind!=ModuleKind.Transmission||left.Id==right.Id)
             return new(PowerpackStatus.NoDirectTransmission);
-        if(left.Id==right.Id)return new(PowerpackStatus.NoDirectTransmission);
         // Each transmission must have exactly one input, from this junction.
         foreach(var (module,connection) in new[]{(left,outputs[0]),(right,outputs[1])})
         {
@@ -247,22 +255,16 @@ public static class PowerpackRules
             if(inputs.Length!=1||inputs[0].Id!=connection.Id||connection.ProviderModule!=junction.Id)
                 return new(PowerpackStatus.NoDirectTransmission);
         }
-        // An input-auto junction would move from the engine and fight the transmission placement.
-        if((junction.Flags&PositionBetweenInputs)!=0)
+        // An input-auto splitter or output-auto transmission would fight powerpack placement.
+        if((junction.Flags&PositionBetweenInputs)!=0||(left.Flags&SplitterBetweenOutputs)!=0||(right.Flags&SplitterBetweenOutputs)!=0)
             return new(PowerpackStatus.Conflict,engineId,junction.Id,left.Id,right.Id,engineJunction.Id,outputs[0].Id,outputs[1].Id);
         var allMarked=IsMarked(left.Flags,outputs[0].Flags)&&IsMarked(right.Flags,outputs[1].Flags)
             &&(engineJunction.Flags&Abstracted)!=0;
-        var anyMarked=(left.Flags&PositionBetweenInputs)!=0||(right.Flags&PositionBetweenInputs)!=0
-            ||(engineJunction.Flags&Abstracted)!=0||(outputs[0].Flags&Abstracted)!=0||(outputs[1].Flags&Abstracted)!=0;
         if(allMarked)
             return new(PowerpackStatus.Ready,engineId,junction.Id,left.Id,right.Id,engineJunction.Id,outputs[0].Id,outputs[1].Id,true);
-        if(anyMarked)
-            return new(PowerpackStatus.Conflict,engineId,junction.Id,left.Id,right.Id,engineJunction.Id,outputs[0].Id,outputs[1].Id);
-        // Refuse layouts already using auto-position bits that restoring would have to clear.
-        if((left.Flags&AutoPosition)!=0||(right.Flags&AutoPosition)!=0
-            ||(engineJunction.Flags&Abstracted)!=0||(outputs[0].Flags&Abstracted)!=0||(outputs[1].Flags&Abstracted)!=0)
-            return new(PowerpackStatus.Conflict,engineId,junction.Id,left.Id,right.Id,engineJunction.Id,outputs[0].Id,outputs[1].Id);
-        return new(PowerpackStatus.Ready,engineId,junction.Id,left.Id,right.Id,engineJunction.Id,outputs[0].Id,outputs[1].Id);
+        var anyMarked=(left.Flags&PositionBetweenInputs)!=0||(right.Flags&PositionBetweenInputs)!=0
+            ||(engineJunction.Flags&Abstracted)!=0||(outputs[0].Flags&Abstracted)!=0||(outputs[1].Flags&Abstracted)!=0;
+        return new(PowerpackStatus.Ready,engineId,junction.Id,left.Id,right.Id,engineJunction.Id,outputs[0].Id,outputs[1].Id,false,anyMarked);
     }
 
     public static (short Module,byte Connection) Apply(short moduleFlags,byte connectionFlags)=>
@@ -379,11 +381,11 @@ public static class PowerpackRules
             centre=(leftInput+rightInput)*.5;
         }
         var splitterInput=centre+splitterRotation.Rotate(splitterInputLocal);
-        var engineShaft=splitterInput-engineOutput;
-        if(engineShaft.Length<required)
+        var engDir=engineDirection.Length>1e-9?engineDirection.Normalized:new Vec3(0,0,1);
+        double along=Vec3.Dot(splitterInput-engineOutput,engDir);
+        if(along<required)
         {
-            var direction=engineShaft.Length>1e-9?engineShaft.Normalized:engineDirection.Normalized;
-            var shift=direction*(required-engineShaft.Length);
+            var shift=engDir*(required-along);
             left+=shift;right+=shift;
         }
         return (left,right);
@@ -397,4 +399,101 @@ public static class PowerpackRules
     /// <summary>Housing added on top of the engine value; nothing when the powerpack is not effective.</summary>
     public static double WithHousing(double engineValue,double fraction,bool effective)=>
         effective?engineValue*(1+fraction):engineValue;
+
+    public static Vec3 EngineRight(Quat engineRot,Vec3 engineDirection)=>EngineBasis(engineRot,engineDirection).Right;
+
+    private static (Vec3 Right,Vec3 Up,Vec3 Fwd) EngineBasis(Quat engineRot,Vec3 engineDirection)
+    {
+        var fwd=engineDirection.Length>1e-9?engineDirection.Normalized:engineRot.Rotate(new Vec3(0,0,1)).Normalized;
+        if(fwd.Length<=1e-9)fwd=new Vec3(0,0,1);
+        var rawUp=engineRot.Rotate(new Vec3(0,1,0));
+        var upOrtho=rawUp-fwd*Vec3.Dot(rawUp,fwd);
+        if(upOrtho.Length<=1e-6)
+        {
+            var fallback=Math.Abs(fwd.Y)<.9?new Vec3(0,1,0):new Vec3(1,0,0);
+            upOrtho=fallback-fwd*Vec3.Dot(fallback,fwd);
+        }
+        var up=upOrtho.Normalized;
+        var right=Vec3.Cross(up,fwd).Normalized;
+        return (right,up,fwd);
+    }
+
+    private static (double AnchorZ,double Depth,bool FellBack) GuardedAnchorZ(
+        Vec3 engineOutput,Vec3 fwd,OrientedBox? engineBox)
+    {
+        double outputZ=Vec3.Dot(engineOutput,fwd);
+        if(engineBox is not {} eb)return (outputZ,0,false);
+        double boxMax=eb.MaxProjection(fwd);
+        double depth=boxMax-outputZ;
+        if(double.IsFinite(depth)&&Math.Abs(depth)<=PlacementSafetyNet)return (boxMax,depth,false);
+        return (outputZ,depth,true);
+    }
+
+    public static int ChooseTwinSide(Vec3 engineRight,Vec3 thisTarget,Vec3 partnerTarget,
+        short thisFlags,short partnerFlags,int thisId,int partnerId)
+    {
+        double proj=Vec3.Dot(thisTarget-partnerTarget,engineRight);
+        if(Math.Abs(proj)>1e-4)return proj<0?-1:1;
+        bool thisLeft=(thisFlags&2)!=0,thisRight=(thisFlags&4)!=0;
+        bool partnerLeft=(partnerFlags&2)!=0,partnerRight=(partnerFlags&4)!=0;
+        if(thisLeft&&!thisRight&&!(partnerLeft&&!partnerRight))return -1;
+        if(thisRight&&!thisLeft&&!(partnerRight&&!partnerLeft))return 1;
+        return thisId<partnerId?-1:1;
+    }
+
+    public static Quat TwinRotation(Quat engineRot,int side)=>engineRot;
+
+    /// <summary>
+    /// Engine-local 3D rigid placement for a single transmission. Matches the engine rotation, tracks
+    /// X/Y/Z cleanly under any yaw/pitch (including 90 deg and 180 deg), and tucks into the engine
+    /// rear by <paramref name="signedClearance"/> (negative = flush overlap when collision filter is on).
+    /// </summary>
+    public static (Vec3 Origin,Vec3 Input,double Depth,bool FellBack) MonoblockOrigin(
+        Vec3 engineOutput,Quat engineRot,Vec3 engineDirection,Vec3 inputLocal,TransmissionExtent extent,
+        OrientedBox? engineBox,double signedClearance)
+    {
+        var (_,_,fwd)=EngineBasis(engineRot,engineDirection);
+        var transRot=engineRot;
+        var (anchorZ,depth,fellBack)=GuardedAnchorZ(engineOutput,fwd,engineBox);
+        double targetFaceZ=anchorZ+signedClearance;
+        var rotInput=transRot.Rotate(inputLocal);
+        var baseOrigin=engineOutput-rotInput;
+        var baseBox=new OrientedBox(baseOrigin+transRot.Rotate(extent.Centre),extent.Size,transRot);
+        double shiftZ=targetFaceZ-baseBox.MinProjection(fwd);
+        var origin=baseOrigin+fwd*shiftZ;
+        var input=origin+rotInput;
+        var delta=input-engineOutput;
+        if(delta.Length>MaxAbstractedDistance)
+        {
+            origin=baseOrigin+delta.Normalized*MaxAbstractedDistance;
+            input=origin+rotInput;
+        }
+        return (origin,input,depth,fellBack);
+    }
+
+    /// <summary>
+    /// Engine-local 3D rigid placement for a twin gearbox: mounts one transmission on each flank
+    /// beside the engine in the longitudinal direction, with rear faces flush at the engine rear
+    /// so driveshaft outputs exit cleanly at the back.
+    /// </summary>
+    public static (Vec3 Origin,Vec3 Input,double HalfSpread,double Depth,bool FellBack) TwinMonoblockOrigin(
+        Vec3 engineOutput,Quat engineRot,Vec3 engineDirection,Quat transRot,Vec3 inputLocal,
+        TransmissionExtent extent,int side,OrientedBox? engineBox,double signedClearance)
+    {
+        int s=side<0?-1:1;
+        var (right,_,fwd)=EngineBasis(engineRot,engineDirection);
+        var outward=right*s;
+        var rotInput=transRot.Rotate(inputLocal);
+        var (anchorZ,depth,fellBack)=GuardedAnchorZ(engineOutput,fwd,engineBox);
+        double engineSideMax=engineBox is {} eb?eb.MaxProjection(outward):Vec3.Dot(engineOutput,outward)+0.35;
+        double targetInnerSide=engineSideMax+signedClearance;
+        var baseOrigin=engineOutput-rotInput;
+        var baseBox=new OrientedBox(baseOrigin+transRot.Rotate(extent.Centre),extent.Size,transRot);
+        double shiftOut=Math.Clamp(targetInnerSide-baseBox.MinProjection(outward),-MaxAbstractedDistance,MaxAbstractedDistance);
+        double shiftZ=Math.Clamp(anchorZ-baseBox.MaxProjection(fwd),-MaxAbstractedDistance,MaxAbstractedDistance);
+        var origin=baseOrigin+outward*shiftOut+fwd*shiftZ;
+        var input=origin+rotInput;
+        double halfSpread=Math.Abs(Vec3.Dot(origin-engineOutput,right));
+        return (origin,input,halfSpread,depth,fellBack);
+    }
 }

@@ -31,6 +31,7 @@ internal static class RuntimeDamageFeed
         internal IntPtr Shooter;internal IntPtr Player;
         internal void Record(CombatReportEvent row){if(Events.Count<256)Events.Add(row);else OmittedEvents=CombatReportTruth.Count(OmittedEvents,1);}
         internal Shot(int number,int nativeId,float spawnTime){Number=number;NativeId=nativeId;SpawnTime=spawnTime;}
+        internal bool HeExplosive; // 0.22.86 HE
         internal void Add(string key,string text,string stage,bool terminal=false,bool report=true,int? related=null){Timeline.Add(key,stage,text,terminal);if(report&&Seen.Add(stage+":"+key))Record(new(terminal?"outcome":"interaction",stage,text,HitId:active?.HitId,RelatedEntity:related));}
     }
     internal sealed record PendingLayer(short Index,string Label,string Stage,string? HitId,double? EntryBudget,string[]? Members);
@@ -148,12 +149,13 @@ internal static class RuntimeDamageFeed
     [HarmonyFinalizer,HarmonyPatch(typeof(ArmourPiercingProjectileFunction),nameof(ArmourPiercingProjectileFunction.HitDamageModel))]
     private static void EndImpact(Shot? __state)
     {Safe(()=>{if(current is {} shot){
+                if(HeDefer(shot))return; // 0.22.86 HE
                 // 0.22.16: a remembered skipped plate whose line never reaches
                 // another solid block still gets a concrete reason.
                 foreach(var row in CombatReportNoise.Collapse(NativeMaterialReactions.ClosePending().Select(p=>new CombatReportEvent("materialUnavailable","","Skipped composite plate #"+p.Entity+": line ended before another solid block; cassette and passive resistance not applied.",HitId:p.HitId,RelatedEntity:p.Entity))))shot.Record(row);
                 if(shot.Events.Count==0)shot.Events.Add(new("outcome","","Unknown: no resolved native armour interaction"));var crew=CrewCounts(shot.TargetRegister);var report=new CombatReportShot(shot.Number,shot.Direction,shot.Profile,shot.Speed,shot.Events.ToArray(),shot.OmittedEvents,shot.InitialPenetration,shot.Target,crew.Total,crew.Alive,shot.ShooterName);if(Enabled)Buffer.Add(Time.unscaledTime,HitBlockBuilder.Build(report));History.Add(report);if(ProbeEnabled)Probe("native="+shot.NativeId+" summary=2 rows");if(console.Value)foreach(var line in shot.Timeline.All.Select(t=>$"#{shot.Number} {t}"))if(ReleaseDiagnostics.Enabled)Plugin.ModLog.LogInfo("[Damage feed] native="+shot.NativeId+" spawn="+shot.SpawnTime+" "+line);}});current=__state;}
     [HarmonyPrefix,HarmonyPatch(typeof(ExplosiveProjectileFunction),nameof(ExplosiveProjectileFunction.HitDamageModel))]
-    private static void BeginExplosive(ref ProjectileInstance __0,out Shot? __state)=>BeginImpact(ref __0,out __state);
+    private static void BeginExplosive(ref ProjectileInstance __0,out Shot? __state){if(HeResume(ref __0,out __state))return;BeginImpact(ref __0,out __state);if(current!=null)current.HeExplosive=true;} // 0.22.86 HE replaced
     [HarmonyFinalizer,HarmonyPatch(typeof(ExplosiveProjectileFunction),nameof(ExplosiveProjectileFunction.HitDamageModel))]
     private static void EndExplosive(Shot? __state)=>EndImpact(__state);
     [HarmonyPrefix,HarmonyPatch(typeof(CompoundStructure),nameof(CompoundStructure.SimulateFragment))]
@@ -286,7 +288,14 @@ internal static class RuntimeDamageFeed
         else if(outcome==PlateOutcome.Stopped)
         {shot.Add("stop:"+scope.Sim.Pointer,"Stopped in "+label,scope.Stage,true,report:false);RecordArmourInteraction(scope.Sim,scope.Index,"nativeStop",scope.Members!=null||label.StartsWith("Combined armour block",StringComparison.Ordinal)?"Native stop in grouped block; exact stopping object unresolved. No outgoing original core recorded.":"Native stop in "+label+"; no outgoing original core recorded.",scope.EntryBudget);shot.Pending.Remove(scope.Sim.Pointer);}
         else if(outcome==PlateOutcome.Deflected&&scope.Solid)shot.Add(scope.Key!,"Deflected at "+label,scope.Stage,true);
+        // 0.22.78 HESH begin
+        if(outcome==PlateOutcome.Stopped&&HeshSurfaceStop(scope.Sim))RecordArmourInteraction(scope.Sim,scope.Index,"materialNote",HeshRules.SurfaceText);
+        // 0.22.78 HESH end
     });active=__state;}
+    // 0.22.78 HESH begin
+    // A HESH original that stops without having made a scab detonated on the surface of what stopped it (minAngleDegrees above 10 only).
+    private static bool HeshSurfaceStop(PenetrationSimulation sim)=>RuntimeSpall.Hesh.SurfaceDetonation&&RuntimeSpall.Impact is {} impact&&impact.Behavior=="hesh"&&!impact.PayloadBursts.Contains(sim.Pointer);
+    // 0.22.78 HESH end
     private static string ResolveLabel(PenetrationSimulation sim,int id)
     {
         var reader=sim.damageApplier?.TryCast<VehicleHealthRegister>()?.objectReader;
@@ -387,6 +396,7 @@ internal static class RuntimeDamageFeed
         var owner=previous.Owner;if(owner==null||owner.VehicleRoot is not {} root)return;
         if(current is {} ownerShot){ownerShot.Direction=CombatReportTruth.Direction(ownerShot.Player,ownerShot.Shooter,owner.Vehicle?.Behaviour?.Pointer??IntPtr.Zero);ownerShot.Target??=VehicleName(owner);ownerShot.TargetRegister=previous.Register;}
         var label=Label(owner);bool dead=DamageFeedTruth.Died(previous.Alive,alive,delta);
+        label=HeBlast.Tag(owner,label); // 0.22.86 HE
         // The fallback crew label is already "Crew member #12"; strip it so the text is "Crew member #12 killed", not "Crew member Crew member #12 killed".
         var crewLabel=CombatDamageSummary.CrewLabel(label);
         string line=owner.TryCast<CrewSeat>()!=null?(dead?$"Crew member {crewLabel} killed":$"Crew member {crewLabel} wounded"):(dead?label+" destroyed":label+" damaged");
@@ -419,6 +429,32 @@ internal static class RuntimeDamageFeed
 
     internal static void ReleaseHealth(VehicleHealthRegister __instance)
     {Safe(()=>{foreach(var pair in pools.Where(p=>p.Value.Register==__instance.Pointer).ToArray())pools.Remove(pair.Key);});}
+    // 0.22.86 HE begin
+    // One impact of an HE round with a perforating part is one shot (HeShotLink): the shot the AP part opened is kept open and the HE call of the same
+    // hit continues it, so the number advances once and the report holds one row. A kept shot that no HE call picks up is recorded later, exactly once.
+    [ThreadStatic] private static HeShotLink<Shot>? heLink;
+    private static bool HeDefer(Shot shot)=>(heLink??=new()).Defer(shot,shot.NativeId,shot.SpawnTime,shot.HeExplosive,HeScopeState.ProxyImpact(shot.NativeId,shot.SpawnTime),HeRecord);
+    // Records a kept shot as the AP finalizer would have (EndImpact), then restores the shot that is current now.
+    private static void HeRecord(Shot shot){var outer=current;shot.HeExplosive=true;current=shot;EndImpact(outer);}
+    private static bool HeResume(ref ProjectileInstance projectile,out Shot? state)
+    {
+        state=current;
+        if(heLink?.Pending==null)return false;
+        try
+        {
+            var shot=heLink.Resume(projectile.ID,projectile.spawnTime,HeRecord);
+            state=current;
+            if(shot==null)return false;
+            shot.HeExplosive=true;current=shot;return true;
+        }
+        catch(Exception ex){state=current;if(warnings++<4)Plugin.ModLog.LogWarning("[Damage feed] HE shot link unavailable: "+ex.Message);return false;}
+    }
+    /// <summary>An HE line in the open shot ("materialNote"; with the key of its layer when there is one).</summary>
+    internal static void HeNote(string text,string? hitId)
+    {Safe(()=>{if(current is not {} shot||editor)return;shot.Record(new("materialNote",RuntimeTandem.DamageStage,CombatReportTruth.EventText(text),HitId:hitId));});}
+    /// <summary>The module that owns a pool, as the damage feed registered it (the fallback of the blast filter).</summary>
+    internal static VehicleComponent? PoolOwner(IntPtr durable)=>pools.TryGetValue(durable,out var pool)?pool.Owner:null;
+    // 0.22.86 HE end
     internal static void Clear(){CombatReportMenu.Clear();DamageFeedKeys.Clear();Buffer.Clear();pools.Clear();launchOwners.Clear();playerVehicle=IntPtr.Zero;directDamageDepth=0;directDamageRegister=IntPtr.Zero;active=null;current=null;DamageFeedHud.Destroy();}
 }
 
@@ -430,7 +466,7 @@ internal static class RuntimeDamageHealth
     [HarmonyFinalizer,HarmonyPatch(typeof(VehicleHealthRegister),nameof(VehicleHealthRegister.Sprocket_DamageModelling_IDamageApplier_HealthDelta),new[]{typeof(int),typeof(float),typeof(DamageModelDamageModifiers)})]
     private static void EndDirectOne(VehicleHealthRegister __instance,RuntimeDamageFeed.HealthScope __state)=>RuntimeDamageFeed.EndDirectDamage(__instance,__state);
     [HarmonyPrefix,HarmonyPatch(typeof(VehicleHealthRegister),nameof(VehicleHealthRegister.Sprocket_DamageModelling_IDamageApplier_HealthDelta),new[]{typeof(float),typeof(DamageModelDamageModifiers)})]
-    private static void BeginDirectAll(VehicleHealthRegister __instance,out RuntimeDamageFeed.HealthScope __state)=>__state=RuntimeDamageFeed.BeginDirectDamage(__instance);
+    private static bool BeginDirectAll(VehicleHealthRegister __instance,float __0,DamageModelDamageModifiers __1,out RuntimeDamageFeed.HealthScope __state){__state=RuntimeDamageFeed.BeginDirectDamage(__instance);return HeBlast.Filter(__instance,__0,__1);} // 0.22.86 HE replaced
     [HarmonyFinalizer,HarmonyPatch(typeof(VehicleHealthRegister),nameof(VehicleHealthRegister.Sprocket_DamageModelling_IDamageApplier_HealthDelta),new[]{typeof(float),typeof(DamageModelDamageModifiers)})]
     private static void EndDirectAll(VehicleHealthRegister __instance,RuntimeDamageFeed.HealthScope __state)=>RuntimeDamageFeed.EndDirectDamage(__instance,__state);
     [HarmonyPostfix,HarmonyPatch(typeof(VehicleHealthRegister),nameof(VehicleHealthRegister.LinkHealthPool))]
@@ -446,6 +482,125 @@ internal static class RuntimeDamageHealth
     [HarmonyPrefix,HarmonyPatch(typeof(VehicleHealthRegister),nameof(VehicleHealthRegister.Release))]
     private static void Released(VehicleHealthRegister __instance)=>RuntimeDamageFeed.ReleaseHealth(__instance);
 }
+// 0.22.86 HE begin
+/// <summary>
+/// The blast filter of HE in the game (0.22.86). The game's own Detonate computes the value of every vehicle in the sphere (min(P, P/d²), the Pressure
+/// modifiers) and calls VehicleHealthRegister.HealthDelta(float,mods), whose loop calls HealthPool.HealthDelta(value, mods) on every pool in its list. Inside the
+/// HE scope the existing prefix of that method runs the same loop here (<see cref="HeRules.Run"/>), with per pool the game's own value or value x shock, and
+/// skips the game's loop. Outside the HE scope (mines, mission zones, everything else) <see cref="Filter"/> returns after one test of a thread-local field.
+/// </summary>
+internal static class HeBlast
+{
+    private static bool planWarned,applyWarned;private static int probes;
+    private static readonly HashSet<string> unknownLogged=new(StringComparer.Ordinal);
+    private static readonly Dictionary<IntPtr,string[]> chains=new();
+    internal static void ProxyStarted(int id,float spawn)=>HeScopeState.ProxyStarted(id,spawn);
+    internal static void Perforated(HePerforation perforation)=>HeScopeState.Perforated(perforation);
+    internal static void Spaced(HeSpacedPerforation perforation)=>HeScopeState.Spaced(perforation); // 0.22.89
+    internal static void LastLayer(string? hitId)=>HeScopeState.LastLayer(hitId);
+    internal static void Begin(int id,float spawn,Vector3 point,double power,double calibreMm,string guid,bool ground)
+    {
+        var scope=HeScopeState.Begin(id,spawn,point.x,point.y,point.z,power,calibreMm,guid,ground,RuntimeSpall.He);
+        if(ReleaseDiagnostics.Enabled&&probes++<48)Plugin.ModLog.LogInfo($"[HE] detonation at ({point.x:0.00}, {point.y:0.00}, {point.z:0.00}): P {power:0.0}, {calibreMm:0.#} mm, {(ground?"ground hit":"hit")}; armour perforated on {scope.Perforated.Count} vehicle(s); interior shock {HeRules.Percent(scope.Shock)} %.");
+    }
+    internal static void End()=>HeScopeState.End();
+    private static void Warn(ref bool warned,string text){if(warned)return;warned=true;Plugin.ModLog.LogWarning(text);}
+    internal static bool Filter(VehicleHealthRegister register,float value,DamageModelDamageModifiers modifiers)
+    {
+        if(HeScopeState.Active is not {} scope)return true;
+        NativePools pools;
+        try{pools=new NativePools(register,modifiers);}
+        catch(Exception ex){Warn(ref planWarned,"[HE] Blast filter unavailable before any damage; the game's own blast is used: "+ex.Message);return true;}
+        var plan=HeRules.Run(pools,value,scope.IsPerforated(register.Pointer),scope.Shock,RuntimeSpall.He);
+        if(plan.Outcome==HeBlastOutcome.Native){Warn(ref planWarned,"[HE] Blast filter unavailable before any damage; the game's own blast is used: "+plan.Error?.Message);return true;}
+        if(plan.Outcome==HeBlastOutcome.Failed)Warn(ref applyWarned,$"[HE] Blast filter stopped after {plan.Applied} of {plan.Count} modules; the game's own blast is not applied again (no double damage): {plan.Error?.Message}");
+        try{After(scope,pools,plan);}catch(Exception){/* tags, report line and log are optional */}
+        return false;
+    }
+    // Tags of the damage lines, the report line without a perforation (once per shot), one line per unknown module type per session, the diagnostic line.
+    private static void After(HeScopeData scope,NativePools pools,HeBlastPlan plan)
+    {
+        var tags=scope.Tags??=new();
+        for(int i=0;i<plan.Count&&i<pools.Owners.Length;i++)
+        {
+            var owner=pools.Owners[i];
+            var tag=HeRules.Tag(plan.Classes[i],plan.Perforated,plan.Shock);
+            // the damage line names the module the damage feed registered for the pool (for a linked pool such as a track: a wheel or an axle): tag both
+            if(tag.Length>0){if(owner!=null)tags[owner.Pointer]=tag;if(pools.FeedOwners[i] is {} feedOwner)tags[feedOwner.Pointer]=tag;}
+            if(plan.Classes[i]!=HePoolClass.Unknown)continue;
+            var name=owner==null?"(no owner)":plan.TypeNames[i];
+            if(unknownLogged.Count<64&&unknownLogged.Add(name))Plugin.ModLog.LogInfo($"[HE] Blast filter: module type {name} is on neither list; it keeps the game's own blast value.");
+        }
+        if(scope.Perforated.Count==0&&plan.Shocked&&!scope.NoteRecorded){scope.NoteRecorded=true;var spaced=scope.Spaced is {} s&&s.Register==pools.Register?s:null;RuntimeDamageFeed.HeNote(spaced!=null?HeSpaced.Text(spaced.NormalMm,spaced.NextArmourMm,plan.Shock):HeRules.OutsideText(plan.Shock),spaced!=null?spaced.HitId:scope.LastHitId);} // 0.22.89 replaced: the spaced-armour line on the vehicle whose skirt was perforated
+        if(ReleaseDiagnostics.Enabled&&probes++<48)
+            Plugin.ModLog.LogInfo($"[HE blast] vehicle {pools.Register}: {(plan.Perforated?"perforated":"not perforated")}; {plan.Count} pools: {plan.Of(HePoolClass.Exterior)} exterior, {plan.Of(HePoolClass.Interior)} interior (x {(plan.Perforated?"1":HeRules.Percent(plan.Shock)+" %")}), {plan.Of(HePoolClass.Unknown)} unknown; applied {plan.Applied}.");
+    }
+    /// <summary>The label of a damage line inside the HE scope with its tag ("Gunner [shock 9.2 %]", "main gun [exterior]"); any other label unchanged.</summary>
+    internal static string Tag(VehicleComponent owner,string label)
+    {
+        if(HeScopeState.Active?.Tags is not {} tags||!tags.TryGetValue(owner.Pointer,out var tag))return label;
+        return (owner.TryCast<CrewSeat>()!=null?label:CombatReportLanguage.Module(label))+" "+tag;
+    }
+    /// <summary>The report line of the perforation, once the fragments behind the plate are known.</summary>
+    internal static void Fragments(PenetrationSimulation sim,int count)
+    {
+        if(HeScopeState.Proxy?.Perforation is not {} p||sim.damageApplier is not {} applier||applier.Pointer!=p.Register)return;
+        RuntimeDamageFeed.HeNote(HeRules.PerforationText(p.NormalMm,p.RhaEqMm,p.AngleDegrees,count),p.HitId);
+    }
+    // The class names of a module, own class first (cached per class; the game's names, for example CrewSeat, FuelTank, TrackAssembly).
+    private static string[] Chain(VehicleComponent owner)
+    {
+        var klass=owner.ObjectClass;
+        if(chains.TryGetValue(klass,out var known))return known;
+        var names=new List<string>();
+        for(var k=klass;k!=IntPtr.Zero&&names.Count<16;k=Il2CppInterop.Runtime.IL2CPP.il2cpp_class_get_parent(k))
+        {
+            var name=Il2CppInterop.Runtime.IL2CPP.il2cpp_class_get_name_(k);
+            if(string.IsNullOrEmpty(name))break;
+            names.Add(name);
+            if(name=="VehicleComponent")break;
+        }
+        var chain=names.ToArray();
+        if(chains.Count<512)chains[klass]=chain;
+        return chain;
+    }
+    /// <summary>The pools of one vehicle in the order of the game's loop, with the blast's modifiers; the owners from the register's own entries.</summary>
+    private sealed class NativePools:IHeBlastPools
+    {
+        private readonly Il2CppSystem.Collections.Generic.List<HealthPool> list;
+        private readonly Dictionary<IntPtr,VehicleComponent> owners=new();
+        private readonly DamageModifiers modifiers;
+        internal readonly VehicleComponent?[] Owners,FeedOwners;
+        internal readonly IntPtr Register;
+        public int Count{get;}
+        internal NativePools(VehicleHealthRegister register,DamageModelDamageModifiers m)
+        {
+            Register=register.Pointer;
+            list=register.register?.register??throw new InvalidOperationException("the vehicle has no pool list");
+            Count=list.Count;Owners=new VehicleComponent?[Math.Max(0,Count)];FeedOwners=new VehicleComponent?[Math.Max(0,Count)];
+            // The game's loop copies the 16 bytes of the blast's modifiers into each call: the same four floats (Piercing, BluntForce, Pressure, Thermal at 0/4/8/12).
+            if(System.Runtime.CompilerServices.Unsafe.SizeOf<DamageModifiers>()!=16||System.Runtime.CompilerServices.Unsafe.SizeOf<DamageModelDamageModifiers>()!=16)throw new InvalidOperationException("unexpected modifier layout");
+            modifiers=System.Runtime.CompilerServices.Unsafe.As<DamageModelDamageModifiers,DamageModifiers>(ref m);
+            var entries=register.entries;
+            if(entries!=null)for(int i=0;i<entries.Count;i++)
+            {
+                var entry=entries[i];if(entry==null)continue;
+                var pool=entry.HealthPool;var owner=entry.Owner;
+                if(pool!=null&&owner!=null)owners[pool.Pointer]=owner;
+            }
+        }
+        public IReadOnlyList<string>? Types(int index)
+        {
+            var pool=list[index]??throw new NullReferenceException("pool "+index+" is null");
+            var feedOwner=RuntimeDamageFeed.PoolOwner(pool.Pointer);FeedOwners[index]=feedOwner;
+            var owner=owners.TryGetValue(pool.Pointer,out var known)?known:feedOwner;
+            Owners[index]=owner;
+            return owner==null?null:Chain(owner);
+        }
+        public void Apply(int index,float value)=>list[index].HealthDelta(value,modifiers);
+    }
+}
+// 0.22.86 HE end
 
 
 

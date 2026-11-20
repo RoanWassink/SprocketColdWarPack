@@ -300,7 +300,7 @@ internal static class RuntimeShellSelection
             __instance.muzzleVelocity.Value = dart.Velocity;
             __instance.projectileMass.Value = dart.FlightMass;
             var profile=CannonProfile(cannon)!;
-            __instance.penetration.Value = profile.Behavior=="he" ? 0 : profile.Behavior is "heat" or "hesh" or "atgm" or "atgm_gun" ? (float)RuntimeShellEra.ChemicalBudget(profile,cannon.Blueprint.Caliber,cannon.Vehicle) : PenetrationUtils.ComputePenetration(dart.Diameter * 1000,
+            __instance.penetration.Value = profile.Behavior=="he" ? HePenetration(cannon.Blueprint.Caliber) : profile.Behavior is "heat" or "hesh" or "atgm" or "atgm_gun" ? (float)RuntimeShellEra.ChemicalBudget(profile,cannon.Blueprint.Caliber,cannon.Vehicle) : PenetrationUtils.ComputePenetration(dart.Diameter * 1000, // 0.22.86 HE replaced
                 dart.Mass, dart.Velocity, dart.PenetratorConstant);
             __instance.dispersion.Value = ShellProperties.CalculateDispersion(cannon.Blueprint.Caliber,
                 CannonProperties.DispersionMeasureDistance, dart.Velocity, cannon.Blueprint.BoreLength);
@@ -350,6 +350,7 @@ internal static class RuntimeShellSelection
             {
                 var guid = new Il2CppSystem.Guid(System.Guid.NewGuid().ToString());
                 var functions = new Il2CppSystem.Collections.Generic.List<ProjectileFunctionDefinition>();
+                if(profile.Behavior=="he"&&RuntimeSpall.He.Perforation)functions.Add(new ArmouredPiercingProjectileFunctionDefinition(dart.PenetratorConstant)); // 0.22.86 HE
                 if(profile.Behavior=="he") functions.Add(new HighExplosiveProjectileFunctionDefinition(0,(float)ShellBalance.BlastPower(profile,cannon.Blueprint.Caliber)));
                 else functions.Add(new ArmouredPiercingProjectileFunctionDefinition(dart.PenetratorConstant));
                 // No propellant launch function: inject the balanced muzzle velocity
@@ -464,6 +465,7 @@ internal static class RuntimeShellSelection
                         ? ShellBalance.CoreImpactGeometry(impactProfile.Profile,impactProfile.GunDiameter)
                         : new ImpactGeometry(projectile.Definition.Length,projectile.Definition.Diameter,projectile.Definition.Mass,impactProfile.GunDiameter);
                     RuntimeSpall.Impact = new() { ProfileId = impactProfile.Id, Profile = impactProfile.Profile, ThreatClass=impactProfile.Profile.ThreatClass, Experimental=impactProfile.Armour.Experimental, ArmourSnapshot=impactProfile.Armour, Geometry=impactGeometry, GunDiameter = impactProfile.GunDiameter, LiveImpact=true,FiringEra=impactProfile.FiringEra,ChemicalBudget=impactProfile.ChemicalBudget };
+                    if(impactProfile.Profile.Behavior=="he")HeBlast.ProxyStarted(projectile.ID,projectile.spawnTime); // 0.22.86 HE
                 }
                 __state = __state with { IsDart = true };
                 if (diagnostics.Value) Plugin.ModLog.LogInfo($"[Ballistics] IMPACT projectile={projectile.ID} speed={projectile.velocity.magnitude:0.0}m/s damageFactor={factor:0.00}");
@@ -484,14 +486,33 @@ internal static class RuntimeShellSelection
     }
 
     [HarmonyPrefix,HarmonyPatch(typeof(ExplosiveProjectileFunction),nameof(ExplosiveProjectileFunction.HitDamageModel))]
-    private static void ExplosiveImpact(ref ProjectileInstance projectile,out ImpactState __state) => Impact(ref projectile,out __state);
+    private static void ExplosiveImpact(ref ProjectileInstance projectile,out ImpactState __state){Impact(ref projectile,out __state);HeScope(ref projectile,false);} // 0.22.86 HE replaced
     [HarmonyFinalizer,HarmonyPatch(typeof(ExplosiveProjectileFunction),nameof(ExplosiveProjectileFunction.HitDamageModel))]
-    private static void ExplosiveEnd(ImpactState __state) => EndImpact(__state);
+    private static void ExplosiveEnd(ImpactState __state){try{EndImpact(__state);}finally{HeBlast.End();}} // 0.22.86 HE replaced
     [HarmonyPrefix,HarmonyPatch(typeof(ExplosiveProjectileFunction),nameof(ExplosiveProjectileFunction.HitPhysicsObject))]
-    private static void ExplosivePhysics(ref ProjectileInstance projectile,out ImpactState __state) => Impact(ref projectile,out __state);
+    private static void ExplosivePhysics(ref ProjectileInstance projectile,out ImpactState __state){Impact(ref projectile,out __state);HeScope(ref projectile,true);} // 0.22.86 HE replaced
     [HarmonyFinalizer,HarmonyPatch(typeof(ExplosiveProjectileFunction),nameof(ExplosiveProjectileFunction.HitPhysicsObject))]
-    private static void ExplosivePhysicsEnd(ImpactState __state) => EndImpact(__state);
+    private static void ExplosivePhysicsEnd(ImpactState __state){try{EndImpact(__state);}finally{HeBlast.End();}} // 0.22.86 HE replaced
 
+    // 0.22.86 HE begin
+    private static bool heScopeWarned;
+    // The HE scope of one detonation, for a mod HE round with the blast filter on: knalpunt (the projectile's position, which Detonate uses), P, calibre,
+    // projectile GUID and, unless it hit the ground, the vehicles whose armour its perforating part perforated. The Explosive finalizers clear it in every case.
+    private static void HeScope(ref ProjectileInstance projectile,bool ground)
+    {
+        try
+        {
+            if(!RuntimeSpall.He.BlastFilter)return;
+            var guid=projectile.Definition.Guid.ToString();
+            if(!ImpactProfiles.TryGetValue(guid,out var impact)||impact.Profile.Behavior!="he")return;
+            var calibre=impact.GunDiameter*1000d;
+            HeBlast.Begin(projectile.ID,projectile.spawnTime,projectile.position,ShellBalance.BlastPower(impact.Profile,calibre),calibre,guid,ground);
+        }
+        catch(Exception ex){HeBlast.End();if(!heScopeWarned){heScopeWarned=true;Plugin.ModLog.LogWarning("[HE] Blast scope unavailable; the game's own blast is used: "+ex.Message);}}
+    }
+    /// <summary>The cannon's penetration value of an HE round: the budget of its perforating part (0 without it, as before).</summary>
+    private static float HePenetration(double calibreMm)=>RuntimeSpall.He.Perforation?(float)HeRules.PerforationMm(RuntimeSpall.He,calibreMm):0;
+    // 0.22.86 HE end
     // ApplyFragmentHits calls this overload directly; Fragment.Damage is inlined.
     // Only change health damage during the custom impact, not flight or penetration.
     [HarmonyPostfix, HarmonyPatch(typeof(ShellProperties), nameof(ShellProperties.GetDamage), new[] { typeof(float), typeof(float) })]

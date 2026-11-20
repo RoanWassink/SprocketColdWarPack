@@ -14,7 +14,7 @@ namespace SprocketCarouselAutoloader;
 // Optional visual adapter. No ammunition, loading, assignment, collider or mass writes.
 // 0.2.23: a static true-size prop. Two meshes per rack: the frame/drum/arm and the rounds.
 // The round triangles are sorted by slot, so AmountStored only changes the length of one
-// prebuilt index buffer per material: no transforms, no animation, no per-frame allocation.
+// prebuilt index buffer per material. Belt also adjusts cached top/fill transforms on stock changes.
 internal static class AutoloaderVisuals
 {
     private sealed class Visual
@@ -35,20 +35,28 @@ internal static class AutoloaderVisuals
         internal Il2CppStructArray<int>[] RoundIndices = Array.Empty<Il2CppStructArray<int>>();
         internal int[][] Prefix = Array.Empty<int[]>();
         internal int Displayed = -1;
+        internal BeltVisualModel? Belt;
+        internal Slice? Fill, Top, TopRows, Partial, FullRibs, PartialRibs;
         internal Visual(AmmoRack rack, AmmoRackModel native, LoaderModel model, GameObject root)
         { Rack=rack; Native=native; Model=model; Root=root; }
+    }
+
+    private sealed record Slice(GameObject Child, Mesh Mesh, Il2CppStructArray<int>[] Indices)
+    {
+        internal readonly Transform Transform = Child.transform;
     }
 
     private static readonly Dictionary<IntPtr, Visual> Models = new();
     private static readonly Dictionary<IntPtr, Visual> NativeModels = new();
     // Racks refused with a reason: retried by AmmoRack.Build, not by every renderer refresh.
     private static readonly HashSet<IntPtr> Refused = new();
+    private static readonly Dictionary<IntPtr, float> Pending = new();
     // Warnings are logged once per rack (vehicle design + VUID) and reason for the whole session,
     // also when the same design is spawned several times (Sandbox Targets copies).
     private static readonly HashSet<string> Logged = new();
     private static readonly HashSet<IntPtr> Building = new();
     internal static bool Owns(AmmoRack rack) => rack.VehicleObject?.GUID is
-        BustleRuntime.PartGuid or BustleRuntime.RevolverPartGuid;
+        BustleRuntime.PartGuid or BustleRuntime.RevolverPartGuid or Belt.PartGuid;
 
     private static void Warn(AmmoRack rack, string reason, string detail = "")
     {
@@ -78,29 +86,48 @@ internal static class AutoloaderVisuals
             // has only its native size encoding until a cannon is selected.
             var shell = assigned == null ? new LoaderShellSize(0, rack.projectileSizeID.Caliber*3.0,
                 rack.projectileSizeID.PropellantLength, rack.projectileSizeID.Caliber) : ShellLoaderGeometry.Read(assigned);
-            int capacity = Math.Max(0, rack.behaviour?.Capacity ?? rack.Capacity);
-            // Seen when a rack is built before its cannon/ammunition is known (vehicle spawn) and for
-            // racks whose rounds do not fit (capacity 0). A later Build with valid data succeeds.
+            // Build updates the component first; a behaviour can still have its previous zero.
+            // Model callbacks can also run inside native Build, before component capacity is set.
+            int capacity = Math.Max(0, rack.Capacity);
             if (!shell.Valid || capacity == 0)
-            { Refuse(rack, "no valid shell geometry or empty capacity", $" (geometry status {shell.Status}, capacity {capacity})"); return; }
-            if (!AutoloaderVisualPolicy.Supported(capacity)) { Refuse(rack, "own model exceeds visual budget", $" (capacity {capacity})"); return; }
+            { Pending[rack.Pointer] = Time.unscaledTime + 1f; return; }
+            Pending.Remove(rack.Pointer);
+            if (!state.BeltFeed && !AutoloaderVisualPolicy.Supported(capacity)) { Refuse(rack, "own model exceeds visual budget", $" (capacity {capacity})"); return; }
             // 0.2.24: the same spec (bounds, pieces, load point) that places the gameplay feed point,
             // so the arm the player sees is where the game measures from.
-            state.FeedValid = false;
-            BustleRuntime.Feed(state, assigned);
-            if (state.FeedSpec == null) { Refuse(rack, "no valid shell geometry or empty capacity", " (no model input)"); return; }
-            var model = AutoloaderModelGeometry.Create(state.FeedSpec with { Capacity = capacity });
+            BeltVisualModel? belt = null;
+            LoaderModel model;
+            if (state.BeltFeed)
+            {
+                // Visual-only input; never modify the gameplay feed cache for Belt.
+                var input = BustleRuntime.ModelSpec(state, assigned, capacity);
+                if (input == null) { Refuse(rack, "no Belt model input"); return; }
+                var feed = rack.LoadLocalPosition - (rack.boundsCollider?.Centre ?? Vector3.zero);
+                belt = BeltVisualGeometry.Create(input with { LoadX = feed.x, LoadY = feed.y, LoadZ = feed.z });
+                model = belt.Model;
+                if (Plugin.DetailedLogging && belt.Detail != BeltDetail.Links && Logged.Add($"belt-budget|{rack.VUID.Value}"))
+                    Plugin.ModLog.LogInfo($"[Belt visuals] Rack {rack.VUID.Value}: budget fallback {belt.Detail} (links omitted" +
+                        (belt.Detail == BeltDetail.RibbedBlock ? $", top layer is ribbed fill; rib stride {belt.RibStride}" : "") + ").");
+            }
+            else
+            {
+                state.FeedValid = false;
+                BustleRuntime.Feed(state, assigned);
+                if (state.FeedSpec == null) { Refuse(rack, "no valid shell geometry or empty capacity", " (no model input)"); return; }
+                model = AutoloaderModelGeometry.Create(state.FeedSpec with { Capacity = capacity });
+            }
             if (!model.Complete) { Refuse(rack, "own model does not match the rack capacity", $" ({model.Slots} places, capacity {capacity})"); return; }
-            if (!AutoloaderVisualPolicy.InBudget(model)) { Refuse(rack, "own model exceeds visual budget", $" ({model.Triangles} triangles)"); return; }
+            if (belt != null ? belt.MaximumTriangles > AutoloaderVisualPolicy.TriangleBudget : !AutoloaderVisualPolicy.InBudget(model))
+            { Refuse(rack, "own model exceeds visual budget", $" ({belt?.MaximumTriangles ?? model.Triangles} triangles)"); return; }
             var root = new GameObject("Autoloader true-size model");
-            var visual = new Visual(rack,native,model,root);
+            var visual = new Visual(rack,native,model,root) { Belt = belt };
             // Register immediately: partial creation failures are cleaned up by Remove.
             Models.Add(rack.Pointer,visual); NativeModels[native.Pointer]=visual;
             root.transform.SetParent(rack.transform,false);
             root.transform.localPosition=rack.boundsCollider?.Centre ?? Vector3.zero;
             root.SetActive(false);
             foreach (var color in new[] {new Color(43/255f,55/255f,57/255f,1),new Color(112/255f,134/255f,132/255f,1),
-                new Color(186/255f,203/255f,192/255f,1),new Color(204/255f,167/255f,83/255f,1),new Color(147/255f,62/255f,52/255f,1)})
+                new Color(186/255f,203/255f,192/255f,1),new Color(204/255f,167/255f,83/255f,1),new Color(147/255f,62/255f,52/255f,1),new Color(.62f,.54f,.37f,1)})
             {
                 var material=new Material(native.material);
                 visual.Materials.Add(material);
@@ -108,7 +135,18 @@ internal static class AutoloaderVisuals
                 if(material.HasProperty("_Color")) material.SetColor("_Color",color);
             }
             Build(visual,false);
-            Build(visual,true);
+            visual.Top = Build(visual,true);
+            if (belt != null)
+            {
+                visual.Fill = Build(visual,false,new[] { belt.Fill });
+                if (belt.Detail == BeltDetail.RibbedBlock)
+                {
+                    visual.TopRows = Build(visual,false,new[] { belt.Fill });
+                    visual.Partial = Build(visual,false,new[] { belt.Fill });
+                    visual.FullRibs = Build(visual,false,new[] { belt.Ribs! });
+                    visual.PartialRibs = Build(visual,false,new[] { belt.Ribs! });
+                }
+            }
             Bind(visual);
             Sync(visual);
             Refused.Remove(rack.Pointer);
@@ -135,9 +173,9 @@ internal static class AutoloaderVisuals
 
     // One mesh with a submesh per material: the static frame (rounds=false), or all rounds
     // ordered by slot (rounds=true) with a visible prefix per material and stock level.
-    private static void Build(Visual visual, bool rounds)
+    private static Slice? Build(Visual visual, bool rounds, IReadOnlyList<MeshPart>? selected = null)
     {
-        var parts=visual.Model.Meshes.Where(p => (p.Role==PartRole.Round)==rounds).OrderBy(p => rounds ? p.Slot : 0).ToList();
+        var parts=(selected ?? visual.Model.Meshes).Where(p => selected != null || (p.Role==PartRole.Round)==rounds).OrderBy(p => rounds ? p.Slot : 0).ToList();
         int materials=visual.Materials.Count;
         var vertices=new List<Vector3>(); var normals=new List<Vector3>();
         var indices=new List<int>[materials];
@@ -153,7 +191,7 @@ internal static class AutoloaderVisuals
             for(int tri=0;tri<part.Triangles;tri++)
                 for(int k=0;k<3;k++) indices[part.Materials[tri]].Add(first+part.Indices[tri*3+k]);
         }
-        if(vertices.Count==0) return;
+        if(vertices.Count==0) return null;
         var mesh=new Mesh {name=rounds ? "True-size rounds" : "Frame, drum and feed arm"};
         visual.Meshes.Add(mesh);
         if(vertices.Count>65000) mesh.indexFormat=UnityEngine.Rendering.IndexFormat.UInt32;
@@ -170,13 +208,15 @@ internal static class AutoloaderVisuals
         mesh.RecalculateBounds();
         var child=Child(visual,mesh.name,mesh);
         child.AddComponent<MeshRenderer>().sharedMaterials=new Il2CppReferenceArray<Material>(visual.Materials.ToArray());
-        if(!rounds) return;
+        var slice = new Slice(child,mesh,buffers);
+        if(!rounds || selected != null) return slice;
         visual.Rounds=mesh;
         visual.RoundIndices=buffers;
         visual.Prefix=new int[materials][];
         for(int slot=0;slot<materials;slot++)
-            visual.Prefix[slot]=AutoloaderVisualPolicy.Prefix(parts,slot,visual.Model.Spec.Capacity);
+            visual.Prefix[slot]=AutoloaderVisualPolicy.Prefix(parts,slot,(visual.Belt?.Layout.PerLayer ?? visual.Model.Spec.Capacity));
         visual.Displayed=-1;
+        return slice;
     }
 
     private static void Bind(Visual visual)
@@ -206,28 +246,70 @@ internal static class AutoloaderVisuals
     }
 
     // Shows exactly AmountStored rounds (none while native shells are shown). Only a changed stock
-    // touches the mesh, and then only the index-buffer lengths.
+    // touches the index-buffer lengths; Belt also places its exposed layer and scales the fill.
     private static void Update(Visual visual)
     {
-        if(visual.Root==null || !visual.Root.activeInHierarchy || visual.Rounds==null) return;
+        if(visual.Root==null || !visual.Root.activeInHierarchy) return;
         int capacity=visual.Model.Spec.Capacity;
-        int stored=AutoloaderVisualPolicy.Stock(capacity,visual.Rack.behaviour?.AmountStored ?? capacity);
+        int stored=AutoloaderVisualPolicy.Stock(capacity,visual.Stock?.AmountStored ?? capacity);
         int state=visual.Own ? stored : 0;
         if(state==visual.Displayed) return;
+        int visible = state;
+        if (visual.Belt != null)
+        {
+            var belt = visual.Belt;
+            var g = belt.Layout;
+            var stock = g.Stock(state);
+            var spec = visual.Model.Spec;
+            SetBox(visual.Fill, state > 0 && stock.FillHeight > 0, g.X0, g.Y0, g.Z0,
+                g.Width, stock.FillHeight, g.Depth);
+            if (visual.Top != null) visual.Top.Transform.localPosition = new Vector3(0,(float)stock.FillHeight,0);
+            visible = stock.TopCount;
+            if (belt.Detail == BeltDetail.RibbedBlock)
+            {
+                double y = g.Y0 + stock.FillHeight, z = g.Z0;
+                double rowsDepth = stock.FullRows * g.Length + Math.Max(0, stock.FullRows - 1) * (g.PitchZ - g.Length);
+                double partialWidth = stock.PartialColumns * g.Diameter + Math.Max(0, stock.PartialColumns - 1) * (g.PitchX - g.Diameter);
+                SetBox(visual.TopRows, state > 0 && stock.FullRows > 0, g.X0,y,z,
+                    g.Width,g.Diameter,rowsDepth);
+                SetBox(visual.Partial, state > 0 && stock.PartialColumns > 0, g.X0,y,z + stock.FullRows * g.PitchZ,
+                    partialWidth,g.Diameter,g.Length);
+                SetBox(visual.FullRibs, state > 0 && stock.FullRows > 0, g.X0,y + g.Diameter,z,1,1,rowsDepth);
+                SetBox(visual.PartialRibs, state > 0 && stock.PartialColumns > 0, g.X0,y + g.Diameter,z + stock.FullRows * g.PitchZ,1,1,g.Length);
+                var partial = visual.PartialRibs!;
+                int ribs = (stock.PartialColumns + belt.RibStride - 1) / belt.RibStride;
+                partial.Mesh.SetTriangles(partial.Indices[AutoloaderModelGeometry.Brass],0,ribs * 36,AutoloaderModelGeometry.Brass,false,0);
+            }
+        }
         for(int slot=0;slot<visual.RoundIndices.Length;slot++)
-            visual.Rounds.SetTriangles(visual.RoundIndices[slot],0,visual.Prefix[slot][state]*3,slot,false,0);
+            visual.Rounds!.SetTriangles(visual.RoundIndices[slot],0,visual.Prefix[slot][visible]*3,slot,false,0);
         visual.Displayed=state;
     }
 
+    private static void SetBox(Slice? part, bool active, double x, double y, double z, double w, double h, double l)
+    {
+        if (part == null) return;
+        if (part.Child.activeSelf != active) part.Child.SetActive(active);
+        if (!active) return;
+        part.Transform.localPosition = new Vector3((float)x,(float)y,(float)z);
+        part.Transform.localScale = new Vector3((float)w,(float)h,(float)l);
+    }
+
     // Called from MagazineRefill's existing LoadTask.Update tick: an integer comparison per own
-    // rack, no transforms and no allocation. Rebinds when the native stock behaviour is replaced.
+    // rack. Rebinds when the native stock behaviour is replaced. Belt transforms change with stock only.
     internal static void Tick(Cannon cannon, LoadTask task)
     {
         foreach(var state in VehicleLoadIndex.Get(cannon).Bustles)
         {
             if(state.Semi || state.CannonId!=cannon.VUID.Value) continue;
             AutoloaderHudFeed.Sample(state,cannon,task); // at most 10x per second, also without an own model
-            if(!Models.TryGetValue(state.Rack.Pointer,out var visual)) continue;
+            if (!Models.TryGetValue(state.Rack.Pointer, out var visual))
+            {
+                // Only transient initialization failures are retried; hard budget/fit failures stay refused.
+                if (Pending.TryGetValue(state.Rack.Pointer, out var next) && Time.unscaledTime >= next && state.Rack.Capacity > 0)
+                    Rebuild(state.Rack);
+                continue;
+            }
             if(visual.Root==null || !visual.Root.activeInHierarchy) continue;
             try { Bind(visual); Update(visual); }
             catch(Exception ex) { Warn(state.Rack,"stock display failed",": "+ex.Message); }
@@ -362,5 +444,5 @@ internal static class AutoloaderVisuals
         foreach(var material in visual.Materials) if(material!=null) Object.Destroy(material);
     }
 
-    internal static void Release(IntPtr pointer) { Remove(pointer); Refused.Remove(pointer); }
+    internal static void Release(IntPtr pointer) { Remove(pointer); Refused.Remove(pointer); Pending.Remove(pointer); }
 }

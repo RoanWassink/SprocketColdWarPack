@@ -16,7 +16,7 @@ public static class Catalog
 {
     public static readonly Profile Petrol=new(1,1,1,1,1,null);
     public static readonly Profile Diesel=new(.95,.8,.85,1.15,1.15,new(new[]{new Point(.2,.8),new(.35,1),new(.5,1),new(.65,.92),new(.8,.78),new(1,.55)}));
-    public static readonly Profile Turbine=new(1.50,1.20,2.10,1,1.80,new(new[]{new Point(.2,1.25),new(.35,1.20),new(.5,1.15),new(.65,1.10),new(.8,1),new(1,.80)}));
+    public static readonly Profile Turbine=new(1.50,1.20,2.10,1,1.80,new(new[]{new Point(.2,1.55),new(.35,1.42),new(.5,1.28),new(.65,1.14),new(.8,1),new(.9,.88),new(1,.74)}));
     public static Profile Get(EngineKind kind)=>kind switch {EngineKind.Petrol=>Petrol,EngineKind.Diesel=>Diesel,EngineKind.GasTurbine=>Turbine,_=>throw new ArgumentOutOfRangeException(nameof(kind))};
 }
 public sealed class EnginePlan

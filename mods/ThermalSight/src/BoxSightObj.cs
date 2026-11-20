@@ -60,7 +60,7 @@ public sealed class BoxSightObj
             else throw new InvalidDataException("Unexpected box sight OBJ record: " + f[0]);
         }
         int[] expected = { 2700, 914, 748, 672 };
-        if (positions.Count != 2668 || texcoords.Count != 2060 || sourceNormals.Count != 1113 || nextMaterial != 4
+        if (positions.Count != 2668 || texcoords.Count != 15102 || sourceNormals.Count != 1113 || nextMaterial != 4
             || faces.Where((f, i) => f.Count != expected[i] * 3).Any())
             throw new InvalidDataException("Unexpected box sight geometry counts");
         var min = positions.Aggregate(Vector3.Min); var max = positions.Aggregate(Vector3.Max);

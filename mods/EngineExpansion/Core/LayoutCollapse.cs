@@ -41,7 +41,6 @@ public static class LayoutCollapse
                 var outputs=connections.Where(c=>c.ProviderModule==m.Id).ToArray();
                 if(outputs.Length==1)
                 {
-                    if((m.Flags&~6)!=0){error="Conflict: a junction already has positioning flags.";return;}
                     if((edge.Flags&1)!=0){error="Conflict: the route already has abstracted connections.";return;}
                     removed.Add(m.Id);edge=outputs[0];continue;
                 }
@@ -53,8 +52,8 @@ public static class LayoutCollapse
             }
         }
         Walk(start[0]);if(error!=null)return Fail(error);
-        if(transmissions.Count!=1&&transmissions.Count!=2)return Fail("Branch: expected one gearbox or a mirrored pair.");
-        if(transmissions.Count==2&&(splitter<0||transmissions[0].MirrorId!=transmissions[1].Id||transmissions[1].MirrorId!=transmissions[0].Id))return Fail("Branch: the gearboxes are not a mirrored pair.");
+        if(transmissions.Count!=1&&transmissions.Count!=2)return Fail("Branch: expected one gearbox or a twin pair.");
+        if(transmissions.Count==2&&(splitter<0||transmissions[0].Id==transmissions[1].Id))return Fail("Branch: expected two distinct gearboxes after the splitter.");
         foreach(int id in removed)
             if(map[id].MirrorId>=0&&(!removed.Contains(map[id].MirrorId)||map[map[id].MirrorId].MirrorId!=id))return Fail("Conflict: mirrored junctions must be removed together.");
         double distance=0;bool forward=false;

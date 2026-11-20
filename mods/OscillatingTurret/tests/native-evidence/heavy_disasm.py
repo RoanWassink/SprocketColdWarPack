@@ -1,6 +1,6 @@
 ﻿"""Heavy Trunnion 0.3.0 native evidence: disassemble named GameAssembly methods.
 Usage: py heavy_disasm.py <substring> [...]   (matches the method's full name)
-Map: native-methods.json (RVA + length per method) that matches GameAssembly 3E58082804D9...;
+Map: native-methods.json (RVA + length per method) that matches GameAssembly 77FC60174899... (build 26757044);
 the script prints the GameAssembly hash so the match is checked.
 Environment: SPROCKET_NATIVE_METHODS = native-methods.json (Name/RVA/Length per native method of GameAssembly.dll; read only),
 SPROCKET_DIR = game folder (default: the Steam folder), OT_PY_DEPS = optional folder with pefile and capstone (else pip-installed).

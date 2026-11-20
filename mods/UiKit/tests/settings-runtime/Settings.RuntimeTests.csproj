@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+<PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><UseAppHost>false</UseAppHost></PropertyGroup>
+<ItemGroup>
+<Compile Include="../../Runtime/Settings.cs" Link="Settings.cs" /><Compile Include="../../Core/Settings.cs" Link="SettingsPolicy.cs" /><Compile Remove="bin*/**" />
+<Reference Include="SprocketKeybinds"><HintPath>$(KeybindsDll)</HintPath><Private>false</Private></Reference>
+<Reference Include="$(GameDir)/BepInEx/core/*.dll" Exclude="$(GameDir)/BepInEx/core/TerraFX*.dll;$(GameDir)/BepInEx/core/dobby.dll"><Private>false</Private></Reference>
+
+</ItemGroup>
+</Project>
+

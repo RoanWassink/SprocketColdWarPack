@@ -1,4 +1,15 @@
-﻿# Sprocket Keybinds 0.1.9 - development beta
+# Sprocket Keybinds 0.1.10 - framework core (FIX1)
+
+- FIX1: guarded optional logging/shortcut initialization, null-safe polling, getter-only ModSetting properties and read/write SettingOptions properties. Settings row requests deferred display and reads Opens after Settings until the next Attach/Refresh. No additional hooks.
+- Add the managed global ModSettings registry, shared metadata snapshots, config-backed values, type descriptions, visibility, resets and safe presenter callbacks. UI Kit supplies the settings panel separately.
+- Add the native Mod settings row and unbound Open mod settings action. Without a presenter the row displays Needs UI Kit and is disabled.
+- Add Diagnostics.DetailedLogging (default false), read live and registered as Detailed logging. Registration lines, warnings and errors remain unconditional.
+- Catch Capture/Reset prefix errors with native fallback. Keep all 10 patch targets and native Cancel/Esc behavior unchanged.
+- Add real BepInEx cfg tests, additive ABI verification against 0.1.9, source/delegate guards and unique-RVA checks. Build and test evidence is in logs/; native integration remains pending per NOTES.md.
+
+No installation or publication. Existing keybind consumers remain compatible; settings callers require >=0.1.10 <0.2.0. Values stay in each mod's own cfg.
+
+# Sprocket Keybinds 0.1.9 - development beta
 
 - Restyle the existing Settings panel to UI Kit STYLE.md 0.1.0 with local cached rounded fill/outline/shadow sprites; no new assembly dependency or circular dependency.
 - Add a 44px title bar, author/pack segmented control, cross close button, nested section/list headers with indicators and counts, quiet Clear controls and a 32px status footer with capture-only Esc key cap.

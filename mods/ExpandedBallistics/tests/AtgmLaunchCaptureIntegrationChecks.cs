@@ -32,7 +32,7 @@ internal static class AtgmLaunchCaptureIntegrationChecks
         foreach(var dt in new[]{double.NaN,-1,0,.2})check(Angle(new AtgmLaunchCapture(launch,target).Step(launch,target,.2,100,dt),launch)<.05,"invalid/large timestep cannot jump heading");
         var noArrival=new AtgmLaunchCapture(launch,target);noArrival.Step(target,target,1,100,.02,false);
         check(!noArrival.Finished,"matching heading alone is not arrival at the physical sight ray");
-        check(!AtgmIndependentSightPolicy.Allows(true,2,false,true)&&!AtgmIndependentSightPolicy.Allows(true,1,true,true)&&!AtgmIndependentSightPolicy.Allows(false,1,false,true)&&AtgmIndependentSightPolicy.Allows(true,1,false,true),"independent optics requires one owned launcher and rejects shared/foreign use");
+        check(AtgmIndependentSightPolicy.Allows(true,2,false,true)&&!AtgmIndependentSightPolicy.Allows(true,0,false,true)&&!AtgmIndependentSightPolicy.Allows(true,1,true,true)&&!AtgmIndependentSightPolicy.Allows(false,1,false,true)&&AtgmIndependentSightPolicy.Allows(true,1,false,true),"independent optics requires at least one owned launcher (0.22.87: a group of two is allowed) and rejects shared/foreign use"); // 0.22.87 adapted (TEST-ADAPTATIONS.md)
         // Production motor and guidance trajectory: elevated launches must actually
         // gather back onto the sight line, not merely finish pointing horizontally.
         var profile=ShellProfiles.Parse(ReleaseProfiles.Defaults()).Single(p=>p.Id=="atgm_saclos_direct_v1");

@@ -25,11 +25,14 @@ internal static partial class PowerpackLayout
     internal static Func<double> MassFraction=()=>.10,CostFraction=()=>.15;
     internal static bool Installed;
     internal static bool CollapseJunctions=true;
-    internal static double MaxCollapseDistance=LayoutCollapse.DefaultMaxDistance;
+    internal static double MaxCollapseDistance=10.0;
+    internal static double MonoblockOverlap=PowerpackRules.DefaultMonoblockOverlap;
     private static readonly Dictionary<IntPtr,(IntPtr Layout,string Reason)> refusals=new();
     internal static string? Refusal(CombustionEngine engine,Context? context)=>context!=null&&refusals.TryGetValue(engine.Blueprint.Pointer,out var refusal)&&refusal.Layout==context.Powertrain.Layout.Pointer?refusal.Reason:null;
     [ThreadStatic]private static bool secondPass;
     [ThreadStatic]private static VehiclePowertrain? building;
+    [ThreadStatic]private static bool inBuildLayout;
+    [ThreadStatic]private static bool healedFlags;
     private static readonly TransmissionExtentCache extents=new();
     private static TransmissionExtent FallbackExtent=>new(0,.4*DrivetrainRules.LengthScale(DrivetrainAdapter.Volume())*.5);
     // One safety-net warning per toggle (re-armed by every Execute), and one before the first toggle.
@@ -46,6 +49,7 @@ internal static partial class PowerpackLayout
         internal int SplitterId=>Twin is {Status:PowerpackStatus.Ready} twin?twin.JunctionId:ChainSplitter;
         internal bool IsTwin=>ModuleIds.Length>1;
         internal bool Marked=>Twin?.Marked??Plan.Marked;
+        internal bool Partial=>Twin?.Partial??Plan.Partial;
     }
 
     internal static Context? Resolve(CombustionEngine engine)
@@ -105,7 +109,7 @@ internal static partial class PowerpackLayout
             ??host?.TryCast<Sprocket.VehicleDesigner.Access.IVehicleEditorOperations>()?.OpControl?.TryCast<OperationController>();
         if(controller==null){Plugin.Warn("powerpack",new InvalidOperationException("No active vehicle editor history; powerpack unchanged."));return false;}
         var context=Resolve(engine);
-        bool withLayout=context?.Status==PowerpackStatus.Ready&&context.Marked!=on;
+        bool withLayout=context?.Status==PowerpackStatus.Ready&&(context.Marked!=on||context.Partial);
         if(on&&context?.Status!=PowerpackStatus.Ready)return false;
         var before=Selections.Capture(bp);
         var next=Selections.Get(bp) with {Powerpack=on};next.Validate();
@@ -162,10 +166,12 @@ internal static partial class PowerpackLayout
                 try{if(final!=null)context!.Powertrain.Layout=final;}
                 catch{Selections.Restore(bp,before);throw;}
                 Changed(engine,bp);
+                PowerpackCollision.Refresh(context!.Powertrain);
+                PowerpackCollision.MarkPowertrainCollidersModified(context.Powertrain);
                 if(Plugin.Detailed)
                 {
                     Plugin.ModLog.LogInfo(FormattableString.Invariant($"POWERPACK collapse junctions={(on?context?.Collapse?.Removed.Length??0:0)} dist={context?.Collapse?.Distance??0:0.###}"));
-                    Plugin.ModLog.LogInfo("POWERPACK collision mode=native-1mm");
+                    Plugin.ModLog.LogInfo($"POWERPACK collision mode={(PowerpackCollision.Active?"monoblock-filter":"native-1mm")} shafts={PowerpackCollision.DriveshaftMode}");
                 }
                 return ExecutionResult.Executed;
             }
@@ -185,6 +191,8 @@ internal static partial class PowerpackLayout
                 Selections.Restore(bp,before);
                 if(initial!=null)context!.Powertrain.Layout=initial;
                 Changed(engine,bp);
+                PowerpackCollision.Refresh(context!.Powertrain);
+                PowerpackCollision.MarkPowertrainCollidersModified(context.Powertrain);
                 if(Plugin.Detailed)Plugin.ModLog.LogInfo($"[Engine Expansion] POWERPACK revert engine={bp.Pointer} restored={(before.Document.Selection.Powerpack?"on":"off")}");
             }
             catch(Exception ex){Plugin.Warn("powerpack undo",ex);}
@@ -242,12 +250,45 @@ internal static partial class PowerpackLayout
     private static Vec3 ToVec(Vector3 value)=>new(value.x,value.y,value.z);
     private static Quat ToQuat(Quaternion value)=>new(value.x,value.y,value.z,value.w);
     private static Vector3 ToVector(Vec3 value)=>new((float)value.X,(float)value.Y,(float)value.Z);
+    private static Quaternion ToUnityQuat(Quat value)=>new((float)value.X,(float)value.Y,(float)value.Z,(float)value.W);
+    private static double SignedClearance()=>PowerpackCollision.Active?-Math.Clamp(MonoblockOverlap,0,.25):PowerpackRules.ObstructionClearance;
 
     private static void Changed(CombustionEngine engine,EngineBlueprint bp){bp.MarkModified();engine.RequestRebuild();}
 
-    // The native caller uses the result as the module position. Single: the input port sits on the
-    // engine output. Twin: the full rotated transmission box is put 1 mm clear of the engine's
-    // required-space collider.
+    [HarmonyPrefix,HarmonyPatch(typeof(PowertrainTransformations),nameof(PowertrainTransformations.ExecuteAutoposition))]
+    private static void SetRotations(PowertrainLayout __0)
+    {
+        if(secondPass||__0==null)return;
+        try
+        {
+            if(inBuildLayout&&building!=null)SyncPowerpackFlags(building,__0);
+            var modules=__0.powertrainModules;
+            for(int i=0;i<modules.Count;i++)
+            {
+                var module=modules[i];
+                if(!TryInput(module,out _,out var connection))continue;
+                var providerModule=connection.provider?.module;
+                if(providerModule==null)continue;
+                if(providerModule.moduleType==PowertrainModuleType.Engine)
+                {
+                    module.rotation=providerModule.rotation;
+                }
+                else if(TwinEngineOutput(providerModule,connection,out var engineOutput)&&
+                    engineOutput.module is {} engineMod&&
+                    FindTwinPartner(providerModule,module) is {} partner)
+                {
+                    int side=TwinSideFor(module,partner,engineMod,ToVec(engineOutput.direction),preferExistingRotation:false);
+                    module.rotation=ToUnityQuat(PowerpackRules.TwinRotation(ToQuat(engineMod.rotation),side));
+                    providerModule.rotation=engineMod.rotation;
+                }
+            }
+        }
+        catch(Exception ex){Plugin.Warn("powerpack rotation",ex);}
+    }
+
+    // The native caller uses the result as the module position. Single & Twin both use
+    // engine-local 3D rigid placement (and SetRotations aligns rotation), tucking flush when
+    // internal collision filtering is active or holding 1 mm positive clearance otherwise.
     [HarmonyPostfix,HarmonyPatch(typeof(PowertrainTransformations),nameof(PowertrainTransformations.GetModuleAutoPosition))]
     private static void Flush(PowertrainModule __0,ref Vector3 __result)
     {
@@ -257,44 +298,32 @@ internal static partial class PowerpackLayout
             var provider=connection.provider;
             if(provider?.module is not {} providerModule)return;
             Vec3 origin;
+            double clearance=SignedClearance();
             if(providerModule.moduleType==PowertrainModuleType.Engine)
             {
-                var p=provider.position;var r=__0.rotation;var l=input.localPosition;
-                origin=PowerpackRules.FlushOrigin(new(p.x,p.y,p.z),new(r.x,r.y,r.z,r.w),new(l.x,l.y,l.z));
-                // Enabled=false executes the exact 0.2.3 port placement above. Model placement
-                // uses the same guarded, layout-space obstruction calculation as Twin.
-                if(PowerpackModel.Enabled&&building!=null&&FindTransmission(building,__0) is {} block&&
-                    PowerpackModel.TransmissionActive(block)&&EngineObstruction(building,providerModule,out var engineBox))
-                {
-                    var placed=PowerpackRules.TwinOriginGuarded(ToVec(p),ToVec(provider.direction),ToVec(__0.position),
-                        ToQuat(r),ToVec(l),ExtentFor(__0),engineBox,PowerpackRules.ObstructionClearance);
-                    if(placed.FellBack)WarnSafetyNet(__0.id,placed.Depth,engineBox);
-                    origin=placed.Origin;
-                }
+                OrientedBox? engineBox=building!=null&&EngineObstruction(building,providerModule,out var eb)?eb:null;
+                var placed=PowerpackRules.MonoblockOrigin(
+                    ToVec(provider.position),ToQuat(providerModule.rotation),ToVec(provider.direction),
+                    ToVec(input.localPosition),ExtentFor(__0),engineBox,clearance);
+                if(placed.FellBack&&engineBox is {} bad)WarnSafetyNet(__0.id,placed.Depth,bad);
+                origin=placed.Origin;
             }
-            else if(TwinEngineOutput(providerModule,connection,out var engineOutput))
+            else if(TwinEngineOutput(providerModule,connection,out var engineOutput)&&engineOutput.module is {} engineMod)
             {
-                var p=engineOutput.position;var d=engineOutput.direction;var r=__0.rotation;var l=input.localPosition;
-                var extent=ExtentFor(__0);
-                var enginePosition=new Vec3(p.x,p.y,p.z);var engineDirection=new Vec3(d.x,d.y,d.z);
-                var currentOrigin=new Vec3(__0.position.x,__0.position.y,__0.position.z);
-                var rotation=new Quat(r.x,r.y,r.z,r.w);var inputLocal=new Vec3(l.x,l.y,l.z);
-                // The engine collider is the real obstruction surface: put the nearest corner of the
-                // full rotated transmission box 1 mm beyond the engine box, not the nominal face on
-                // the output port plane. The engine may be yawed, so the corner is projected along
-                // the engine direction. Without a collider (outside a build) keep the old plane.
-                // The safety net replaces a placement more than 0.5 m off the output plane.
-                if(building!=null&&EngineObstruction(building,engineOutput.module,out var engineBox))
-                {
-                    var placed=PowerpackRules.TwinOriginGuarded(enginePosition,engineDirection,currentOrigin,rotation,inputLocal,
-                        extent,engineBox,PowerpackRules.ObstructionClearance);
-                    if(placed.FellBack)WarnSafetyNet(__0.id,placed.Depth,engineBox);
-                    origin=placed.Origin;
-                }
-                else origin=PowerpackRules.TwinOrigin(enginePosition,engineDirection,currentOrigin,rotation,inputLocal,extent).Origin;
+                var partner=FindTwinPartner(providerModule,__0);
+                var engineDirection=ToVec(engineOutput.direction);
+                int side=partner!=null
+                    ?TwinSideFor(__0,partner,engineMod,engineDirection,preferExistingRotation:true)
+                    :((short)__0.moduleFlags&2)!=0?-1:1;
+                OrientedBox? engineBox=building!=null&&EngineObstruction(building,engineMod,out var eb)?eb:null;
+                var placed=PowerpackRules.TwinMonoblockOrigin(
+                    ToVec(engineOutput.position),ToQuat(engineMod.rotation),engineDirection,
+                    ToQuat(__0.rotation),ToVec(input.localPosition),ExtentFor(__0),side,engineBox,clearance);
+                if(placed.FellBack&&engineBox is {} bad)WarnSafetyNet(__0.id,placed.Depth,bad);
+                origin=placed.Origin;
             }
             else return;
-            __result=new Vector3((float)origin.X,(float)origin.Y,(float)origin.Z);
+            __result=ToVector(origin);
         }
         catch(Exception ex){Plugin.Warn("powerpack placement",ex);}
     }
@@ -315,9 +344,19 @@ internal static partial class PowerpackLayout
         finally{secondPass=false;}
     }
     [HarmonyPrefix,HarmonyPatch(typeof(VehiclePowertrain),nameof(VehiclePowertrain.BuildLayout),new[]{typeof(PowertrainLayout)})]
-    private static void BeforeBuild(VehiclePowertrain __instance){building=__instance;extents.BeginBuild();}
+    private static void BeforeBuild(VehiclePowertrain __instance){building=__instance;inBuildLayout=true;healedFlags=false;extents.BeginBuild();}
     [HarmonyFinalizer,HarmonyPatch(typeof(VehiclePowertrain),nameof(VehiclePowertrain.BuildLayout),new[]{typeof(PowertrainLayout)})]
-    private static Exception? AfterBuild(Exception? __exception){building=null;extents.BeginBuild();return __exception;}
+    private static Exception? AfterBuild(VehiclePowertrain __instance,Exception? __exception)
+    {
+        bool healed=healedFlags;
+        building=null;inBuildLayout=false;healedFlags=false;extents.BeginBuild();
+        if(__exception==null)
+        {
+            PowerpackCollision.Refresh(__instance);
+            if(healed)PowerpackCollision.MarkPowertrainCollidersModified(__instance);
+        }
+        return __exception;
+    }
     // A transmission parameter change can alter the box width without changing the min/max ratios
     // that VehiclePowertrain.SetTransmissionInfo compares. That path then never dirties the layout,
     // so the gearbox would keep its old origin. Geometry is the native dirty flag for a rebuild that
@@ -336,6 +375,92 @@ internal static partial class PowerpackLayout
             powertrain.RaiseDirtyFlags(VehiclePowertrainLayoutDirtyFlags.Geometry);
         }
         catch(Exception ex){Plugin.Warn("powerpack width rebuild",ex);}
+    }
+
+    private static void SyncPowerpackFlags(VehiclePowertrain powertrain,PowertrainLayout layout)
+    {
+        try
+        {
+            var reader=powertrain.Vehicle?.ObjectReader;
+            if(reader?.Items is not {} items)return;
+            int n=items.Cast<Il2CppSystem.Collections.Generic.IReadOnlyCollection<VehicleObject>>().Count;
+            for(int i=0;i<n;i++)
+            {
+                var components=items[i].Components;
+                int m=components.Cast<Il2CppSystem.Collections.Generic.IReadOnlyCollection<VehicleComponent>>().Count;
+                for(int j=0;j<m;j++)
+                {
+                    if(components[j].TryCast<CombustionEngine>() is not {} engine)continue;
+                    if(engine.VehicleObject==null||engine.VehicleObject.Released||engine.Blueprint is not {} bp||!Selections.Get(bp).Powerpack)continue;
+                    var node=engine.PowertrainNode?.TryCast<PowertrainComponent>();
+                    if(node==null||node.layout?.Pointer!=powertrain.Pointer)continue;
+                    var engineMod=layout.GetModule(node.powertrainModuleID);
+                    if(engineMod==null)continue;
+                    ScanModulePorts(engineMod,out _,out var engOut);
+                    if(engOut.Count!=1||engOut[0].receiver?.module is not {} recv)continue;
+                    var c=engOut[0];
+                    if(recv.moduleType==PowertrainModuleType.Transmission)
+                    {
+                        ScanModulePorts(recv,out var tIn,out _);
+                        if(tIn.Count!=1||tIn[0].id!=c.id||((short)recv.moduleFlags&PowerpackRules.SplitterBetweenOutputs)!=0)continue;
+                        healedFlags|=EnsurePowerpackModuleFlags(layout,recv);
+                        healedFlags|=EnsurePowerpackConnectionFlags(layout,c);
+                    }
+                    else if(recv.moduleType==PowertrainModuleType.Junction)
+                    {
+                        if(((short)recv.moduleFlags&PowerpackRules.SplitterBetweenOutputs)!=PowerpackRules.SplitterBetweenOutputs
+                            ||((short)recv.moduleFlags&PowerpackRules.PositionBetweenInputs)!=0)continue;
+                        ScanModulePorts(recv,out var jIn,out var jOut);
+                        if(jIn.Count!=1||jIn[0].id!=c.id||jOut.Count!=2)continue;
+                        var cL=jOut[0];var cR=jOut[1];
+                        if(cL.receiver?.module is not {moduleType:PowertrainModuleType.Transmission} tL
+                            ||cR.receiver?.module is not {moduleType:PowertrainModuleType.Transmission} tR
+                            ||tL.id==tR.id)continue;
+                        ScanModulePorts(tL,out var lIn,out _);ScanModulePorts(tR,out var rIn,out _);
+                        if(lIn.Count!=1||lIn[0].id!=cL.id||rIn.Count!=1||rIn[0].id!=cR.id)continue;
+                        if(((short)tL.moduleFlags&PowerpackRules.SplitterBetweenOutputs)!=0
+                            ||((short)tR.moduleFlags&PowerpackRules.SplitterBetweenOutputs)!=0)continue;
+                        healedFlags|=EnsurePowerpackModuleFlags(layout,tL);
+                        healedFlags|=EnsurePowerpackModuleFlags(layout,tR);
+                        healedFlags|=EnsurePowerpackConnectionFlags(layout,c);
+                        healedFlags|=EnsurePowerpackConnectionFlags(layout,cL);
+                        healedFlags|=EnsurePowerpackConnectionFlags(layout,cR);
+                    }
+                }
+            }
+        }
+        catch(Exception ex){Plugin.Warn("powerpack sync",ex);}
+    }
+    private static void ScanModulePorts(PowertrainModule module,out List<PortConnection> incoming,out List<PortConnection> outgoing)
+    {
+        incoming=new();outgoing=new();
+        var first=module.firstPort;if(first==null)return;
+        int guard=0;var port=first;
+        do
+        {
+            var c=port.connection;
+            if(c!=null)
+            {
+                if(c.receiver?.Pointer==port.Pointer)incoming.Add(c);
+                else if(c.provider?.Pointer==port.Pointer)outgoing.Add(c);
+            }
+            port=port.next;
+        }
+        while(port!=null&&port.Pointer!=first.Pointer&&++guard<64);
+    }
+    private static bool EnsurePowerpackModuleFlags(PowertrainLayout layout,PowertrainModule module)
+    {
+        short flags=(short)module.moduleFlags;
+        if((flags&PowerpackRules.PositionBetweenInputs)==PowerpackRules.PositionBetweenInputs)return false;
+        PowertrainLayoutOps.SetModuleFlags(layout,module.id,(PowertrainModuleFlags)(flags|PowerpackRules.PositionBetweenInputs));
+        return true;
+    }
+    private static bool EnsurePowerpackConnectionFlags(PowertrainLayout layout,PortConnection connection)
+    {
+        byte flags=(byte)connection.connectionFlags;
+        if((flags&PowerpackRules.Abstracted)!=0)return false;
+        PowertrainLayoutOps.SetConnectionFlags(layout,connection.id,(PortConnectionFlags)(flags|PowerpackRules.Abstracted));
+        return true;
     }
 
     private static bool HasPowerpack(PowertrainLayout layout)
@@ -516,49 +641,60 @@ internal static partial class PowerpackLayout
             $"[Engine Expansion] POWERPACK safety net: module={module} depth={depth:0.###} m against the engine box is more than {PowerpackRules.PlacementSafetyNet} m off the engine output plane; used the output-plane placement plus {PowerpackRules.ObstructionClearance} m. engine=[{Box(engineBox)}]"));
     }
 
-    /// <summary>
-    /// Layout-space boxes for the DetailedLogging toggle line (engine plus both transmissions).
-    /// Ticking predicts the against-engine placement; unticking reports the restored layout as-is.
-    /// </summary>
-    private static string? BoxReport(Context context,bool againstEngine)
+    private static PowertrainModule? FindTwinPartner(PowertrainModule splitter,PowertrainModule module)
     {
-        if(context.Twin is not {} twin)return null;
-        var layout=context.Powertrain.Layout;
-        if(layout==null)return null;
-        try
+        var first=splitter.firstPort;if(first==null)return null;
+        int guard=0;var port=first;
+        do
         {
-            var engineConnection=layout.GetConnection(twin.EngineJunctionConnectionId);
-            var enginePort=engineConnection.provider;
-            if(enginePort?.module is not {} engineModule)return null;
-            if(!EngineObstruction(context.Powertrain,engineModule,out var engineBox))return null;
-            var direction=new Vec3(enginePort.direction.x,enginePort.direction.y,enginePort.direction.z).Normalized;
-            var engineMax=engineBox.MaxProjection(direction);
-            var parts=new List<string>();
-            double clearance=double.PositiveInfinity;
-            foreach(var id in twin.ModuleIds)
-            {
-                var module=layout.GetModule(id);
-                var connection=layout.GetConnection(id==twin.LeftTransmissionId?twin.LeftConnectionId:twin.RightConnectionId);
-                if(module==null||connection==null)return null;
-                var input=connection.receiver.localPosition;
-                var extent=Measure(context.Powertrain,module,out _)??FallbackExtent;
-                var rotation=new Quat(module.rotation.x,module.rotation.y,module.rotation.z,module.rotation.w);
-                var origin=new Vec3(module.position.x,module.position.y,module.position.z);
-                if(againstEngine)
-                {
-                    var placed=PowerpackRules.TwinOriginGuarded(
-                        new(enginePort.position.x,enginePort.position.y,enginePort.position.z),direction,
-                        origin,rotation,new(input.x,input.y,input.z),extent,engineBox,PowerpackRules.ObstructionClearance);
-                    if(placed.FellBack)WarnSafetyNet(id,placed.Depth,engineBox);
-                    origin=placed.Origin;
-                }
-                var box=new OrientedBox(origin+rotation.Rotate(extent.Centre),extent.Size,rotation);
-                clearance=Math.Min(clearance,box.MinProjection(direction)-engineMax);
-                parts.Add(Box(box));
-            }
-            return $"POWERPACK boxes engine=[{Box(engineBox)}] left=[{parts[0]}] right=[{parts[1]}] clearance={clearance:0.####}";
+            var candidate=port.connection;
+            if(candidate!=null&&candidate.provider?.Pointer==port.Pointer&&
+                candidate.receiver?.module is {moduleType:PowertrainModuleType.Transmission} other&&
+                other.id!=module.id)
+                return other;
+            port=port.next;
         }
-        catch(Exception ex){Plugin.Warn("powerpack box report",ex);return null;}
+        while(port!=null&&port.Pointer!=first.Pointer&&++guard<64);
+        return null;
+    }
+    private static (Vec3 Target,bool HasDownstream) DownstreamTarget(PowertrainModule start)
+    {
+        var current=start;
+        var visited=new HashSet<int>{start.id};
+        Vec3? best=null;
+        for(int hop=0;hop<8;hop++)
+        {
+            PortConnection? outgoing=null;
+            var first=current.firstPort;if(first==null)break;
+            int guard=0;var port=first;
+            do
+            {
+                var c=port.connection;
+                if(c!=null&&c.provider?.Pointer==port.Pointer&&c.receiver?.module!=null)
+                {outgoing=c;break;}
+                port=port.next;
+            }
+            while(port!=null&&port.Pointer!=first.Pointer&&++guard<64);
+            if(outgoing?.receiver?.module is not {} next||!visited.Add(next.id))break;
+            best=ToVec(next.position);
+            if(((short)next.moduleFlags&PowerpackRules.PositionBetweenInputs)==0)return (best.Value,true);
+            current=next;
+        }
+        return best is {} b?(b,true):(ToVec(start.position),false);
+    }
+    private static int TwinSideFor(PowertrainModule module,PowertrainModule partner,PowertrainModule engineModule,
+        Vec3 engineDirection,bool preferExistingRotation)
+    {
+        var engineRight=PowerpackRules.EngineRight(ToQuat(engineModule.rotation),engineDirection);
+        var a=DownstreamTarget(module);var b=DownstreamTarget(partner);
+        if(a.HasDownstream&&b.HasDownstream&&Math.Abs(Vec3.Dot(a.Target-b.Target,engineRight))>1e-4)
+            return PowerpackRules.ChooseTwinSide(engineRight,a.Target,b.Target,(short)module.moduleFlags,(short)partner.moduleFlags,module.id,partner.id);
+        if(preferExistingRotation)
+        {
+            double posProj=Vec3.Dot(ToVec(module.position)-ToVec(partner.position),engineRight);
+            if(Math.Abs(posProj)>1e-4)return posProj<0?-1:1;
+        }
+        return PowerpackRules.ChooseTwinSide(engineRight,a.Target,b.Target,(short)module.moduleFlags,(short)partner.moduleFlags,module.id,partner.id);
     }
     private static string Box(OrientedBox box)=>FormattableString.Invariant(
         $"c=({box.Centre.X:0.###},{box.Centre.Y:0.###},{box.Centre.Z:0.###}) s=({box.Size.X:0.###},{box.Size.Y:0.###},{box.Size.Z:0.###}) q=({box.Rotation.X:0.####},{box.Rotation.Y:0.####},{box.Rotation.Z:0.####},{box.Rotation.W:0.####})");

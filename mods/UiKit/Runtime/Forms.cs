@@ -47,11 +47,24 @@ public sealed class Slider : Element
     /// <summary>Called once when a drag (or a click on the track) ends, e.g. for an expensive preview.</summary>
     public Slider OnDragEnd(Action done) { dragEnd = done; return this; }
 
-    private double Min => Guard.Get(Where + ".Min", min, 0d);
-    private double Max => Guard.Get(Where + ".Max", max, 1d);
-    private double Current() => Guard.Get(Where + ".Value", value, double.NaN);
-    private string FormatPlain(double v) => double.IsNaN(v) ? "" : KitMath.FormatValue(v, step > 0 ? step : .01, null);
-    private string FormatShown(double v) => double.IsNaN(v) ? "-" : format != null ? Guard.Get(Where + ".Format", () => format(v), "?") : KitMath.FormatValue(v, step > 0 ? step : .01, unit);
+    private double Min => Guard.Get(Site(0, ".Min"), min, 0d);
+    private double Max => Guard.Get(Site(1, ".Max"), max, 1d);
+    private double Current() => Guard.Get(Site(2, ".Value"), value, double.NaN);
+    private double plainValue = double.NaN, shownValue = double.NaN;
+    private string plainCache = "", shownCache = "-";
+    private string FormatPlain(double v)
+    {
+        if (!v.Equals(plainValue)) { plainValue = v; plainCache = FormatPlainCore(v); }
+        return plainCache;
+    }
+    private string FormatShown(double v)
+    {
+        if (format != null) return FormatShownCore(v);
+        if (!v.Equals(shownValue)) { shownValue = v; shownCache = FormatShownCore(v); }
+        return shownCache;
+    }
+    private string FormatPlainCore(double v) => double.IsNaN(v) ? "" : KitMath.FormatValue(v, step > 0 ? step : .01, null);
+    private string FormatShownCore(double v) => double.IsNaN(v) ? "-" : format != null ? Guard.Get(Where + ".Format", () => format(v), "?") : KitMath.FormatValue(v, step > 0 ? step : .01, unit);
     private void Commit(string text)
     {
         if (!Logic.TryParseNumber(text, out double v)) return;

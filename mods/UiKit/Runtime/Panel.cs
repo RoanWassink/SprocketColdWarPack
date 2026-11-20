@@ -13,7 +13,9 @@ namespace SprocketUiKit;
 /// </summary>
 public sealed class Panel
 {
+    /// <summary>Stable identifier of the mod that owns this panel.</summary>
     public string ModGuid { get; }
+    /// <summary>Stable panel identifier within the owning mod.</summary>
     public string Id { get; }
     internal string Key { get; }
     private string title, subtitle;
@@ -31,6 +33,7 @@ public sealed class Panel
     public bool CloseOnSceneChange { get; set; } = true;
     /// <summary>Show the default key hints (bound toggle key, Esc) in the footer.</summary>
     public bool DefaultKeyHints { get; set; } = true;
+    /// <summary>Icon shown beside the title; None hides it.</summary>
     public Icon TitleIcon { get; set; } = Icon.None;
 
     // ---------- 0.1.2 behaviour switches ----------
@@ -52,6 +55,7 @@ public sealed class Panel
     internal float X, Y, W, H;
     private bool positioned;
     internal bool IsOpenInternal;
+    /// <summary>True while logically open, including while hidden by vanilla Settings.</summary>
     public bool IsOpen => IsOpenInternal;
     /// <summary>Whether this panel owns keyboard focus, acquired on open/inside press and released or handed on by outside press, close or lifecycle changes (see README.md).</summary>
     public bool HasFocus => Kit.KeyboardFocus == this;
@@ -60,9 +64,12 @@ public sealed class Panel
     internal ModKeybind? ToggleKey;
     private Func<string?>? contextGetter = () => UiKit.ContextLabel;
     private string statusText = ""; private StatusKind statusKind;
+    private string contextSite = "";
     private readonly List<(string Key, string Action)> hints = new();
     private string hintSignature = "";
     private float nextHintCheck;
+    private int hintDepth = -1;
+    private bool hintModal, hintClosable, hintDefaults;
 
     // visuals
     internal RectTransform? Rt;
@@ -88,11 +95,13 @@ public sealed class Panel
         close.Attach(this, null); close.TooltipText = null;
         back = new IconButton(Icon.ChevronLeft, () => Pop());
         back.Attach(this, null); back.TooltipText = "Back";
-        contextChip = new Chip("", () => Guard.Get(Key + ".Context", contextGetter, null) ?? "", ChipStyle.Context);
+        contextChip = new Chip("", () => Guard.Get(contextSite, contextGetter, null) ?? "", ChipStyle.Context);
         contextChip.Attach(this, null);
     }
 
+    /// <summary>Get or change the title bar text.</summary>
     public string Title { get => title; set { title = value ?? ""; Draw.SetText(titleText, title); dirty = true; } }
+    /// <summary>Get or change the subtitle beneath the title.</summary>
     public string Subtitle { get => subtitle; set { subtitle = value ?? ""; dirty = true; } }
     /// <summary>
     /// Panel size in reference px (1080p). Since 0.1.4 this size is also the minimum for the user's
@@ -108,21 +117,28 @@ public sealed class Panel
         dirty = true; if (Rt != null) Draw.Place(Rt, X, Y, W, H);
         if (grew && positioned) fitPending = true;
     }
+    /// <summary>Current panel width in Kit units.</summary>
     public float Width => W;
+    /// <summary>Current panel height in Kit units.</summary>
     public float Height => H;
     /// <summary>Context chip text (null/empty hides it). Default: "DESIGNER" / "IN GAME".</summary>
     public void SetContext(string? fixedText) => contextGetter = () => fixedText;
+    /// <summary>Set the getter for context chip text; null restores the default context label.</summary>
     public void SetContext(Func<string?>? getter) => contextGetter = getter;
     /// <summary>Status line in the footer (info / success ✓ / warning / error).</summary>
     public void SetStatus(string? text, StatusKind kind = StatusKind.Info) { statusText = text ?? ""; statusKind = kind; ApplyStatus(); }
+    /// <summary>Current footer status text.</summary>
     public string StatusText => statusText;
     /// <summary>Extra key hint in the footer, e.g. ("Del", "remove").</summary>
     public void AddKeyHint(string key, string action) { hints.Add((key, action)); hintSignature = ""; }
+    /// <summary>Remove custom footer key hints.</summary>
     public void ClearKeyHints() { hints.Clear(); hintSignature = ""; }
 
     /// <summary>Side-by-side columns filling the body. Width &gt; 0 = px, 0 = flexible, &lt; 0 = flexible weight.</summary>
     public Column[] Columns(params float[] widths) => Body.Columns(widths);
 
+    internal readonly DeferredSettingsOpen DeferredSettings = new();
+    /// <summary>Open and bring forward in an allowed context; Settings temporarily hides the root while IsOpen stays true.</summary>
     public bool Open()
     {
         if (IsHud) return false;
@@ -132,6 +148,7 @@ public sealed class Panel
             if (Plugin.Detailed) Plugin.Trace($"[UI Kit] {Key}: not opened in context {Kit.Context} (allowed {AllowedContexts}).");
             return false;
         }
+        DeferredSettings.Request(Keybinds.IsConfiguring);
         IsOpenInternal = true; dirty = true;
         if (positioned) fitPending = true; // #23: back on screen if it was left (partly) off it
         Kit.Opened(this);
@@ -139,13 +156,17 @@ public sealed class Panel
         if (Plugin.Detailed) Plugin.Trace($"[UI Kit] {Key} opened in {Kit.Context}; scale {Kit.Scale:0.###}; open panels {Kit.OpenCount}.");
         return true;
     }
+    /// <summary>Close the panel and release owned input and cursor state.</summary>
     public void Close() => Close("closed");
     internal void Close(string reason)
     {
         if (!IsOpenInternal) return;
+        DeferredSettings.Cancel();
         IsOpenInternal = false;
         if (modal != null) { var m = modal; DropModal(); if (m.OnCancel != null) Guard.Run(Key + ".Modal.OnCancel", m.OnCancel); }
         Kit.Closed(this);
+        SettingBinding.FlushTree(Body);
+        foreach (var page in pages.Values) SettingBinding.FlushTree(page.Root);
         if (Rt != null) Rt.gameObject.SetActive(false);
         Guard.Run(Key + ".OnClose", OnClose);
         if (Plugin.Detailed) Plugin.Trace($"[UI Kit] {Key} {reason}.");
@@ -164,6 +185,7 @@ public sealed class Panel
     /// True when the panel is closed afterwards (also when it was not open).
     /// </summary>
     public bool RequestClose() => RequestClose("closed (RequestClose)");
+    /// <summary>Open a closed panel or close an open panel.</summary>
     public void Toggle() { if (IsOpenInternal) Close("closed (toggle)"); else Open(); }
     internal void ToggleByKey() { if (IsOpenInternal) RequestClose("closed (toggle key)"); else Open(); }
 
@@ -219,6 +241,7 @@ public sealed class Panel
 
     // ---------- 0.1.2: modal ----------
     private ModalView? modal;
+    /// <summary>True while a modal card is open in this panel.</summary>
     public bool ModalOpen => modal != null;
     internal ModalView? Modal => modal;
     /// <summary>
@@ -274,6 +297,8 @@ public sealed class Panel
 
     // ---------- 0.1.2: shortcuts ----------
     internal readonly List<(Logic.Chord Chord, Key Key, Action Action)> Shortcuts = new();
+    private (Logic.Chord Chord, Key Key, Action Action)[] shortcutSnapshot = Array.Empty<(Logic.Chord, Key, Action)>();
+    internal (Logic.Chord Chord, Key Key, Action Action)[] ShortcutSnapshot => shortcutSnapshot;
     internal Action? DefaultActionHandler;
     /// <summary>
     /// Key chord for this panel while it has keyboard focus, e.g. "Ctrl+D", "Delete", "Alt+UpArrow", "Ctrl+S" (not while typing,
@@ -285,6 +310,7 @@ public sealed class Panel
         if (action == null) throw new ArgumentNullException(nameof(action));
         if (!Logic.TryParseChord(chord, out var c) || !Enum.TryParse<Key>(c.Key, true, out var key)) throw new ArgumentException($"Unknown key chord '{chord}'.", nameof(chord));
         Shortcuts.Add((c, key, action));
+        shortcutSnapshot = Shortcuts.ToArray();
         if (!string.IsNullOrEmpty(hint)) AddKeyHint(c.ToString(), hint!);
     }
     /// <summary>Enter while this panel has keyboard focus (no text field focused, no modal) runs this, e.g. "Save".</summary>
@@ -297,6 +323,7 @@ public sealed class Panel
     /// panels underneath); 0 = off. For mandatory full-screen menus.
     /// </summary>
     public Panel Backdrop(float alpha = .6f) { backdropAlpha = Math.Clamp(alpha, 0, 1); if (backdropImg != null) { Draw.SetColor(backdropImg, new Rgba(0, 0, 0, (byte)(backdropAlpha * 255))); Draw.SetActive(backdropImg, backdropAlpha > 0); } return this; }
+    /// <summary>True while the panel has a modal or configured backdrop.</summary>
     public bool HasBackdrop => backdropAlpha > 0;
 
     // ---------- 0.1.2: errors ----------
@@ -383,6 +410,7 @@ public sealed class Panel
         dirty = true;
         if (Plugin.Detailed) Plugin.Trace($"[UI Kit] {Key} restored to {ScreenRect}.");
     }
+    /// <summary>Toggle between maximized and restored panel bounds.</summary>
     public void ToggleMaximize() { if (maximized) Restore(); else Maximize(); }
     /// <summary>
     /// Centre the panel at its original size (CreatePanel / last SetSize), not maximized, and forget the
@@ -579,7 +607,7 @@ public sealed class Panel
         Draw.SetColor(subtitleText, showBack ? Tok.AccentText : Tok.Text2);
         float sw = sub.Length == 0 ? 0 : MathF.Min(Draw.Width(subtitleText!, sub) + 2, MathF.Max(0, hintX - x - 20));
         Draw.Place(subtitleText!.rectTransform, x, 0, sw, Tok.HeaderH); if (sw > 0) x += sw + 8;
-        string ctx = Guard.Get(Key + ".Context", contextGetter, null) ?? "";
+        string ctx = Guard.Get(contextSite, contextGetter, null) ?? "";
         contextChip.Visible = ctx.Length > 0; if (contextChip.Rt != null) contextChip.Rt.gameObject.SetActive(contextChip.Visible);
         float cw = contextChip.Visible ? contextChip.IntrinsicWidth() : 0;
         contextChip.Arrange(new RectF(x, (Tok.HeaderH - 20) / 2, cw, 20), new Vec(0, 0), RectF.Infinite);
@@ -620,7 +648,9 @@ public sealed class Panel
     }
     private void RefreshHints(float now)
     {
-        if (now < nextHintCheck && hintSignature.Length > 0) return;
+        bool stable = hintSignature.Length > 0 && hintDepth == nav.Depth && hintModal == (modal != null) && hintClosable == closable && hintDefaults == DefaultKeyHints;
+        if (stable && (ToggleKey == null || now < nextHintCheck)) return;
+        hintDepth = nav.Depth; hintModal = modal != null; hintClosable = closable; hintDefaults = DefaultKeyHints;
         nextHintCheck = now + 1;
         var all = new List<(string, string)>();
         if (DefaultKeyHints && ToggleKey != null && closable)
@@ -657,6 +687,7 @@ public sealed class Panel
         if (!Built || Rt == null) return;
         if (IsHud) { Body.Refresh(now); if (dirty) Layout(); return; }
         if (sizeChanged) { sizeChanged = false; Guard.Run(Key + ".Resized", Resized); }
+        if (contextSite.Length == 0) contextSite = Key + ".Context";
         bool focused = Kit.KeyboardFocus == this;
         header?.Set(focused ? Tok.FocusHeader : Tok.HeadFoot, Rgba.Clear);
         Draw.SetColor(headerLine, focused ? Tok.AccentLine : Tok.Frame);
@@ -669,7 +700,7 @@ public sealed class Panel
         if (nav.Depth > 0) back.Refresh(now);
         string before = contextChip.Visible ? "1" : "0";
         contextChip.Refresh(now);
-        bool ctxVisible = (Guard.Get(Key + ".Context", contextGetter, null) ?? "").Length > 0;
+        bool ctxVisible = (Guard.Get(contextSite, contextGetter, null) ?? "").Length > 0;
         if ((ctxVisible ? "1" : "0") != before) dirty = true;
         RefreshHints(now);
         if (dirty) Layout();

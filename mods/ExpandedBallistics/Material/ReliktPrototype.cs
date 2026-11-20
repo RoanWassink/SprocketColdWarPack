@@ -78,6 +78,11 @@ internal static class ReliktPrototype
     private static int colliderLogs;
     private static int refreshLogs;
     private static int balanceLogs;
+    // 0.22.96: build-path logging is bounded: one warning per component id per session, no stacktrace.
+    private static readonly HashSet<string> missingBindingWarnings = new(StringComparer.Ordinal);
+    private static readonly HashSet<string> balanceExceptions = new(StringComparer.Ordinal);
+    private static int modelLogs;
+    private static int damageIdentityLogs;
     private static int mainThreadId;
     private const int DeferredMaxAttempts=180;
     private const int DeferredOwnerCap=64;
@@ -146,7 +151,13 @@ internal static class ReliktPrototype
                 if(cassette&&__instance.ComponentID!=CompositeModule.ComponentId)
                 {
                     if(!EraPresetRegistry.Cassette(__instance.ComponentID,out var binding))
-                        throw new InvalidOperationException("Exact cassette binding is unavailable; passive native definition retained.");
+                    {
+                        // 0.22.96: a cell without a binding no longer throws on the build path: the native
+                        // definition is retained and SetCost stays skipped, with one warning per id per session.
+                        if(missingBindingWarnings.Add(__instance.ComponentID))
+                            MaterialFeature.ModLog.LogWarning($"[Relikt balance] no exact cassette binding for {__instance.ComponentID}; native definition retained, SetCost skipped.");
+                        return;
+                    }
                     materialId=binding.MaterialId;
                 }
                 var material=MaterialDatabase.Materials.FirstOrDefault(m=>m.Id==materialId);
@@ -190,7 +201,7 @@ internal static class ReliktPrototype
             __instance.SetCost(cost,MassType.Armour,CostType.Material);
             __instance.SetCost(assembly,MassType.Armour,CostType.Assembly);
         }
-        catch(Exception ex){MaterialFeature.ModLog.LogWarning("Relikt native balance: "+ex.Message);}
+        catch(Exception ex){if(balanceExceptions.Add(__instance.ComponentID))MaterialFeature.ModLog.LogWarning("Relikt native balance: "+ex.Message);} // 0.22.96: at most one line per id per session, no stacktrace
     }
 
     [HarmonyPostfix, HarmonyPatch(typeof(VehicleObjectModel), nameof(VehicleObjectModel.OnModelLoaded))]
@@ -217,7 +228,7 @@ internal static class ReliktPrototype
             DrainRefresh();
             ScheduleSettle(transform);
         }
-        catch (Exception ex) { MaterialFeature.ModLog.LogWarning("Relikt prototype model: " + ex.Message); }
+        catch (Exception ex) { if (modelLogs++ < 12) MaterialFeature.ModLog.LogWarning("Relikt prototype model: " + ex.Message); } // 0.22.96: bounded
     }
 
     [HarmonyPrefix, HarmonyPatch(typeof(VehicleObjectModel), nameof(VehicleObjectModel.BuildDamageModelColliders))]
@@ -243,7 +254,7 @@ internal static class ReliktPrototype
             if (identityLogs++ < 24)
                 if(SprocketExpandedBallistics.ReleaseDiagnostics.Enabled)MaterialFeature.ModLog.LogInfo($"[Relikt identity] component={__instance.ComponentID} vuid={__instance.VUID.Value} generated={__instance.generateDamageColliders}; native own VUID is the damage identity");
         }
-        catch (Exception ex) { MaterialFeature.ModLog.LogWarning("Relikt prototype damage identity: " + ex.Message); }
+        catch (Exception ex) { if (damageIdentityLogs++ < 12) MaterialFeature.ModLog.LogWarning("Relikt prototype damage identity: " + ex.Message); } // 0.22.96: bounded
     }
 
     // Native construction always uses intact geometry and never reads the expenditure ledger.

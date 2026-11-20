@@ -203,7 +203,7 @@ internal static partial class ComposerFillBlueprintEvidence
             var backend=new CassetteComposer(materials,reactions,"","",_=>false);
             var model=new CassetteComposerModel(backend,materials.Keys.Select(id=>new ComposerMaterial(id,id,CassettePalette.Group(id))).ToArray(),Array.Empty<ComposerMaterial>(),()=>new[]{preset});
             model.LoadPreset(preset.Id);
-            Check(CassetteComposerModel.ApplyChoiceLabels.SequenceEqual(new[]{"Thickness only","Flip selected faces","Thicken inward","Fill to wall","T-80U preset","Conform cheek fill","Cheek fill (shell)","Convert to layers","Back to box"})&&Enum.GetValues<ComposerApplyChoice>().Length==9,"the nine options of Apply, in the order of the brief");
+            Check(CassetteComposerModel.ApplyChoiceLabels.SequenceEqual(new[]{"Thickness only","Flip selected faces","Thicken inward","Fill to wall","T-80U preset","Conform cheek fill","Cheek fill (shell)","Convert to layers","Back to box","Solid block"})&&Enum.GetValues<ComposerApplyChoice>().Length==10,"the nine options of Apply, in the order of the brief (0.22.82: Solid block is the tenth)");
             var plain=new ComposerTarget("Plate #7",4,"rha","Steel",true,20,20,ConvertBlocker:null);
             model.SetTarget(plain);
             Check(model.ApplyChoice==ComposerApplyChoice.ThicknessOnly&&!model.ChoiceAvailable(ComposerApplyChoice.BackToBox)&&model.ApplyButton=="Apply to Plate #7","a plate that is not in layers starts on Thickness only; Back to box cannot be chosen; the button reads as before");

@@ -1,3 +1,4 @@
+using System.Reflection.Metadata.Ecma335;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 
@@ -25,7 +26,25 @@ internal static class AssemblyChecks
         Require(dependencies.Any(d => d.Guid == "sprocket.keybinds" && d.Range == ">=0.1.7 <0.2.0"), "Built DLL declares sprocket.keybinds dependency >=0.1.7 <0.2.0");
         Require(dependencies.Any(d => d.Guid == "sprocket.expedition" && d.Flags == 2), "Built DLL declares sprocket.expedition as soft dependency");
         Require(dependencies.Count == 3, "Built DLL declares exactly three dependencies");
-        Require(plugin.GetAssemblyDefinition().Version == new Version(0, 5, 2, 0), "Built assembly version is 0.5.2.0");
+        Require(plugin.GetAssemblyDefinition().Version == new Version(0, 5, 4, 0), "Built assembly version is 0.5.4.0");
+        var userStrings = new HashSet<string>(StringComparer.Ordinal);
+        for (var handle = MetadataTokens.UserStringHandle(1); !handle.IsNil; handle = plugin.GetNextHandle(handle))
+            userStrings.Add(plugin.GetUserString(handle));
+        foreach (var hash in new[]
+        {
+            "3E58082804D97CF32FFD400E7427E767EF9576D23DB71B2BE96FBB7F825FC17B",
+            "77FC601748991DC2101435C6B72C7A5A4B3DC3C68429B349C2EFEE711F6D5388",
+        })
+            Require(userStrings.Contains(hash), "Built DLL contains qualified GameAssembly hash " + hash);
+        var patchCount = plugin.CustomAttributes.Select(plugin.GetCustomAttribute).Count(attr =>
+        {
+            if (attr.Constructor.Kind != HandleKind.MemberReference) return false;
+            var member = plugin.GetMemberReference((MemberReferenceHandle)attr.Constructor);
+            if (member.Parent.Kind != HandleKind.TypeReference) return false;
+            var type = plugin.GetTypeReference((TypeReferenceHandle)member.Parent);
+            return plugin.GetString(type.Namespace) == "HarmonyLib" && plugin.GetString(type.Name) == "HarmonyPatch";
+        });
+        Require(patchCount == 3, "Built DLL contains exactly three HarmonyPatch attributes");
         foreach (var reference in plugin.TypeReferences.Select(plugin.GetTypeReference)
             .Where(t => plugin.GetString(t.Namespace) == "SprocketUiKit"))
         {

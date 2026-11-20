@@ -1,4 +1,4 @@
-﻿using SprocketKeybinds;
+using SprocketKeybinds;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -66,7 +66,7 @@ try
     Reject(() => metadata.Register("external.bad", "", "Name"), "empty metadata rejected");
     Reject(() => metadata.Register("external.bad", "A\nB", "Name"), "control characters rejected");
     Reject(() => metadata.Register("external.bad", "Author", "<size=90>Bad</size>"), "rich text metadata rejected");
-    metadata.Register("external.long", "Unicode Î© & Author", new string('x', 128));
+    metadata.Register("external.long", "Unicode ÃŽÂ© & Author", new string('x', 128));
     Check(metadata.Resolve("external.long", "x", false).Mod.Name.Length == 128, "long Unicode display text accepted for ellipsis rendering");
     Reject(() => metadata.Register("external.bad", "Author", new string('x', 129)), "excessive display length rejected");
     metadata.RegisterPack(hps, "example.pack", "Example Pack");
@@ -272,12 +272,20 @@ try
     Reject(() => FreeKeys.ReadNativeOverrides("{\"bindings\":[{\"id\":\"bad\",\"path\":\"<Keyboard>/x\"}]}"), "invalid vanilla override rejects instead of advertising free keys");
     if (args.Length >= 2)
     {
-        Check(ApiSurface.ReleaseVersion(args[^1]) == "0.1.9", "built release metadata is 0.1.9 (version-value ABI exception)");
+        Check(ApiSurface.ReleaseVersion(args[^1]) == "0.1.10", "built release metadata is 0.1.10 (version-value ABI exception)");
         Check(ApiSurface.PluginGuid(args[^1]) == "sprocket.keybinds", "built plugin GUID is sprocket.keybinds (plugin-GUID ABI exception)");
         var currentApi = ApiSurface.Read(args[^1]);
+        var additions = currentApi.Except(ApiSurface.Read(args[0])).OrderBy(s => s, StringComparer.Ordinal).ToArray();
+        var reportRoot = new DirectoryInfo(AppContext.BaseDirectory);
+        while (reportRoot != null && !File.Exists(Path.Combine(reportRoot.FullName, "SprocketKeybinds.csproj"))) reportRoot = reportRoot.Parent;
+        File.WriteAllLines(Path.Combine(reportRoot!.FullName, "logs", "public-api-added.txt"), additions);
+        Console.WriteLine($"Public API additions: {additions.Length} (logs/public-api-added.txt)");
         foreach (var baseline in args.SkipLast(1))
         {
             var previousApi = ApiSurface.Read(baseline);
+            Check(ApiSurface.ReleaseVersion(baseline) == "0.1.9" && ApiSurface.PluginGuid(baseline) == "sprocket.keybinds", "baseline is 0.1.9 with the same plugin GUID");
+            Check(Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(baseline))).StartsWith("1EC9E2D611D0", StringComparison.Ordinal), "baseline SHA256 prefix matches brief");
+            Check(previousApi.Count == 44, "baseline contains exactly 44 public ABI members");
             var missing = previousApi.Except(currentApi).ToArray();
             foreach (var member in missing) Console.WriteLine("MISSING ABI: " + member);
             Check(missing.Length == 0, $"all {previousApi.Count} public ABI members and optional defaults preserved: {baseline}");
@@ -306,6 +314,7 @@ try
     Check(sourceRoot != null, "plugin source located for native delegate scan");
     var pluginFiles = Directory.GetFiles(sourceRoot!.FullName, "*.cs");
     Check(pluginFiles.Any(f => Path.GetFileName(f) == "PanelStyle.cs"), "native delegate scan includes PanelStyle.cs");
+    Check(pluginFiles.Any(f => Path.GetFileName(f) == "ModSettings.cs"), "native delegate and struct scan includes ModSettings.cs");
     var pluginSources = pluginFiles.Select(File.ReadAllText).ToArray();
     // Only parameterless UnityAction conversions are proven on this runtime.
     Check(!pluginSources.Any(s => System.Text.RegularExpressions.Regex.IsMatch(s, @"ConvertDelegate<(?!UnityAction>)|Il2CppSystem\.Action<|add_performed|add_started|add_canceled")),
@@ -347,7 +356,10 @@ try
         Check(actualTokens.TryGetValue(token.Key, out var value) && value == token.Value, $"STYLE.md token {token.Key}: {token.Value}");
     Check(actualTokens.Count == expectedTokens.Count + 1 && actualTokens["DangerHover"] == "#3a1f17", "only extra token is the brief's Clear danger hover");
     Check(Regex.IsMatch(styleSource, "Panel = Hex\\(\"#14150f\", \\.96f\\)"), "window alpha is .96");
-    Check(Regex.IsMatch(projectSource, @"<Version>0\.1\.9</Version>"), "project version is 0.1.9");
+    Check(Regex.IsMatch(projectSource, @"<Version>0\.1\.10</Version>"), "project version is 0.1.10");
+    SettingsTests.Run(temp, Check);
+    NativeSafetyTests.Run(sourceRoot.FullName, Check);
     Console.WriteLine($"{passed} checks passed.");
 }
+catch (Exception e) { Console.Error.WriteLine("FAIL " + e); Environment.ExitCode = 1; }
 finally { Directory.Delete(temp, true); }

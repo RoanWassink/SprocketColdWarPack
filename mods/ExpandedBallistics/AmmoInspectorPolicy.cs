@@ -86,6 +86,50 @@ internal static class AmmoInspectorPolicy
     /// <summary>Carried types the vehicle date does not allow: they are skipped in battle and named in the inspector and HUD.</summary>
     internal static IReadOnlyList<string> Disallowed(IReadOnlyList<AmmoLoadoutEntry> entries, Func<string, bool> allowed) =>
         entries.Where(e => e.Count > 0 && e.ProfileId != ShellProfiles.Vanilla && !allowed(e.ProfileId)).Select(e => e.ProfileId).ToArray();
+
+    /// <summary>Move row <paramref name="index"/> to position 0, preserving the relative order of all other rows.</summary>
+    internal static IReadOnlyList<AmmoLoadoutEntry> MoveFirst(IReadOnlyList<AmmoLoadoutEntry> entries, int index)
+    {
+        if (index <= 0 || index >= entries.Count) return entries;
+        var next = new List<AmmoLoadoutEntry>(entries.Count) { entries[index] };
+        for (var i = 0; i < entries.Count; i++)
+            if (i != index) next.Add(entries[i]);
+        return next;
+    }
+
+    /// <summary>Swap row <paramref name="index"/> with <paramref name="index"/> + <paramref name="delta"/> when both are in bounds.</summary>
+    internal static IReadOnlyList<AmmoLoadoutEntry> Move(IReadOnlyList<AmmoLoadoutEntry> entries, int index, int delta)
+    {
+        var target = index + delta;
+        if (delta == 0 || index < 0 || index >= entries.Count || target < 0 || target >= entries.Count) return entries;
+        var next = entries.ToList();
+        (next[index], next[target]) = (next[target], next[index]);
+        return next;
+    }
+
+    /// <summary>Battle loading sequence: non-empty rows starting with <paramref name="starting"/>, then wrapping in row order.</summary>
+    internal static IReadOnlyList<AmmoLoadoutEntry> LoadOrder(IReadOnlyList<AmmoLoadoutEntry> entries, string? starting)
+    {
+        var active = Active(entries);
+        if (active.Count == 0) return Array.Empty<AmmoLoadoutEntry>();
+        var startIdx = 0;
+        if (!string.IsNullOrEmpty(starting))
+        {
+            for (var i = 0; i < active.Count; i++)
+                if (active[i].ProfileId == starting) { startIdx = i; break; }
+        }
+        var ordered = new List<AmmoLoadoutEntry>(active.Count);
+        for (var offset = 0; offset < active.Count; offset++)
+            ordered.Add(active[(startIdx + offset) % active.Count]);
+        return ordered;
+    }
+
+    internal static string FormatLoadOrder(IReadOnlyList<AmmoLoadoutEntry> entries, string? starting, Func<string, string> label)
+    {
+        var ordered = LoadOrder(entries, starting);
+        if (ordered.Count == 0) return "";
+        return "Load order: " + string.Join(" \u2192 ", ordered.Select((e, i) => $"{i + 1}. {label(e.ProfileId)} ({e.Count})"));
+    }
 }
 
 /// <summary>

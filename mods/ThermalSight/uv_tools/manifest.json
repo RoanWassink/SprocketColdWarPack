@@ -1,8 +1,8 @@
 {
   "thermal-head.obj": {
     "source_sha256": "4fcfe4735a48a364156423f4762dc4ee5548e5098159b9b7cff2bcde8309ceca",
-    "output_sha256": "998de6de32e5b0dd14b5d67e1f251c4f769ba564630ef0dbfcf6707ee434bfff",
-    "generator_sha256": "8cdd2564c68975bb62302e8ae43ed3940478d325abaff65f2becda6d2a80b334",
+    "output_sha256": "98706d70f6ad62ca21c2a3fdc83b319d6a957ee3a335458e0fb8a727ca5f4bdc",
+    "generator_sha256": "49c2c2cd25b2ce4c989fc9de3c6a1364fa5c09585cd90958d51d38a6511f7f40",
     "positions": 82,
     "triangles": 108,
     "bounds": [
@@ -29,8 +29,8 @@
   },
   "thermal-head-vertical.obj": {
     "source_sha256": "3b3f86554996ebff49d9e80bc5148d57a83cd3cb1db13c429f7d52b8358a1000",
-    "output_sha256": "239f27062f816e5f6dee2301700e126c9dd497b208025a1aff198d510a5fdcfe",
-    "generator_sha256": "8cdd2564c68975bb62302e8ae43ed3940478d325abaff65f2becda6d2a80b334",
+    "output_sha256": "540ffaa368ebd65a3aa65a876dc0f95657e9b0c6418600d2e8281d32c53017ce",
+    "generator_sha256": "49c2c2cd25b2ce4c989fc9de3c6a1364fa5c09585cd90958d51d38a6511f7f40",
     "positions": 82,
     "triangles": 108,
     "bounds": [
@@ -57,8 +57,8 @@
   },
   "automatic-lrf.obj": {
     "source_sha256": "f89245a40f36ae4d2877037588c38d14e4c73231edd59856a7d70e97bf55a143",
-    "output_sha256": "dfd85848e494dc39c9d56273e6aff45136319679ac6a0711281b972d61967ea7",
-    "generator_sha256": "8cdd2564c68975bb62302e8ae43ed3940478d325abaff65f2becda6d2a80b334",
+    "output_sha256": "1f174d8c5ef921efeb189a10c69866c0b99443fb8299756666d4f1506ccbf4bb",
+    "generator_sha256": "49c2c2cd25b2ce4c989fc9de3c6a1364fa5c09585cd90958d51d38a6511f7f40",
     "positions": 48,
     "triangles": 72,
     "bounds": [
@@ -77,8 +77,8 @@
   },
   "lrf-concept.obj": {
     "source_sha256": "50f190930c7f2082b4fdad71b139dde04c3fdaac0368d8ec190738baf5a4d8e1",
-    "output_sha256": "4e2a9d3f03bfb84c49a9959b170321be17c748a40bfbdca3249c4027deb13884",
-    "generator_sha256": "8cdd2564c68975bb62302e8ae43ed3940478d325abaff65f2becda6d2a80b334",
+    "output_sha256": "8f02b7ea8a638d9f5f59f1a4cdcd4c2417f6c48607a05bdb48cd5123e2ab4ebc",
+    "generator_sha256": "49c2c2cd25b2ce4c989fc9de3c6a1364fa5c09585cd90958d51d38a6511f7f40",
     "positions": 80,
     "triangles": 120,
     "bounds": [
@@ -108,8 +108,8 @@
   },
   "optical-rangefinder.obj": {
     "source_sha256": "a8cac38af899d21347dddeb3be9955fba667c9c67d96dacecea6f595946c5ec7",
-    "output_sha256": "4993650017aeee76f5ec8de8c08f6994bf1059eee6307884958ee232f5d527e8",
-    "generator_sha256": "8cdd2564c68975bb62302e8ae43ed3940478d325abaff65f2becda6d2a80b334",
+    "output_sha256": "d088213a6f41707a9255cad1a26abd1b7a0f0487f226e87e20ca223a631d2948",
+    "generator_sha256": "49c2c2cd25b2ce4c989fc9de3c6a1364fa5c09585cd90958d51d38a6511f7f40",
     "positions": 178,
     "triangles": 312,
     "bounds": [

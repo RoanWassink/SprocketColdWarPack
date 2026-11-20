@@ -1,5 +1,52 @@
 # Changelog
 
+## 0.7.3 - 2026-11-20 (Side-by-side longitudinal Twin Powerpack & unlimited driveshaft angle)
+
+- Updated Twin Powerpack placement (`Core/PowerpackRules.cs`, `Native/PowerpackLayout.cs`): dual transmissions now mount **alongside** the engine (one on each flank, parallel in the longitudinal direction with driveshaft outputs at the rear) instead of transversely back-to-back behind the engine. Rear faces align flush with the engine rear, inner flanks tuck into the engine sides (`MonoblockOverlap`), and `RestoredTwinPositions` cleanly shifts both gearboxes behind the engine output when Powerpack is unticked.
+- `Native/PowerpackBridge.cs` skips drawing the inter-box Twin bridge when the transmissions flank the engine.
+- Added `[Drivetrain] UnlimitedDriveshaftAngle = true` (`Core/DrivetrainRules.cs`, `Native/DrivetrainAdapter.cs`), raising the allowed driveshaft connection angle to `180°` (unrestricted; set `false` in `.cfg` to revert to `DriveshaftAngleMultiplier`).
+- Upgraded Diesel audio (`Core/EngineAudioSynthesis.cs`, `Core/EngineCharacterRules.cs`, `Native/EngineAudio.cs`) from a constant-pitch hum to an RPM-tracking aggressive muscle-car / T-72 V12 exhaust bark (`38 Hz` soft-clipped harmonic pulse + uneven bank lope + `0.45x..2.0x` RPM-coupled pitch sweep).
+
+## 0.7.2 - 2026-11-20 (Jet-roar Gas Turbine & deep V12 Diesel audio)
+
+- Revoiced procedural Gas Turbine audio (`Core/EngineAudioSynthesis.cs`, `Core/EngineCharacterRules.cs`) to sound like a broadband jet engine (Abrams AGT1500) rather than a high-pitched beep: deep jet exhaust rumble (`60-220 Hz`) + broadband compressor/exhaust whoosh (`250-1500 Hz`) + soft `280/560 Hz` turbine harmonics swept from `0.55x..1.40x` pitch, with native piston audio attenuated to `0.16x`.
+- Revoiced Diesel audio to a deep V12 / muscle-car tank growl (T-72 V-46/V-84 style) instead of a `2150/4300 Hz` sine whistle: lowered native pitch scale to `0.72x` and replaced the high whistle loop with a `54 Hz`-fundamental V12 firing cadence + chesty exhaust turbulence + subtle warm air rush (`0.65x..1.30x` pitch).
+
+## 0.7.1 - 2026-11-20 (Turbine audio fix, smooth shift-hold spool & free-power-turbine curve)
+
+- Fixed Gas Turbine sound cutting out in Unity 6000.3 IL2CPP (`Native/EngineAudio.cs`): removed `src.outputAudioMixerGroup = host.outputAudioMixerGroup` (which threw `TypeInitializationException` inside `UnmarshalUnityObject<AudioMixerGroup>`, prevented the procedural turbine whine and diesel turbo whistle from playing, leaked an empty `EE_EngineAuxAudio` object per frame, and left native turbine sound dimmed at `26%`). On failure or muted/inactive host, `AuxFailed` stops retries cleanly and `NativeVolumeScale` stays at `1.0x` unless the procedural turbine loop is actively playing.
+- Fixed Diesel "M"-notch and unnecessary gear-shift spool-down (`Core/EngineCharacterRules.cs`, `Native/RuntimeHooks.cs`): replaced `Math.Max(instant, spool)` in `EffectiveThrottle` with a smooth strictly-monotonic blend over normalized spool progress (`(spool - floor) / (1 - floor)`), and added `SpoolHoldSeconds` (`0.95s` Diesel, `1.10s` Gas Turbine) so brief automatic gear-shift throttle cuts do not dump compressor/turbo spool between gears, while real lift-offs and shutdowns still decay cleanly.
+- Updated static Gas Turbine torque shape (`Core/Profiles.cs`, `Catalog.Turbine`): increased low-to-top torque ratio to `2.09:1` (`0.20 -> 1.55` sloping smoothly down to `1.00 -> 0.74`, keeping peak power calibrated at `1.50x` native at `80% MaxRPM`) for authentic free-power-turbine pull across gears.
+
+## 0.7.0 - 2026-11-20 (Petrol/Diesel/Gas Turbine engine character & scaled Gas Turbine Powerpack)
+
+- Scaled Gas Turbine Powerpack (`Powerpack.Model.TurbineScale=0.80`, range `0.60..1.00`): Gas Turbine engines with `V` layout now use a `0.80x` compact scaled version of the powerpack engine model and hulls while keeping flush transmission placement (`MonoblockOrigin` / `TwinMonoblockOrigin` + collider bounds).
+- Added full engine character simulation (`EngineCharacter` config group, all toggles enabled by default):
+  - `BlueprintHooks.get_Inertia` & `get_FrictionCoefficient`: Diesel gains `+40%` rotational inertia and `+50%` engine braking; Gas Turbine uses `+25%` inertia and low (`0.30x`) engine braking so turbines coast cleanly off-throttle.
+  - Spool lag & load-dependent fuel burn in `RuntimeHooks.Update`: smooth exponential turbine (`0.85s` up / `1.35s` down, `0.30` immediate share) and diesel (`0.32s`/`0.45s`, `0.76` share) throttle response with instant lift-off and stall-proof idle governor passthrough; turbine high idle/part-load fuel floor (up to `4.5x` low-injection rate) and diesel `0.78x` part-load cruise economy.
+  - Combat fire risk (`FireControlVehicleModule.OnFireSourceFireStarted`): Diesel (`35%` chance / `0.80x` duration) and Gas Turbine (`55%` / `0.90x`) reduce engine fire frequency vs Petrol (`100%` native).
+  - Exhaust & procedural sound: diesel acceleration soot surge + subtle low-RPM pitch & `2150 Hz` turbo whistle (`EngineAudio`); gas turbine near-smokeless high-flow exhaust + procedural `48 kHz` seamless turbine whine (`EngineAudioSynthesis`) tracking spool state; inline 1-line character summary in `EngineEditor`.
+
+## 0.6.1 - 2026-11-20 (Existing powerpack auto-heal & partial-flag unlock)
+
+- Fixed existing powerpack vehicles (e.g. `Challenger 1 Mk3`, `Leopard 2a7`, `T-72A`, `M1IP`, `STRV-122A`, `Object 292/293`) failing to lock as one rigid block on load or locking permanently off after unticking Powerpack.
+- Cause: Sprocket's `PowertrainLayoutTransformation.CreateTransformDataMirrored` clears `0x1C70` (`PositionBetweenInputs = 0x1C00`) when dragging a module in the Powertrain designer while leaving `Abstracted = 1` on connections and `Powerpack: true` on the engine blueprint; `PowerpackRules.Find`/`FindTwin` reported `Conflict`, so unticking skipped clearing the leftover `Abstracted` flags.
+- `PowerpackRules.Find` and `FindTwin` now classify partial/stale powerpack flags as `Ready` (`Marked: false, Partial: true`), reserving `Conflict` for genuine incompatible output-auto flags (`0x70`) on transmissions or input-auto flags (`0x1C00`) on splitters.
+- `PowerpackLayout.Toggle` updates the layout whenever `context.Marked != on || context.Partial`, so both unticking and re-ticking heal or clean leftover flags in one undo step.
+- Added `SyncPowerpackFlags` inside `VehiclePowertrain.BuildLayout` (`SetRotations` prefix under `inBuildLayout`) to automatically restore missing `0x1C00` and `Abstracted` flags whenever an engine has `Powerpack: true` in its blueprint selection, refreshing collision membership and dirty colliders automatically.
+
+## 0.6.0 - 2026-11-20 (True 1-block Powerpack, collision filter & gear_LOD0 fix)
+
+- Fixed `PowerpackTransmission.Create` throwing `Unrecognised native powerpack transmission mesh gear_LOD0` during `TransmissionGearVisualizer.Generate`: rotating internal gear meshes (`gear`, `gear_*`) now pass through cleanly to native instead of aborting `TransmissionBlock.Build`.
+- Added targeted internal collision filtering (`Powerpack.Collision.Enabled=true`, `Powerpack.Collision.DriveshaftMode=SamePowertrain`) via a single postfix on `VehicleColliderRegister.IsValidObstructionCandidate` (`0x20ACC70`, 632 B, unique RVA). Suppresses false obstruction between engine and own transmission(s), twin left and right gearboxes, and powertrain driveshafts/junctions against the powerpack while keeping 100% of external collisions (hull, turret, crew, ammo, fuel, second engine) active.
+- Replaced the world-X/yaw-singular placement with engine-local 3D rigid placement and rotation (`MonoblockOrigin` / `TwinMonoblockOrigin`, plus `SetRotations` prefix on `ExecuteAutoposition`) so Single and Twin powerpacks track X/Y/Z movement and arbitrary rotations (including 90 deg transverse and 180 deg reversed) without crossing shafts. Tucks transmissions flush into the engine rear (`Powerpack.Layout.MonoblockOverlap=0.02`) when internal collision filtering is active, and keeps all `Abstracted` connections within 0.90 m.
+- Improved toggle reliability and eligibility: removed the overly conservative AABB/bounds preflight refusal (retaining strict reference and `Abstracted` validation), allowed non-mirrored twin pairs and collapsing 1-in/1-out junctions with positioning flags, raised default `MaxCollapseDistance` to 10.0 m, and rendered inline eligibility/refusal reasons under the toggle.
+- Visual cleanup: `Powerpack.Model.Casing` now defaults to `false` (still opt-in in config, hardened against non-V/no-span cases), and the Twin bridge renders only when an actual gap >= 15 mm exists.
+
+## 0.5.1
+
+- heraudit na Sprocket-update 18-11, geen gedragswijziging
+
 ## 0.5.0 - 2026-11-08 (junction collapse, Leopard eligibility fix, integrated casing; prepared build)
 
 - Powerpack.Layout.CollapseJunctions=true recognises single-input/single-output junction chains ending at one gearbox or a single splitter and mirrored gearbox pair. Removed mirror junctions must occur together. Manual splitters are normalised to native 0x70. MaxCollapseDistance defaults to 1.75 layout metres, measured engine output to each gearbox input (maximum for Twin): Challenger 1 needs 1.701 m. Remote/front-drive Panzer IV routes are refused. False uses the unchanged 0.4.1 recognisers.

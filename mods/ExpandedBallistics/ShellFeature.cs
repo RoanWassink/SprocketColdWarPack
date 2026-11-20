@@ -25,10 +25,11 @@ internal static class ShellFeature
         try
         {
             RuntimeDamageFeed.Configure(Config);
-            new Harmony("sprocket.expandedballistics.damagefeed").PatchAll(typeof(RuntimeDamageFeed));
+            if(GameBuildGate.AllowHotPath)new Harmony("sprocket.expandedballistics.damagefeed").PatchAll(typeof(RuntimeDamageFeed));
             Il2CppInterop.Runtime.Injection.ClassInjector.RegisterTypeInIl2Cpp<DamageFeedBehaviour>();
             host.AddDamageFeed();
-            RuntimeDamageFeed.Ready=true;
+            if(GameBuildGate.AllowHotPath)RuntimeDamageFeed.Ready=true;
+            else Log.LogInfo("[Damage feed] Hit-path hooks off on an unaudited game build (see the game build gate warning); the HUD stays empty.");
             try{new Harmony("sprocket.expandedballistics.damagefeed.health").PatchAll(typeof(RuntimeDamageHealth));}
             catch(Exception healthError){new Harmony("sprocket.expandedballistics.damagefeed.health").UnpatchSelf();Log.LogWarning("[Damage feed] Native health reporting unavailable; penetration HUD retained: "+healthError.Message);}
             Log.LogInfo("[Damage feed] Optional Play HUD hooks loaded; default off, global Keybinds toggle and corner-cycle actions.");
@@ -41,8 +42,8 @@ internal static class ShellFeature
             RuntimeShellSelection.Configure(Config);
             ShellEditorPanel.Configure(Config);
             RuntimeSpall.Configure();
-            harmony.PatchAll(typeof(RuntimeShellSelection));
-            harmony.PatchAll(typeof(RuntimeSpall));
+            if(GameBuildGate.AllowHotPath)harmony.PatchAll(typeof(RuntimeShellSelection));
+            if(GameBuildGate.AllowHotPath)harmony.PatchAll(typeof(RuntimeSpall));
 
         }
         catch (Exception ex)
@@ -56,8 +57,7 @@ internal static class ShellFeature
         try
         {
             RuntimeTandem.Configure();
-            tandemHarmony.PatchAll(typeof(RuntimeTandem));
-            RuntimeTandem.VerifyOrdering();
+            if(GameBuildGate.AllowHotPath){tandemHarmony.PatchAll(typeof(RuntimeTandem));RuntimeTandem.VerifyOrdering();}
         }
         catch(Exception ex)
         {
@@ -69,14 +69,18 @@ internal static class ShellFeature
         try
         {
             RuntimeArmourResponses.ReachedBlock=NativeMaterialReactions.ReachedWithLayers; // 0.22.60: Reached, plus the hit per layer for plates in layers
-            if(RuntimeArmourResponses.Configure())armourHarmony.PatchAll(typeof(RuntimeArmourResponses));
+            if(RuntimeArmourResponses.Configure()&&GameBuildGate.AllowHotPath)armourHarmony.PatchAll(typeof(RuntimeArmourResponses));
         }
         catch(Exception ex){RuntimeArmourResponses.ReachedBlock=null;armourHarmony.UnpatchSelf();Log.LogWarning("[Armour response] Optional adapter disabled: "+ex.Message);}
         var atgmHarmony=new Harmony("sprocket.expandedballistics.atgm");
         try
         {
             RuntimeAtgm.Configure(Config);
-            if(RuntimeAtgm.Enabled){atgmHarmony.PatchAll(typeof(RuntimeAtgm));RuntimeAtgm.Ready=true;TopAttackKeys.Configure();Log.LogInfo("[ATGM] Powered missile flight and guidance loaded. Top-attack lock keybind registered (unbound by default).");}
+            if(RuntimeAtgm.Enabled)
+            {
+                if(GameBuildGate.AllowHotPath){atgmHarmony.PatchAll(typeof(RuntimeAtgm));RuntimeAtgm.Ready=true;TopAttackKeys.Configure();Log.LogInfo("[ATGM] Powered missile flight and guidance loaded. Top-attack lock keybind registered (unbound by default).");}
+                else Log.LogInfo("[ATGM] Missile firing left off on an unaudited game build: it depends on the shell-selection shot hooks (see the game build gate warning).");
+            }
         }
         catch(Exception ex){atgmHarmony.UnpatchSelf();RuntimeAtgm.Ready=false;Log.LogError("[ATGM] Optional flight guidance unavailable; other shell hooks remain active: "+ex);}
         var launcherHarmony=new Harmony("sprocket.expandedballistics.atgmlauncher");
@@ -106,7 +110,7 @@ internal static class ShellFeature
         try{if(initial.Value){initialHarmony.PatchAll(typeof(RuntimeAtgmInitialRound));RuntimeAtgmInitialRound.Ready=true;Log.LogInfo("[ATGM initial] One finite native initial missile enabled.");}}
         catch(Exception ex){initialHarmony.UnpatchSelf();RuntimeAtgmInitialRound.Ready=false;Log.LogWarning("[ATGM initial] Optional starting missile unavailable: "+ex.Message);}
         var boxHarmony=new Harmony("sprocket.expandedballistics.atgmammobox");
-        var automaticBox=Config.Bind("ATGM Launcher Tests","AutomaticAmmoBox",false,"Enable automatic loading from the dedicated finite ATGM ammunition box. Restart to change. Requires a matching nearby launcher and assigned gunner; ordinary ammunition racks are not automatic reserves.");
+        var automaticBox=Config.Bind(AtgmAmmoBoxRules.Section,AtgmAmmoBoxRules.Key,AtgmAmmoBoxRules.DefaultOn,"Automatic loading of a dedicated ATGM launcher from the finite ATGM ammo box within 2 m of its loading point: the launcher then needs no crew loader (a gunner still fires it). On by default; each box keeps its own Automatic feed switch in the designer. Replaces [ATGM Launcher Tests] AutomaticAmmoBox, which is no longer read. Restart to change.");RuntimeAtgmAmmoBox.NoteLegacyKey(Config.ConfigFilePath,Log); // 0.22.89 replaced
         try{if(automaticBox.Value){boxHarmony.PatchAll(typeof(RuntimeAtgmAmmoBox));RuntimeAtgmAmmoBox.Ready=true;Log.LogInfo("[ATGM ammo box] Finite automatic feed enabled.");}else Log.LogInfo("[ATGM ammo box] Native rack and container visuals enabled; automatic feed disabled.");}
         catch(Exception ex){boxHarmony.UnpatchSelf();RuntimeAtgmAmmoBox.Ready=false;Log.LogWarning("[ATGM ammo box] Automatic feed unavailable: "+ex.Message);}
         var boxVisualHarmony=new Harmony("sprocket.expandedballistics.atgmammobox.visuals");
@@ -131,13 +135,13 @@ internal static class ShellFeature
         {
             RuntimeArmourSimulator.Configure();
             simulatorHarmony.PatchAll(typeof(RuntimeShellEra));
-            simulatorHarmony.PatchAll(typeof(RuntimeArmourSimulator));
+            if(GameBuildGate.AllowHotPath)simulatorHarmony.PatchAll(typeof(RuntimeArmourSimulator));
             RuntimeArmourComparisonCapture.Configure();
             RuntimeArmourComparisonRunner.Configure();
-            simulatorHarmony.PatchAll(typeof(RuntimeArmourComparisonCapture));
+            if(GameBuildGate.AllowHotPath)simulatorHarmony.PatchAll(typeof(RuntimeArmourComparisonCapture));
             try
             {
-                RuntimeTandem.VerifyOrdering(requireSimulator:true);
+                if(GameBuildGate.AllowHotPath)RuntimeTandem.VerifyOrdering(requireSimulator:true);
             }
             catch(Exception ex)
             {

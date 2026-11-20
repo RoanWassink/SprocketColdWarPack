@@ -404,7 +404,11 @@ internal static class CarouselRuntime
                 foreach (var binding in loaderBindings)
                 {
                     var task = binding.Task;
-                    if (task.State != LoadState.Loading && task.State != LoadState.Loaded) SelectSupply(task);
+                    if (task.State != LoadState.Loading && task.State != LoadState.Loaded)
+                    {
+                        AmmoLoadoutBridge.Prepare(task);
+                        SelectSupply(task);
+                    }
                     var active = AutomaticSourceActive(task, binding.Cannon);
                     binding.Contributor.efficiency = active ? 1f : 0f;
                     binding.Contributor.commandEfficiency = active ? 1f : 0f;
@@ -513,14 +517,13 @@ internal static class CarouselRuntime
                 var state = State(basket);
                 if (!state.Active || state.CannonId != cannon.VUID.Value) continue;
                 if (!InitializeRequest(__instance, cannon, state, ref request))
-                {if(AmmoLoadoutBridge.HasLoadout(cannon)){__instance.rack=null;return false;}continue;}
+                {if(AmmoLoadoutBridge.HasLoadout(cannon)){if(SemiAutoloader.HasCrew(cannon))continue;__instance.rack=null;return false;}continue;}
                 var rack = Supply(state, cannon, request.SizeID, request.TypeID);
                 if (rack == null || !request.IsMatch(rack.Cast<IAmmoSource>()))
                 {
-                    // A configured automatic ready magazine cannot be bypassed by a
-                    // native reserve search when its requested compartment is empty.
+                    // With a carried mix, allow hull-reserve fallback only when a crew loader exists to manually serve it.
                     if(AmmoLoadoutBridge.HasLoadout(cannon))
-                    {__instance.rack=null;return false;}
+                    {if(SemiAutoloader.HasCrew(cannon))continue;__instance.rack=null;return false;}
                     continue;
                 }
                 var shell = cannon.ShellBlueprint;
@@ -591,7 +594,10 @@ internal static class CarouselRuntime
             if(cannon!=null&&__instance.State!=LoadState.Loaded&&InvalidAssignedFeed(cannon)) return false;
             // Native Update skips UpdateRequest when no request exists. Bootstrap the first one without ordinary racks.
             if (__instance.State == LoadState.NeverLoaded && __instance.Request.TypeID.Value == ProjectileTypeID.Invalid.Value)
+            {
+                AmmoLoadoutBridge.Prepare(__instance);
                 SelectSupply(__instance);
+            }
             if (!Mechanical(__instance, out var state))
             { BustleRuntime.ApplySpeed(__instance, ref __0, ref __1, ref __2); return true; }
             __0 = 1; __1 = 1; __2 = (float)state.Size.ReloadSeconds * .2f;

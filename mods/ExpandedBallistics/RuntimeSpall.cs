@@ -14,6 +14,7 @@ internal sealed class ShellImpactContext
     internal bool ChemicalInitialized;
     internal bool ChemicalVisualPlayed;
     internal readonly HashSet<IntPtr> PayloadBursts = new();
+    internal readonly Dictionary<IntPtr,int> HeatBurstCounts = new();
     internal readonly SpacedKineticGate SpacedKineticShots = new();
     internal readonly HashSet<IntPtr> CapStripped = new();
     internal readonly Dictionary<IntPtr,ChemicalLayers> Layers = new();
@@ -28,11 +29,14 @@ internal sealed class ShellImpactContext
     internal readonly List<UnityEngine.Vector3> ArmourExplosions=new();
     internal readonly List<PlacedEraActivation> PlacedActivations=new();
     internal bool ArmourEffectPlaying;
+    internal bool HeshLogged; // 0.22.78 HESH
 }
 [HarmonyPatch]
 internal static class RuntimeSpall
 {
     internal static SpallSettings Settings = new();
+    internal static HeshSettings Hesh=HeshSettings.Default; // 0.22.78 HESH
+    internal static HeSettings He=HeSettings.Default; // 0.22.86 HE
     [ThreadStatic] internal static ShellImpactContext? Impact;
     [ThreadStatic] private static UnityEngine.Vector3? apheAxis;
     [ThreadStatic] private static PenetrationSimulation? layerSimulation;
@@ -50,7 +54,7 @@ internal static class RuntimeSpall
     private static Dictionary<(IntPtr,int),int> RicochetCounts=>ricochetCounts??=new();
     private static HashSet<(IntPtr,int)> ThinGapChildren=>thinGapChildren??=new();
     private static void ResetShotState(){gapLedger?.Clear();ricochetCounts?.Clear();thinGapChildren?.Clear();}
-    private sealed record LayerScope(PenetrationSimulation? Simulation,short Index,CompoundStructure? Structure,
+    private readonly record struct LayerScope(PenetrationSimulation? Simulation,short Index,CompoundStructure? Structure,
         PenetrationSimulation? PreviousArmedSimulation=null,PenetrationSimulation? ChemicalSimulation=null,float? OriginalObliquity=null,
         int RicochetBefore=-1,FragmentFlag RicochetPreFlags=FragmentFlag.None,
         PenetrationSimulation? PreviousActive=null,UnityEngine.Vector3 RicochetPreDirection=default);
@@ -181,15 +185,22 @@ internal static class RuntimeSpall
             }
             if(!SpallGapModel.Applies(context.Behavior)||Settings.MinSpallGapMm<=0)return;
             var n=Math.Min(__1,__0.Length);
-            var distance=new float[n];var enter=new bool[n];var solid=new bool[n];
-            for(int k=exit;k<n;k++)
+            var exitDist=__0[exit].distance;
+            var bestGapMm=double.PositiveInfinity;
+            if(float.IsFinite(exitDist))
             {
-                var hit=__0[k];distance[k]=hit.distance;
-                if((hit.flags&IntersectionFlags.Enter)==0)continue;
-                enter[k]=true;
-                solid[k]=hit.objectIndex>=0&&hit.objectIndex<sim.objects.Length&&sim.objects[hit.objectIndex].materialIndex>=0;
+                var objCount=sim.objects.Length;
+                for(int k=0;k<n;k++)
+                {
+                    if(k==exit||k==entry)continue;
+                    var hit=__0[k];
+                    if((hit.flags&IntersectionFlags.Enter)==0||!float.IsFinite(hit.distance)||hit.distance<exitDist-1e-6f)continue;
+                    if(hit.objectIndex<0||hit.objectIndex>=objCount||sim.objects[hit.objectIndex].materialIndex<0)continue;
+                    var gapMm=Math.Max(0,(hit.distance-exitDist)*1000.0);
+                    if(gapMm<bestGapMm)bestGapMm=gapMm;
+                }
             }
-            GapLedger.Record(sim.Pointer,layerFragment,__0[exit].distance,SpallGapModel.NextSolidGapMm(distance,enter,solid,exit));
+            GapLedger.Record(sim.Pointer,layerFragment,exitDist,bestGapMm);
         }
         catch(Exception ex){if(ricochetWarnings++<3)Plugin.ModLog.LogWarning("[Spall] Gap lookahead unavailable: "+ex.Message);}
     }
@@ -202,7 +213,16 @@ internal static class RuntimeSpall
         double? spawn=null;
         var direction=parent.direction;
         if(direction.sqrMagnitude>.5f){var d=UnityEngine.Vector3.Dot(o.spawnPoint-parent.spawnPoint,direction.normalized);if(float.IsFinite(d))spawn=d;}
-        return GapLedger.Match(simulation.Pointer,o.parentIndex,spawn,out byDistance);
+        var direct=GapLedger.Match(simulation.Pointer,o.parentIndex,spawn,out byDistance);
+        if(direct==null&&parent.parentIndex>=0&&parent.parentIndex<simulation.FragmentCount&&parent.parentIndex!=o.parentIndex)
+        {
+            var grandParent=simulation.fragments[parent.parentIndex];
+            double? parentSpawn=null;
+            var grandDir=grandParent.direction;
+            if(grandDir.sqrMagnitude>.5f){var gd=UnityEngine.Vector3.Dot(o.spawnPoint-grandParent.spawnPoint,grandDir.normalized);if(float.IsFinite(gd))parentSpawn=gd;}
+            return GapLedger.Match(simulation.Pointer,parent.parentIndex,parentSpawn,out byDistance);
+        }
+        return direct;
     }
     // Native Penetrate reserves profile zero for the original core (source=-1, AP).
     // Its default AP exponent1.33 is wrong for fast sub-calibre and chemical kinds.
@@ -395,16 +415,35 @@ internal static class RuntimeSpall
                 Plugin.ModLog.LogInfo("[Spall] Added the missing spall settings; backup "+backup);
             }
         }
+        // 0.22.78 HESH begin
+        // The optional "hesh" object is read here and left out of the strict spall parser; without it the lines below run exactly as in 0.22.77.
+        var heshText=File.ReadAllText(path);Hesh=HeshRules.Read(heshText,line=>Plugin.ModLog.LogWarning(line),out var heshFree);
+        // 0.22.86 HE begin
+        // The optional "he" object is read the same way and left out of the strict spall parser too; without both keys the 0.22.77 lines below run unchanged.
+        He=HeRules.Read(heshFree,line=>Plugin.ModLog.LogWarning(line),out var heFree);heshFree=heFree;
+        if(ReleaseDiagnostics.Enabled)Plugin.ModLog.LogInfo(HeRules.Describe(He));
+        // 0.22.86 HE end
+        if(ReleaseDiagnostics.Enabled)Plugin.ModLog.LogInfo(HeshRules.Describe(Hesh));
+        if(!ReferenceEquals(heshFree,heshText))
+        {
+            Settings=SpallBalance.Parse(heshFree);
+            Plugin.ModLog.LogInfo("[Spall] APFSDS remaining-penetration/cone and APHE amplified native AP spall enabled. "+path);
+            return;
+        }
+        // 0.22.78 HESH end
         Settings=SpallBalance.Parse(File.ReadAllText(path));
         Plugin.ModLog.LogInfo("[Spall] APFSDS remaining-penetration/cone and APHE amplified native AP spall enabled. "+path);
     }
-    private sealed record BurstState(int CountBefore,bool Custom,bool Aphe,UnityEngine.Vector3 ExplosionPosition=default,UnityEngine.Vector3? PreviousAxis=null,short ParentIndex=-1);
+    private readonly record struct BurstState(int CountBefore,bool Custom,bool Aphe,UnityEngine.Vector3 ExplosionPosition=default,UnityEngine.Vector3? PreviousAxis=null,short ParentIndex=-1);
     [HarmonyPrefix,HarmonyPatch(typeof(CompoundStructure),nameof(CompoundStructure.Penetrate))]
     [HarmonyPriority(Priority.Last)]
     private static void ExperimentalNormalization(ref PenetratorInfo penetrator)
     {
         ResetShotState();
         var context=Impact;
+        // 0.22.86 HE begin
+        if(context is {Behavior:"he"}){HePenetrator(ref penetrator,context);return;}
+        // 0.22.86 HE end
         if(context is {LiveImpact:true,ChemicalInitialized:false} && context.Behavior is "heat" or "hesh")
         {
             var p=context.Profile!;
@@ -456,6 +495,9 @@ internal static class RuntimeSpall
         try
         {
             var context=Impact;
+            // 0.22.86 HE begin
+            if(context is {Behavior:"he"})return HeBurst(simulation,ref o,ref __state,context);
+            // 0.22.86 HE end
             if(context==null || context.Behavior is not ("apfsds" or "aphe" or "heat" or "hesh")) return true;
             if(o.parentIndex<0 || o.parentIndex>=simulation.FragmentCount) return true;
             var parent=simulation.fragments[o.parentIndex];
@@ -478,7 +520,18 @@ internal static class RuntimeSpall
                 if(!float.IsFinite(o.spallFactor)||o.spallFactor<=0)return true;
                 var tuning=context.Behavior=="aphe" ? s.ApheSpallMultiplier/4 : context.Profile!.SpallMultiplier/(context.Behavior=="hesh"?8:1.5);
                 o.volume=(float)(ShellBalance.FragmentVolume(context.Behavior,calibre)*tuning);
-                var count=Math.Clamp(ShellBalance.FragmentTarget(context.Behavior,calibre)*tuning,4,32);
+                var rawCount=ShellBalance.FragmentTarget(context.Behavior,calibre)*tuning;
+                double count;
+                if(context.Behavior=="heat")
+                {
+                    context.HeatBurstCounts.TryGetValue(simulation.Pointer,out var priorHeat);
+                    count=ShellBalance.HeatBurstTarget(rawCount,priorHeat);
+                    if(count<=0)return false;
+                }
+                else count=Math.Clamp(rawCount,4,32);
+                // 0.22.78 HESH begin
+                if(context.Behavior=="hesh"&&HeshRules.ScabApplies(Hesh,(ushort)parent.flags)){var scab=HeshRules.Scab(calibre,tuning,Hesh);o.volume=(float)scab.VolumeM3;count=scab.Count;}
+                // 0.22.78 HESH end
                 o.crossectionalArea=(float)(o.spallFactor*count);
                 o.speed=(float)ShellBalance.PayloadFragmentSpeed(context.Behavior,calibre,o.speed);
                 if(ReleaseDiagnostics.Enabled)Plugin.ModLog.LogInfo($"[Payload burst] {context.Behavior} targetCount={count:0} fragmentSpeed={o.speed:0}m/s volume={o.volume:0.000000}m3");
@@ -526,13 +579,23 @@ internal static class RuntimeSpall
     {
         if(!__state.Custom)return;
         var count=simulation.FragmentCount-__state.CountBefore;
-        if(count>0 && __state.Aphe && Impact is {} impact) impact.PayloadBursts.Add(simulation.Pointer);
+        if(count>0 && __state.Aphe && Impact is {} impact)
+        {
+            impact.PayloadBursts.Add(simulation.Pointer);
+            if(impact.Behavior=="heat")impact.HeatBurstCounts[simulation.Pointer]=impact.HeatBurstCounts.GetValueOrDefault(simulation.Pointer)+1;
+        }
         if(count>0 && Impact?.Behavior is "aphe" && __state.ParentIndex>=0)
         {
             var parent=simulation.fragments[__state.ParentIndex];
             parent.flags |= FragmentFlag.Killed;
             simulation.fragments[__state.ParentIndex]=parent;
         }
+        // 0.22.78 HESH begin
+        if(count>0&&__state.Aphe&&__state.ParentIndex>=0&&Impact?.Behavior=="hesh")HeshScabDone(simulation,__state.ParentIndex,count);
+        // 0.22.78 HESH end
+        // 0.22.86 HE begin
+        if(count>0&&__state.Aphe&&__state.ParentIndex>=0&&Impact?.Behavior=="he")HeFragmentsDone(simulation,__state.ParentIndex,count);
+        // 0.22.86 HE end
         if(ReleaseDiagnostics.Enabled)Plugin.ModLog.LogInfo($"[Spall] {Impact?.Behavior} spawned={count}; calibre={(Impact?.GunDiameter??0)*1000:0}mm");
         if(__state.Aphe && count>0 && Impact is {LiveImpact:true,ExplosionPending:false} context)
         {
@@ -540,4 +603,91 @@ internal static class RuntimeSpall
             context.ExplosionPending=true;
         }
     }
+    // 0.22.78 HESH begin
+    private static int heshProbes;private static bool heshWarned;
+    // The scab is made from the rear face; the body that carried it is consumed (speed 0, Killed, written back). The finalizer of
+    // RuntimeArmourResponses sees the absorbed parent and stops every original continuation of this call; the air continuation the game
+    // copies from it afterwards already starts at speed 0. An exception keeps the native continuation and logs once per session.
+    private static void HeshScabDone(PenetrationSimulation simulation,short parentIndex,int count)
+    {
+        try
+        {
+            if(!HeshRules.StopBody(new NativeHeshFragments(simulation),parentIndex,Hesh))return;
+            RuntimeArmourResponses.NotifyParentSpeedChange(simulation,parentIndex);
+            if(ReleaseDiagnostics.Enabled&&heshProbes++<24)Plugin.ModLog.LogInfo($"[HESH] scab: {count} fragments from the rear face; projectile body (fragment {parentIndex}) consumed, no residual projectile.");
+        }
+        catch(Exception ex){if(!heshWarned){heshWarned=true;Plugin.ModLog.LogWarning("[HESH] Scab end unavailable; the native continuation is kept: "+ex.Message);}}
+    }
+    // 0.22.78 HESH end
+    // 0.22.86 HE begin
+    private static int heProbes;private static bool heWarned;
+    // The perforating part of an HE round (its AP function): a fixed budget of perforationMmAt100 x (calibre/100)^perforationExponent mm RHA, independent
+    // of the impact speed, with the diameter and mass of the round itself (as HESH). Every later Penetrate of the same impact only loses the classic
+    // normalization. An exception leaves a part without penetration (as the game's HE, which never penetrates): it can only stop or graze.
+    private static void HePenetrator(ref PenetratorInfo penetrator,ShellImpactContext context)
+    {
+        try
+        {
+            if(!context.LiveImpact||context.ChemicalInitialized)
+            {penetrator=new PenetratorInfo(penetrator.Mass,penetrator.Diameter,penetrator.Density,0,penetrator.PenetratorConstant,penetrator.Position,penetrator.Velocity);return;}
+            var budget=HeRules.PerforationMm(He,context.GunDiameter*1000d);
+            var speed=PenetrationUtils.ComputeRequiredPenetrationSpeed(penetrator.Diameter*1000,penetrator.Mass,(float)budget,penetrator.PenetratorConstant);
+            if(!float.IsFinite(speed)||speed<=0)throw new InvalidOperationException("no speed for "+budget.ToString("0.#",System.Globalization.CultureInfo.InvariantCulture)+" mm");
+            penetrator=new PenetratorInfo(penetrator.Mass,penetrator.Diameter,penetrator.Density,0,penetrator.PenetratorConstant,penetrator.Position,penetrator.Velocity.normalized*speed);
+            context.ChemicalInitialized=true;
+            if(ReleaseDiagnostics.Enabled&&heProbes++<48)Plugin.ModLog.LogInfo($"[HE] perforating part: budget {budget:0.0} mm RHA at {context.GunDiameter*1000:0.#} mm; d {penetrator.Diameter*1000:0.0} mm, mass {penetrator.Mass:0.000} kg, speed {speed:0} m/s (impact-speed-independent).");
+        }
+        catch(Exception ex)
+        {
+            try{penetrator=new PenetratorInfo(penetrator.Mass,penetrator.Diameter,penetrator.Density,0,penetrator.PenetratorConstant,penetrator.Position,penetrator.Velocity.normalized);}catch(Exception){}
+            if(!heWarned){heWarned=true;Plugin.ModLog.LogWarning("[HE] Perforating part unavailable; it does not penetrate (as the game's HE): "+ex.Message);}
+        }
+    }
+    // The fragments of a perforation: one burst per shot, from the rear face of the perforated plate (the continuation of the part, 0x181), shell and plug
+    // fragments of HeRules.Fragments, spread over the half space behind the plate. Another burst of the part (a second one, or one without a perforation)
+    // makes no fragments; the spall of fragments, and a burst whose material the game does not give, stay as the game makes them (as for APHE and HESH).
+    private static bool HeBurst(PenetrationSimulation simulation,ref CompoundStructure.SpallSpawnBurst o,ref BurstState state,ShellImpactContext context)
+    {
+        if(!He.Perforation)return true;
+        if(o.parentIndex<0||o.parentIndex>=simulation.FragmentCount)return true;
+        var parent=simulation.fragments[o.parentIndex];
+        if((parent.flags&FragmentFlag.OriginalPenetrator)==0)return true;
+        if(!HeRules.FragmentsApply((ushort)parent.flags)||context.PayloadBursts.Contains(simulation.Pointer))return false;
+        if(parent.materialIndex<0||!float.IsFinite(o.spallFactor)||o.spallFactor<=0)return true;
+        var calibre=context.GunDiameter*1000d;var fragments=HeRules.Fragments(calibre);
+        o.volume=(float)fragments.VolumeM3;
+        o.crossectionalArea=(float)(o.spallFactor*fragments.Count);
+        o.speed=(float)ShellBalance.PayloadFragmentSpeed("he",calibre,o.speed);
+        apheAxis=o.planeNormal.sqrMagnitude>.5f?o.planeNormal.normalized:o.direction.normalized;
+        state=state with {Custom=true,Aphe=true,ParentIndex=o.parentIndex,ExplosionPosition=context.LiveImpact?simulation.SimToWorldSpacePoint(o.spawnPoint):default};
+        if(ReleaseDiagnostics.Enabled&&heProbes++<48)Plugin.ModLog.LogInfo($"[HE] fragments behind the plate: target {fragments.Count:0}, {fragments.MassKg:0.0} kg of steel, {o.speed:0} m/s.");
+        return true;
+    }
+    // After the burst the body is consumed (speed 0, Killed, written back; the finalizer of RuntimeArmourResponses also stops every continuation), and
+    // the report line of the perforation is recorded with the number of fragments.
+    private static void HeFragmentsDone(PenetrationSimulation simulation,short parentIndex,int count)
+    {
+        try
+        {
+            var fragments=new NativeHeshFragments(simulation);
+            if(HeRules.FragmentsApply(fragments.Flags(parentIndex))){fragments.Stop(parentIndex);RuntimeArmourResponses.NotifyParentSpeedChange(simulation,parentIndex);}
+            HeBlast.Fragments(simulation,count);
+            if(ReleaseDiagnostics.Enabled&&heProbes++<48)Plugin.ModLog.LogInfo($"[HE] {count} fragments from the rear face; the body (fragment {parentIndex}) is consumed.");
+        }
+        catch(Exception ex){if(!heWarned){heWarned=true;Plugin.ModLog.LogWarning("[HE] Fragment end unavailable; the finalizer still stops the body: "+ex.Message);}}
+    }
+    // 0.22.86 HE end
 }
+// 0.22.78 HESH begin
+/// <summary>The native fragment array for the HESH rules: every read takes a fresh element and every write goes back to the array (Fragment is a boxed IL2CPP value).</summary>
+internal readonly struct NativeHeshFragments:IHeshFragments
+{
+    private readonly PenetrationSimulation sim;
+    internal NativeHeshFragments(PenetrationSimulation simulation)=>sim=simulation;
+    public int Count=>sim.FragmentCount;
+    public ushort Flags(int index)=>(ushort)sim.fragments[index].flags;
+    public int Parent(int index)=>sim.fragments[index].parentIndex;
+    public void SetFlags(int index,ushort flags){var f=sim.fragments[index];f.flags=(FragmentFlag)flags;sim.fragments[index]=f;}
+    public void Stop(int index){var f=sim.fragments[index];f.speed=0;f.flags|=FragmentFlag.Killed;sim.fragments[index]=f;}
+}
+// 0.22.78 HESH end

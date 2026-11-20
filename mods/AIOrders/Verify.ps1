@@ -26,18 +26,25 @@ try {
     $dll = Join-Path $BuildDir 'SprocketAIOrders.dll'
     if (!(Test-Path -LiteralPath $dll -PathType Leaf)) { throw "Build missing: $dll" }
     $version = [version]([Diagnostics.FileVersionInfo]::GetVersionInfo($dll).FileVersion)
-    if ($version -ne [version]'0.5.2.0') { throw "Expected AI Orders 0.5.2; got $version." }
+    if ($version -ne [version]'0.5.4.0') { throw "Expected AI Orders 0.5.4; got $version." }
     $bundled = @(Get-ChildItem -LiteralPath $BuildDir -Recurse -File | Where-Object {
         $_.Name -in @('SprocketUiKit.dll', 'SprocketKeybinds.dll')
     })
     if ($bundled.Count) { throw "Shared dependency bundled in output: $($bundled.FullName -join ', ')" }
-    Write-Output 'PASS build 0.5.2; no shared Kit/Keybinds DLL bundled.'
+    Write-Output 'PASS build 0.5.4; no shared Kit/Keybinds DLL bundled.'
 
     $files = @(Get-ChildItem -LiteralPath $SourceDir -Recurse -Filter '*.cs' -File | Where-Object {
         $_.FullName -notmatch '[\\/](bin|obj)[\\/]'
     })
     if (!$files.Count) { throw 'No C# source files found.' }
     $allSource = ($files | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }) -join "`n"
+    $patchCount = [regex]::Matches($allSource, '\[\s*(?:HarmonyLib\.)?HarmonyPatch(?:Attribute)?\b').Count
+    if ($patchCount -ne 3) { throw "Expected exactly 3 HarmonyPatch attributes; got $patchCount." }
+    $patchFile = Join-Path $SourceDir 'Patches.cs'
+    if ((Get-FileHash -LiteralPath $patchFile -Algorithm SHA256).Hash -ne '0FAD96435FA640E020F2B873208BC37C08F21164103FF29E0AC50D23C2F44F5A') {
+        throw 'Existing Harmony patches changed; the three original patches must remain byte-identical.'
+    }
+    Write-Output 'PASS exactly 3 unchanged Harmony patches; no added HarmonyPatch.'
     if ($allSource -match 'CreatePanel\([^;\r\n]*"menu"') {
         throw 'The F9 menu must not be a Kit panel (CreatePanel ... "menu" is forbidden).'
     }

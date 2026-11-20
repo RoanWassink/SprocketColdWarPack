@@ -4,7 +4,8 @@ param(
  # GameAssembly.dll of the game (read only). Defaults to the one in GameDir.
  [string]$GameBinary='',
  # The DLL to check. Defaults to the build output of SprocketUiKit.csproj.
- [string]$Dll=''
+ [string]$Dll='',
+ [string]$KeybindsDll=''
 )
 # Static checks for Sprocket UI Kit: build identity, hook signatures against the game's interop,
 # Harmony callback shapes, demo keybind through the Keybinds API, public API against baseline\, packaging rules.
@@ -15,7 +16,7 @@ if(!$GameBinary) { $GameBinary=Join-Path $GameDir 'GameAssembly.dll' }
 if(!$Dll) { $Dll=Join-Path $PSScriptRoot 'bin/Release/net6.0/SprocketUiKit.dll' }
 Add-Type -Path (Join-Path $GameDir 'BepInEx/core/Mono.Cecil.dll')
 Add-Type -Path (Join-Path $GameDir 'BepInEx/core/SemanticVersioning.dll')
-$Guid='sprocket.uikit'; $Version='0.1.12'; $KeybindsGuid='sprocket.keybinds'
+$Guid='sprocket.uikit'; $Version='0.1.13'; $KeybindsGuid='sprocket.keybinds'
 
 # 1. Game binary (Sprocket 0.2.56.2)
 $hash=(Get-FileHash -LiteralPath $GameBinary).Hash
@@ -109,7 +110,8 @@ try {
 } finally { foreach($a in $assemblies.Values){ $a.Dispose() } }
 
 # 3. Keybinds API present and compatible
-$apiPath=Join-Path $GameDir 'BepInEx/plugins/SprocketKeybinds/SprocketKeybinds.dll'
+$apiPath=$KeybindsDll
+if(!$apiPath) { $apiPath=Join-Path $GameDir 'BepInEx/plugins/SprocketKeybinds/SprocketKeybinds.dll' }
 $api=[Mono.Cecil.AssemblyDefinition]::ReadAssembly($apiPath)
 try {
  $apiVersion="$($api.Name.Version.Major).$($api.Name.Version.Minor).$($api.Name.Version.Build)"
@@ -129,9 +131,9 @@ try {
  $info=@($plugin.CustomAttributes | Where-Object { $_.AttributeType.FullName -eq 'BepInEx.BepInPlugin' })
  if($info.Count -ne 1 -or $info[0].ConstructorArguments[0].Value -ne $Guid -or $info[0].ConstructorArguments[2].Value -ne $Version) { throw 'BepInPlugin GUID/version mismatch.' }
  $dep=@($plugin.CustomAttributes | Where-Object { $_.AttributeType.FullName -eq 'BepInEx.BepInDependency' })
- if($dep.Count -ne 1 -or $dep[0].ConstructorArguments[0].Value -ne $KeybindsGuid -or $dep[0].ConstructorArguments[1].Value -ne '>=0.1.3 <0.2.0') { throw 'Keybinds dependency must be >=0.1.3 <0.2.0.' }
- if(![SemanticVersioning.Range]::Parse('>=0.1.3 <0.2.0', $false).IsSatisfied($apiVersion)) { throw "Installed Keybinds $apiVersion outside the dependency range." }
- "PASS identity $Guid $Version (assembly $($a.Name.Version)); Keybinds dependency >=0.1.3 <0.2.0 accepts installed $apiVersion."
+ if($dep.Count -ne 1 -or $dep[0].ConstructorArguments[0].Value -ne $KeybindsGuid -or $dep[0].ConstructorArguments[1].Value -ne '>=0.1.10 <0.2.0') { throw 'Keybinds dependency must be >=0.1.10 <0.2.0.' }
+ if(![SemanticVersioning.Range]::Parse('>=0.1.10 <0.2.0', $false).IsSatisfied($apiVersion)) { throw "Installed Keybinds $apiVersion outside the dependency range." }
+ "PASS identity $Guid $Version (assembly $($a.Name.Version)); Keybinds dependency >=0.1.10 <0.2.0 accepts installed $apiVersion."
  if(![SemanticVersioning.Range]::Parse('>=0.1.9 <0.2.0', $false).IsSatisfied($Version) -or [version]$Version -le [version]'0.1.9') { throw '0.1.12 must numerically exceed 0.1.9 and satisfy >=0.1.9 <0.2.0.' }
  'PASS consumer range >=0.1.9 <0.2.0 accepts 0.1.12; numeric version exceeds 0.1.9.'
  $api=$a.MainModule.Types | Where-Object FullName -eq 'SprocketUiKit.UiKit'
@@ -249,7 +251,7 @@ function Surface($path){
 $new=Surface $dll
 $baselines=@(Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'baseline') -Filter 'SprocketUiKit-*.dll' -ErrorAction SilentlyContinue | Sort-Object { [version]($_.BaseName -replace '^SprocketUiKit-','') })
 if(!$baselines.Count) { throw "No baseline\SprocketUiKit-<version>.dll found." }
-if(!($baselines | Where-Object BaseName -eq "SprocketUiKit-$Version")) { throw "baseline\SprocketUiKit-$Version.dll missing (copy of the released $Version)." }
+# A development version must preserve every previously released baseline; it has no baseline of its own yet.
 foreach($b in $baselines) {
  $baseVersion=$b.BaseName -replace '^SprocketUiKit-',''
  $old=Surface $b.FullName
@@ -276,7 +278,7 @@ $end=$kitSource.IndexOf('    // Esc that closed a popup')
 $cut=$kitSource.IndexOf('        var shortcutOwner = InputFocusPolicy.ShortcutTarget')
 if($start -lt 0 -or $end -lt $start -or $cut -lt $start) { throw 'Kit.cs ProcessKeyboard keyboard recipient block not found.' }
 $dispatch=$kitSource.Substring($cut,$end-$cut)
-if($dispatch -match '\btop\b' -or $dispatch -notmatch 'shortcutOwner\.ModalOpen' -or $dispatch -notmatch 'shortcutOwner\.ModalEnter\(\)' -or $dispatch -notmatch 'shortcutOwner\.DefaultActionHandler' -or $dispatch -notmatch 'shortcutOwner\.Shortcuts\.ToList\(\)') { throw 'Shortcut/Enter must share the focus owner, including its modal/default action, with a mutation-safe snapshot.' }
+if($dispatch -match '\btop\b' -or $dispatch -notmatch 'shortcutOwner\.ModalOpen' -or $dispatch -notmatch 'shortcutOwner\.ModalEnter\(\)' -or $dispatch -notmatch 'shortcutOwner\.DefaultActionHandler' -or $dispatch -notmatch 'shortcutOwner\.ShortcutSnapshot') { throw 'Shortcut/Enter must share the focus owner, including its modal/default action, with a mutation-safe snapshot.' }
 'PASS keyboard dispatch: Enter and shortcuts use the focused panel (modal/default action), mutation-safe snapshot.'
 
 $plugin=Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'Runtime/Plugin.cs')
@@ -286,4 +288,16 @@ $reference=@($project.Project.ItemGroup.Reference | Where-Object Include -eq 'Sp
 if($reference.Count -ne 1 -or $reference[0].Private -ne 'false') { throw 'Keybinds API must be referenced Private=false.' }
 if(Test-Path (Join-Path (Split-Path -Parent $dll) 'SprocketKeybinds.dll')) { throw 'Do not ship a Keybinds API copy.' }
 'PASS DetailedLogging default false, Keybinds reference Private=false, no Keybinds copy next to the UI Kit DLL.'
+# 0.1.13 presenter/row wiring and XML package contract.
+$xmlPath=[IO.Path]::ChangeExtension($Dll,'.xml')
+if(!(Test-Path -LiteralPath $xmlPath)) { throw 'XML documentation must accompany the DLL.' }
+[xml]$xmlDocs=Get-Content -Raw -LiteralPath $xmlPath
+$settingDoc=@($xmlDocs.doc.members.member | Where-Object name -eq 'M:SprocketUiKit.Container.Setting(SprocketKeybinds.ModSetting)')
+if($settingDoc.Count -ne 1 -or !$settingDoc[0].summary) { throw 'Container.Setting XML summary missing.' }
+$settingsSource=Get-Content -Raw (Join-Path $PSScriptRoot 'Runtime/Settings.cs')
+foreach($required in @('ModSettings.SetPresenter','ModSettings.Changed += Changed','ModSettings.Snapshot(byPack)','setting.Value','setting.Reset()','ModSettings.ResetOwner','panel.AllowedContexts = UiContexts.All','panel.StayOpenWhilePaused = true','panel.CloseOnSceneChange = false')) {
+ if(!$settingsSource.Contains($required)) { throw "Missing settings contract: $required" }
+}
+if(!$kitSource.Contains('p.DeferredSettings.Reveal') -or !$kitSource.Contains('if (!root!.activeSelf) root.SetActive(true);')) { throw 'Deferred visible-root focus handoff missing.' }
+'PASS settings presenter, additive row XML, registry-event refresh and deferred focus wiring.'
 'ALL PASS. Not proven here: drawing, font, clicks, typing, cursor, click-through and input block in game (see TESTPLAN.md).'

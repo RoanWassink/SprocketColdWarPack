@@ -58,6 +58,13 @@ internal static class AutoloaderHudView
         head.Label(() => AutoloaderHudFeed.Shown[k]?.Heading ?? "", TextStyle.Section).Outline();
         head.Chip("two-piece", ChipStyle.Tag).VisibleWhen(() => AutoloaderHudFeed.Shown[k]?.TwoPiece == true);
         head.Spacer();
+        head.Label(() => AutoloaderHudFeed.Shown[k]?.BeltStatus ?? "", TextStyle.Section).Outline()
+            .Colour(() => AutoloaderHudFeed.Shown[k]?.BeltStatusColour)
+            .VisibleWhen(() => AutoloaderHudFeed.Shown[k]?.IsBelt == true);
+        card.Label(() => AutoloaderHudFeed.Shown[k]?.BeltRate ?? "", TextStyle.Small).Outline()
+            .VisibleWhen(() => AutoloaderHudFeed.Shown[k]?.IsBelt == true);
+        card.Progress(() => AutoloaderHudFeed.Shown[k]?.BeltFraction ?? 0f)
+            .VisibleWhen(() => AutoloaderHudFeed.Shown[k]?.IsBelt == true);
         if (Plugin.HudRings) AutoloaderHudRing.Build(card, k);
         else BuildBars(card, k);
     }

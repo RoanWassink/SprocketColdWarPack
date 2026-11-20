@@ -67,7 +67,7 @@ internal static class ConsoleAssets
         // Render the optical surface from either side.
         surface.SetFloat("_DoubleSidedEnable",1);surface.SetFloat("_CullMode",0);surface.SetFloat("_CullModeForward",0);HDMaterial.ValidateMaterial(surface);
         glass=new VehicleMaterial(surface){Flags=VehicleMaterialFlags.Unpainted|VehicleMaterialFlags.DisableGrime|VehicleMaterialFlags.CustomShader};
-        Plugin.Instance.Log.LogInfo("[FCS] User model loaded: 2492 triangles; original UVs, normals and origin retained.");
+        Plugin.Instance.Log.LogInfo("[FCS] User model loaded: 2492 triangles; metric housing UVs (1 UV/m, since 0.4.1); original normals and origin retained.");
     }
     private static void Apply(VehicleObjectModel model)
     {

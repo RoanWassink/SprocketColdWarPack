@@ -1,4 +1,5 @@
 using BepInEx;
+using BepInEx.Configuration;
 using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
 using HarmonyLib;
@@ -14,12 +15,23 @@ namespace SprocketKeybinds;
 [BepInPlugin(Keybinds.PluginGuid, "Sprocket Keybinds", PluginVersion)]
 public sealed class Plugin : BasePlugin
 {
-    public const string PluginVersion = "0.1.9";
+    public const string PluginVersion = "0.1.10";
     internal static ManualLogSource Logger = null!;
+    internal static ConfigEntry<bool>? DetailedLogging;
+    internal static ModKeybind? OpenModSettings;
     public override void Load()
     {
         Logger = Log;
+        try { DetailedLogging = Config.Bind("Diagnostics", "DetailedLogging", false, "Verbose trace lines for testing. Warnings and errors are always logged."); }
+        catch (Exception e) { Log.LogWarning("Detailed logging unavailable; keybind API still works: " + e); }
         Keybinds.Initialize(Path.Combine(Paths.ConfigPath, "sprocket.keybinds.json"));
+        try
+        {
+            Keybinds.RegisterModMetadata("sprocket.keybinds", "Nero", "Mod Framework");
+            OpenModSettings = Keybinds.RegisterButton(Keybinds.PluginGuid, "Mod Framework", "open-mod-settings", "Open mod settings", "");
+            if (DetailedLogging != null) ModSettings.Register(Keybinds.PluginGuid, DetailedLogging, new SettingOptions { Label = "Detailed logging" });
+        }
+        catch (Exception e) { Log.LogWarning("Mod settings shortcut unavailable; keybind API still works: " + e); }
         // Optional combo/free-key runtime must never stop the shared API from loading for its consumers.
         try { InputRuntime.Initialize(); }
         catch (Exception e) { Log.LogWarning("Combo input runtime unavailable; plain bindings still work: " + e); }
@@ -54,6 +66,7 @@ public sealed class MenuLifetimeDriver : MonoBehaviour
         InputRuntime.Poll();
         VanillaMenu.TickCapture();
         InputRuntime.Sample();
+        if (Plugin.OpenModSettings?.WasPressedThisFrame == true && ModSettings.HasPresenter) ModSettings.Open();
         ModPanel.TickLayout();
     });
     public void LateUpdate() => Plugin.Safe(() =>
@@ -73,7 +86,7 @@ public sealed class MenuLifetimeDriver : MonoBehaviour
         if (scenes != lastScenes)
         {
             lastScenes = scenes;
-            Plugin.LogInfo("[Input lifetime] Scenes=" + scenes);
+            if (Plugin.DetailedLogging?.Value == true) Plugin.LogInfo("[Input lifetime] Scenes=" + scenes);
         }
     });
 }
@@ -308,12 +321,20 @@ internal static class LabelPatch
 [HarmonyPatch(typeof(RebindActionUI), nameof(RebindActionUI.StartInteractiveRebind))]
 internal static class CapturePatch
 {
-    static bool Prefix(RebindActionUI __instance) => !VanillaMenu.StartCapture(__instance);
+    static bool Prefix(RebindActionUI __instance)
+    {
+        try { return !VanillaMenu.StartCapture(__instance); }
+        catch (Exception e) { Plugin.Logger.LogError("[Keybinds capture] " + e); return true; }
+    }
 }
 [HarmonyPatch(typeof(RebindActionUI), nameof(RebindActionUI.ResetToDefault))]
 internal static class ResetPatch
 {
-    static bool Prefix(RebindActionUI __instance) => !VanillaMenu.Reset(__instance);
+    static bool Prefix(RebindActionUI __instance)
+    {
+        try { return !VanillaMenu.Reset(__instance); }
+        catch (Exception e) { Plugin.Logger.LogError("[Keybinds reset] " + e); return true; }
+    }
 }
 [HarmonyPatch(typeof(RebindActionUI), nameof(RebindActionUI.UpdateBindingDisplay))]
 internal static class BindingLabelPatch
