@@ -48,7 +48,7 @@ Wood, rubber, fabric and glass can use your own textures. Put them in the folder
 
 ### Cassette composer
 
-1. Select a plate and open the cassette composer (set a key for it first, see Settings).
+1. Select a plate and open the cassette composer (assign a key to **Settings → Controls → Mod keybinds → Sprocket Expanded Ballistics → `Cassette composer`** first).
 2. Choose a preset that follows a real vehicle, or build your own package from passive and reactive layers.
 3. Choose what you want to change and press Apply. The composer also has fill tools (Cheek fill (shell), Convert to layers) that fit a package to a turret cheek or to a plate.
 4. Show the cassette layers to check the result on the tank.
@@ -84,7 +84,7 @@ Computer-controlled gunners lead their target. The details of motor, guidance an
 ### Combat report
 
 1. Play a battle and take some hits.
-2. Open the combat report (set a key for it). It lists the newest ten hits.
+2. Open the combat report (assign a key to **Settings → Controls → Mod keybinds → Sprocket Expanded Ballistics → `Combat report`**). It lists the newest ten hits.
 3. Pick a hit to see the cross-section: where the shell went through, where it stopped and why. Internal modules on the shot line are drawn too.
 4. After Play, the last session is also saved as a web page and a data file in the combat-report folder of your config.
 
@@ -110,7 +110,22 @@ The settings file is `BepInEx\config\sprocket.expandedballistics.cfg`. BepInEx c
 | `Protection` / `GroupedBlockMode`, `CompositeProtectionScale` | How grouped armour blocks count, and a scale for composite protection | PerInterval, 1 |
 | `Diagnostics` / `Detailed logging` | Extra detail in the BepInEx log. Leave it off for normal play | false |
 
-The mod does not choose keys for you. Open the game's Settings screen, go to Controls and find the mod keybinds panel (the group is called Sprocket Expanded Ballistics). The actions you can bind are Combat report, Next and Previous shell type, Shell type slot 1 to 8, Lock top-attack target, Toggle damage feed in Play, Cycle damage feed corner, Show cassette layers and Cassette composer. This needs Sprocket Keybinds. MCLOS steering uses fixed direction keys that stay in place without Keybinds.
+### Keybinds
+
+The mod does not choose keys for you (requires Sprocket Keybinds). Open **Settings → Controls → Mod keybinds**, find the **Sprocket Expanded Ballistics** group, and bind the actions you want:
+
+| Action name | What it does |
+|---|---|
+| `Combat report` | Opens the post-hit combat report window |
+| `Cassette composer` | Opens the cassette composer in the designer |
+| `Show cassette layers` | Toggles the armour layer overlay in the designer |
+| `Next shell type` / `Previous shell type` | Cycles through loaded shell types in battle |
+| `Shell type slot 1` – `Shell type slot 8` | Selects a specific shell slot directly |
+| `Lock top-attack target` | Locks a target for top-attack ATGMs |
+| `Toggle damage feed in Play` | Shows or hides the on-screen damage feed |
+| `Cycle damage feed corner` | Moves the damage feed between screen corners |
+
+MCLOS steering uses fixed direction keys that work without Keybinds.
 
 Shell profiles, armour responses, cassette presets, ERA bindings, material reactions, the composite module and the spall settings are JSON files next to the cfg. They are described in [CUSTOM-SHELLS.md](CUSTOM-SHELLS.md) and [ARMOUR-RESPONSES.md](ARMOUR-RESPONSES.md). The files for the game itself (parts, technology, text) go in `Sprocket_Data\StreamingAssets\`. The plugin folder is `BepInEx\plugins\SprocketExpandedBallistics\`, with ERA models and icons in `era-assets\` and texture folders in `material-looks\`. The game's own one-day Coldwar era is skipped in the shell editor era list. The Cold War Expansion Pack supplies the three Cold War eras.
 

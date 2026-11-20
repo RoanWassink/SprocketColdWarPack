@@ -24,7 +24,7 @@ A tank that has an order from you ignores the game's own orders and formation lo
 
 ## How to use it
 
-1. Open the game's Settings screen, go to Controls, and open the mod keybinds panel. Under "AI Orders", set a key for the quick-orders menu and one for the tactical map. The mod sets no keys itself.
+1. Open **Settings → Controls → Mod keybinds** and find the **AI Orders** group. Set keys for `Quick orders HUD`, `Tactical map`, `Menu choice 1`–`9`, and `Menu back / close`. The mod sets no keys itself.
 <!-- SCREENSHOT: ai-orders-keybinds.png (the AI Orders actions in the mod keybinds panel) -->
 2. In a battle, press the key for the quick-orders menu. The menu appears at the bottom left. Each line has a number, and you choose a line by pressing that number. The lines are: all allies on or off, choose allies, follow in a column, follow in a line, halt, attack, retreat, release to AI, and open the map. A status line shows the result of your last order or why it was refused.
 <!-- SCREENSHOT: ai-orders-hud.png (the quick-orders menu at the bottom left in a battle) -->

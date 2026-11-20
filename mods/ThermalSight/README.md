@@ -27,7 +27,11 @@ Thermal Sight adds night vision to the gunner's sights in Sprocket. The sensors 
 3. Right-click an installed sight and pick its sensor type. Types that are too early for the vehicle's date are labelled with the date they become available.
 <!-- SCREENSHOT: thermal-profile-menu.png (the right-click menu of a sight with the sensor types) -->
 4. For the active infrared sight, also place an IR searchlight on the vehicle.
-5. Set your keys in the game's Settings screen, under Controls, in the mod keybinds panel. The group "Thermal" has actions to switch the night vision on and off, to reload the sensor profiles and to measure range.
+5. Set your keys in **Settings → Controls → Mod keybinds** under the **Thermal** group:
+   - `Toggle` — turns night vision / thermal view on and off
+   - `Polarity` — switches between white-hot and black-hot
+   - `Measure range` — takes a laser rangefinder reading
+   - `Reload profiles` — reloads `thermal-models.json` without restarting
 6. In a test drive or battle, aim through the sight and switch the night vision on. Gen 3 sensors that are cooled start with a grey, noisy picture and a countdown of 20 seconds. After that the image is live. A sight stays cooled for the rest of the mission, and only a new vehicle or a new mission starts the cooling again.
 ![A thermal sight in white-hot mode: a hot tank stands out, with heading scale, loaded shell and elevation on screen](../../docs/img/thermal-view.webp)
 7. Press the range key to take a reading. The reading appears on screen for a few seconds, and the aim is corrected for bullet drop.
