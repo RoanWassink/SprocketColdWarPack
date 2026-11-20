@@ -4,7 +4,7 @@ The Cold War Expansion Pack adds three eras to Sprocket: Coldwar1, Coldwar2 and 
 
 - Version: 0.2.0
 - Plugin GUID: `sprocket.coldwarexpansionpack`
-- Author: Nero. MIT licence (see `LICENSE`).
+- Author: Nero. All rights reserved (see `LICENSE`).
 - Requires: BepInEx 6 IL2CPP, and no other plugin
 - Optional: Sprocket Keybinds (`sprocket.keybinds`), which lets this mod group the key settings of Hydropneumatic, Telescopic Mast, Thermal Sight and Smoke Launchers under one heading
 - Game version tested: 0.2.56.2

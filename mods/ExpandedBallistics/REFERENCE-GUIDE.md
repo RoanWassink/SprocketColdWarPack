@@ -143,7 +143,7 @@ Created by Nero with AI assistance. The native inspector integration follows the
 
 ## License
 
-[MIT](LICENSE), covering this plugin's code.
+[All Rights Reserved](LICENSE), covering this plugin's code.
 
 ## ATGM launch audio
 

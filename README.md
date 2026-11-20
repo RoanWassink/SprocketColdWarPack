@@ -136,6 +136,6 @@ The source of every mod is in [`mods`](mods), with the scripts and data it was m
 
 ## Credits and licence
 
-Made by Nero. The code is released under the MIT licence (see [LICENSE](LICENSE)).
+Made by Nero. All rights reserved (see [LICENSE](LICENSE)), except for [Keybinds](mods/Keybinds) and [UI Kit](mods/UiKit), which remain under the MIT licence.
 
 Built on [BepInEx](https://github.com/BepInEx/BepInEx) and [Harmony](https://github.com/pardeike/Harmony), and run through Hans21223's [Sprocket Mod Loader](https://github.com/Hans21223/Sprocket-Mod-Loader). The sounds in Carousel Autoloader and Expanded Ballistics were made by the author. Expanded Ballistics uses a particle texture by Kenney (CC0, see [`mods/ExpandedBallistics/vfx/KENNEY-LICENSE.txt`](mods/ExpandedBallistics/vfx/KENNEY-LICENSE.txt)).

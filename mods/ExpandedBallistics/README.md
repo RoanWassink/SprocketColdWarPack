@@ -6,7 +6,7 @@ Expanded Ballistics changes how shells and armour work in Sprocket, so the way y
 
 - Version: 0.22.99
 - Plugin GUID: `sprocket.expandedballistics`
-- Author: Nero. MIT licence (see `LICENSE`).
+- Author: Nero. All rights reserved (see `LICENSE`).
 - Requires: Sprocket JSON Editor (`sprocket.jsoneditor`, 0.1.5 or later 0.1.x) and Sprocket UI Kit (`sprocket.uikit`, 0.1.7 or later 0.1.x)
 - Optional: Sprocket Keybinds (`sprocket.keybinds`) for the key settings. The mod also works with Sprocket Carousel Autoloader (mixed ammunition in its store), Sprocket Oscillating Turret (a sight mount preset for missiles), the Cold War Expansion Pack (see `ARMOUR-RESPONSES.md`) and the third-party Dynamic Gun Sight plugin, if you have it.
 - Game version tested: 0.2.56.2
