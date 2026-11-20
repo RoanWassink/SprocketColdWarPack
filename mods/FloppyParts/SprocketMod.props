@@ -1,0 +1,33 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PlatformTarget>x64</PlatformTarget>
+    <Deterministic>true</Deterministic>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <GameDir Condition="'$(GameDir)' == ''">E:\SteamLibrary\steamapps\common\Sprocket</GameDir>
+    <PathMap>$(MSBuildProjectDirectory)=/SprocketFloppyParts/src</PathMap>
+    <Authors>Sprocket Modding</Authors>
+    <Company>Sprocket Modding</Company>
+    <Copyright>Sprocket Modding</Copyright>
+    <Product>Sprocket Floppy Parts</Product>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="$(GameDir)\BepInEx\core\*.dll"
+               Exclude="$(GameDir)\BepInEx\core\TerraFX*.dll;$(GameDir)\BepInEx\core\dobby.dll">
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="$(GameDir)\BepInEx\interop\*.dll">
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="CheckSprocketGameDir" BeforeTargets="ResolveAssemblyReferences"
+          Condition="!Exists('$(GameDir)\BepInEx\interop') Or !Exists('$(GameDir)\BepInEx\core\BepInEx.Core.dll')">
+    <Error Text="GameDir '$(GameDir)' has no working Sprocket BepInEx 6 IL2CPP installation." />
+  </Target>
+</Project>

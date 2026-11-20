@@ -82,6 +82,7 @@ The cassette composer builds armour packages layer by layer and shows how well t
 - **I/O editor.** Connect events such as "gun fired", "brake pressed" or a key to parts on your tank with simple building blocks. Other mods in the pack plug into it.
 - **Emitter.** Throws things out of your tank on a signal, for example spent shell casings when the gun fires.
 - **Cupolas.** A detailed commander's cupola in the style of the T-90A.
+- **Floppy Parts.** Visual plate materials (canvas, camo net, rubber, wood, glass, custom textures) and live cloth, rubber, and hinged plate simulation that reacts to gravity, wind, muzzle blast, and engine airflow.
 - **Visual Effects.** Working lamps: lamp parts in any colour that really light up, and that you switch on and off from the I/O editor (for example a brake light). Also muzzle blast and smoke.
 
 ![Mast, hinge, turntable, emitter and cupola](docs/img/mast-hinge-rotator-emitter-cupola.png)
@@ -125,6 +126,7 @@ Every mod has a folder in [`mods`](mods) with its own page: what it does, its se
 | [Telescopic Mast](mods/TelescopicMast) | 0.9.9 | Mast, hinge, turntable, signal editor |
 | [Emitter](mods/Emitter) | 0.1.3 | Ejected shell casings |
 | [Cupolas](mods/Cupolas) | 0.1.0 | Commander's cupola |
+| [Floppy Parts](mods/FloppyParts) | 0.3.4 | Cloth, rubber and hinged plate motion + custom plate materials |
 | [Visual Effects](mods/VisualEffects) | 0.5.3 | Muzzle blast, smoke, lamps |
 | [AI Orders](mods/AIOrders) | 0.5.4 | Orders and map for AI allies |
 | [Cold War Expansion Pack](mods/ColdWarExpansionPack) | 0.2.0 | Three Cold War eras |
@@ -137,7 +139,7 @@ Some mods need others to work: Thermal Sight, Hydropneumatic, Smoke Launchers, T
 ## How to install
 
 1. **Install the mod loader.** The pack runs on BepInEx 6. Use the **Sprocket Mod Loader** by Hans21223, which installs the right BepInEx version with a fix for Sprocket: <https://github.com/Hans21223/Sprocket-Mod-Loader>. The "Easy install" with the Mod Manager is the simplest way. It is a separate project and not part of this pack. Start the game once afterwards, so it can set itself up. The first start takes a while.
-2. **Install the pack.** Download `SprocketColdWarPack-v1.1.0.zip` from the [Releases](../../releases) page and extract it into the Sprocket game folder (the folder with `Sprocket.exe`). Merge it with the existing `BepInEx` and `Sprocket_Data` folders.
+2. **Install the pack.** Download `SprocketColdWarPack-v1.2.0.zip` from the [Releases](../../releases) page and extract it into the Sprocket game folder (the folder with `Sprocket.exe`). Merge it with the existing `BepInEx` and `Sprocket_Data` folders.
 3. **Start the game.** Settings are in the folder `BepInEx\config`. They are created at the first start. The mods that need keys do not choose them for you: set your own in the game's Settings screen, under Controls.
 
 To remove a mod, delete its `SprocketXxx` folder in `BepInEx\plugins`. If you update by extracting a newer zip over an older one, your edited settings files are overwritten, so keep a copy.

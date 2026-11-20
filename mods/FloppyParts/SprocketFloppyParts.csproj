@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="SprocketMod.props" />
+  <PropertyGroup>
+    <AssemblyName>SprocketFloppyParts</AssemblyName>
+    <RootNamespace>SprocketFloppyParts</RootNamespace>
+    <Version>0.3.4</Version>
+  </PropertyGroup>
+</Project>
