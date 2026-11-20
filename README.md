@@ -130,6 +130,20 @@ Some mods need others to work: Thermal Sight, Hydropneumatic, Smoke Launchers, T
 
 To remove a mod, delete its `SprocketXxx` folder in `BepInEx\plugins`. If you update by extracting a newer zip over an older one, your edited settings files are overwritten, so keep a copy.
 
+### Upgrading from older standalone versions
+
+The internal storage keys were renamed when the mods were bundled into this pack. Saved `.blueprint` vehicles made with older standalone versions will still load, but their mod-specific settings (chosen shells, autoloader setup, hydropneumatic suspension, telescopic mast/hinge data, and thermal sight profiles) will reset to defaults unless you convert them first.
+
+Use [`tools/Convert-OldModBlueprints.ps1`](tools/Convert-OldModBlueprints.ps1) on Windows (PowerShell, no Python required) to update your saved blueprints in `Documents\My Games\Sprocket`:
+
+```powershell
+# Preview which blueprints will be updated (dry run, changes nothing):
+.\tools\Convert-OldModBlueprints.ps1
+
+# Convert them (automatically creates a backup folder first):
+.\tools\Convert-OldModBlueprints.ps1 -Apply
+```
+
 ## For mod makers
 
 The source of every mod is in [`mods`](mods), with the scripts and data it was made from. Building needs the interface files that BepInEx generates for your copy of the game, so the finished plugins are only in the releases. Build Keybinds, UI Kit, JSON Editor and Telescopic Mast first, because other plugins build on them.
