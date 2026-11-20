@@ -1,6 +1,6 @@
-# Sprocket Cupolas
+﻿# Sprocket Cupolas
 
-Cupolas adds a commander's cupola in the style of the T-90A (not an exact copy) to the tank designer. It keeps the game's own commander, viewport and cook-off behaviour and replaces only what you see.
+Cupolas adds modern commander's cupolas (T-90A, T-80BVM, Abrams, Challenger, and Leopard styles) and a T-90A driver's hatch to the tank designer. It keeps the game's own commander, viewport and cook-off behaviour and replaces only what you see.
 
 ![Mast, hinge, turntable, emitter and cupola](../../docs/img/mast-hinge-rotator-emitter-cupola.png)
 
@@ -12,8 +12,8 @@ Cupolas adds a commander's cupola in the style of the T-90A (not an exact copy) 
 
 ## What it adds
 
-- One part, "Cupola T-90A", in the cupola category (tags cupola, commander, ussr), available from part date 1992.01.01. Scale 0.5 to 2.
-- A detailed ring, about 0.67 m across at scale 1, with a sight head that sticks out, and a separate lid. The lid is a fixed model and does not open or close.
+- Six parts in the cupola category: **Cupola T-90A**, **Cupola T-80BVM**, **Cupola Abrams**, **Cupola Challenger**, **Cupola Leopard**, and **T-90A Driver Hatch**.
+- Detailed rings, sight heads, periscope blocks, and separate lids (fixed models; they do not open or close).
 - The commander, the viewport and the cook-off work as in the game's own German cupola, which this part is built on. A cook-off may hide the lid.
 - Collision, damage and mass stay those of the stock cupola (0 kg, 0 model cost). The visible ring is no extra armour.
 

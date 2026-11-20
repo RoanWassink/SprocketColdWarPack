@@ -1,0 +1,141 @@
+{
+    "v": "0.3",
+    "guid": "a2b4c6d8-1e3f-4a5b-9c7d-2e4f6a8b0c55",
+    "name": "t90aDriverHatch",
+    "order": 74,
+    "date": "1992.01.01",
+    "iconOffset": [
+        0.0,
+        0.05
+    ],
+    "iconRotation": [],
+    "iconScale": 2,
+    "tags": [
+        "hatch",
+        "crew"
+    ],
+    "components": [
+        {
+            "fileID": "hatch",
+            "type": "hatch",
+            "info": {
+                "v": "0.0",
+                "baseModelFileID": "baseModel",
+                "doorModelFileID": "doorModel",
+                "entrancePosition": [
+                    0.0,
+                    0.005,
+                    0.0
+                ],
+                "entranceDirection": [
+                    0.0,
+                    1.0,
+                    0.0
+                ],
+                "entranceSize": 1.0,
+                "maxPressure": 20000
+            }
+        },
+        {
+            "fileID": "viewport",
+            "type": "viewport",
+            "info": {
+                "v": "0.0",
+                "modelFileID": "baseModel",
+                "eyepieceLocalPosition": [
+                    0.0,
+                    -0.05,
+                    -0.14
+                ],
+                "objectiveLensLocalPosition": [
+                    0.0,
+                    0.10,
+                    -0.10
+                ]
+            }
+        },
+        {
+            "fileID": "baseModel",
+            "type": "model",
+            "info": {
+                "v": "0.2",
+                "meshGuid": "5698e53acbedb5f4da652520fe8b0846",
+                "materialGuids": [
+                    "95245825b2baca14db88e542cefb6523"
+                ],
+                "scaling": true,
+                "flipping": true,
+                "selectable": true,
+                "placementSurface": false,
+                "damageable": false
+            }
+        }
+    ],
+    "transform": {
+        "mirroring": true,
+        "duplication": true,
+        "pickup": true,
+        "snapToCentre": true,
+        "autoRotate": false,
+        "airPlacement": true,
+        "translation": true,
+        "rotation": true,
+        "scaling": true,
+        "dynamic": true,
+        "placementMode": "upFaceNormal",
+        "scale": [
+            1.0,
+            1.0,
+            1.0
+        ],
+        "maxScale": [
+            1.25,
+            1.25,
+            1.25
+        ],
+        "minScale": [
+            0.5,
+            0.5,
+            0.5
+        ],
+        "objects": [
+            {
+                "fileID": "doorObject",
+                "parentFileID": null,
+                "localPosition": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "localRotation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "localScale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "components": [
+                    {
+                        "fileID": "doorModel",
+                        "type": "model",
+                        "info": {
+                            "v": "0.2",
+                            "meshGuid": "28bddbd0c240faa4b90a895b53c93709",
+                            "materialGuids": [
+                                "95245825b2baca14db88e542cefb6523"
+                            ],
+                            "scaling": true,
+                            "flipping": true,
+                            "selectable": false,
+                            "placementSurface": false,
+                            "damageable": false
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+}

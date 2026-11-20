@@ -81,7 +81,7 @@ The cassette composer builds armour packages layer by layer and shows how well t
 - **Telescopic Mast.** A mast that slides out and back, a hinge (for openable hatches, or a flap that opens when the gun fires) and a turntable.
 - **I/O editor.** Connect events such as "gun fired", "brake pressed" or a key to parts on your tank with simple building blocks. Other mods in the pack plug into it.
 - **Emitter.** Throws things out of your tank on a signal, for example spent shell casings when the gun fires.
-- **Cupolas.** A detailed commander's cupola in the style of the T-90A.
+- **Cupolas.** Detailed commander's cupolas (T-90A, T-80BVM, Abrams, Challenger, and Leopard) plus a T-90A driver's hatch.
 - **Floppy Parts.** Visual plate materials (canvas, camo net, rubber, wood, glass, custom textures) and live cloth, rubber, and hinged plate simulation that reacts to gravity, wind, muzzle blast, and engine airflow.
 - **Visual Effects.** Working lamps: lamp parts in any colour that really light up, and that you switch on and off from the I/O editor (for example a brake light). Also muzzle blast and smoke.
 
@@ -125,7 +125,7 @@ Every mod has a folder in [`mods`](mods) with its own page: what it does, its se
 | [Smoke Launchers](mods/SmokeLaunchers) | 0.2.5 | Smoke launcher bank |
 | [Telescopic Mast](mods/TelescopicMast) | 0.9.9 | Mast, hinge, turntable, signal editor |
 | [Emitter](mods/Emitter) | 0.1.3 | Ejected shell casings |
-| [Cupolas](mods/Cupolas) | 0.1.0 | Commander's cupola |
+| [Cupolas](mods/Cupolas) | 0.1.0 | Modern commander's cupolas and T-90A driver hatch |
 | [Floppy Parts](mods/FloppyParts) | 0.3.4 | Cloth, rubber and hinged plate motion + custom plate materials |
 | [Visual Effects](mods/VisualEffects) | 0.5.3 | Muzzle blast, smoke, lamps |
 | [AI Orders](mods/AIOrders) | 0.5.4 | Orders and map for AI allies |

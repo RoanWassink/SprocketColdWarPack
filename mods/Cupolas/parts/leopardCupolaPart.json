@@ -1,0 +1,21 @@
+﻿{
+  "v": "0.3",
+  "guid": "d4b7e3a2-9c1f-4d8b-a2e6-7c3f9a1b5d22",
+  "name": "leopardCupola",
+  "tags": ["cupola", "commander"],
+  "components": [
+    { "fileID": "cupola", "type": "cupola", "info": { "v": "0.0", "cameraTrackPosition": [0, 0.26, 0], "objectiveLensPosition": [0, 0.1, 0], "eyepiecePosition": [0, 0.1, 0] } },
+    { "fileID": "hatch", "type": "hatch", "info": { "v": "0.0", "baseModelFileID": "baseModel", "doorModelFileID": "hatchModel", "entrancePosition": [0, 0.15, 0], "entranceDirection": [0.0, 1.0, 0.0], "entranceSize": 0.65, "maxPressure": 20000 } },
+    { "fileID": "baseModel", "type": "model", "info": { "v": "0.4", "associatedComponentFileID": "cupola", "meshGuid": "9d08d22e65fa427469a89672a7a0aa32", "materialGuids": ["a315dd306c5e36545ac19d9975a094f7"], "scaling": true, "flipping": true, "selectable": true, "placementSurface": false, "durableMaterialID": null } }
+  ],
+  "transform": {
+    "mirroring": true, "duplication": true, "pickup": true, "snapToCentre": true, "autoRotate": false, "airPlacement": true, "translation": true, "rotation": true, "scaling": true, "dynamic": true, "placementMode": "upright",
+    "scale": [1.0, 1.0, 1.0], "maxScale": [2.0, 2.0, 2.0], "minScale": [0.5, 0.5, 0.5],
+    "objects": [
+      { "fileID": "hatchObject", "parentFileID": null, "localPosition": [0, 0.06, 0], "localRotation": [], "localScale": [],
+        "components": [{ "fileID": "hatchModel", "type": "model", "info": { "v": "0.4", "associatedComponentFileID": "cupola", "meshGuid": "ec5f618597cb8c3459c615a208a2d838", "materialGuids": ["a315dd306c5e36545ac19d9975a094f7"], "scaling": true, "flipping": true, "selectable": true, "placementSurface": false, "durableMaterialID": null } }]
+      }
+    ]
+  },
+  "order": 71, "date": "1995.01.01", "iconOffset": [0, 0], "iconRotation": [], "iconScale": 1
+}
