@@ -1,5 +1,11 @@
 # Expanded Ballistics
 
+## 0.22.102 (Shell Editor date picker & dropdown show real technology dates and accurate vehicle availability)
+
+- Shell Editor (`ShellEditorModel`, `ShellEraCatalogue`, `ShellEditorPanel`): shells whose availability comes from their native Technology JSON files (such as `HEAT-FS tandem` from `1987.01.01`, `APFSDS` variants, `ATGMs`, etc.) now show their real technology date in the `Available from (date)` field, show the matching era and tech date in the dropdown (e.g. `Cold War III · 1987.01.01 (tech)` instead of `No restriction (always available)`), and show the accurate effective date and actual vehicle availability underneath without marking the draft dirty.
+- Fixed the inverted era-comparison bug in `ShellEraCatalogue.Availability` and replaced missing font glyphs (`✓`/`✗` rendering as `□`) with plain text (`(available)` / `(From yyyy)` / `(not in this era)`).
+- 0 new Harmony hooks (stays at 48 `[HarmonyPatch` annotations).
+
 ## 0.22.101 (standalone 9999.12.31 era fallback & clear missing-files / broken-Eras warnings)
 
 - Standalone `9999.12.31` fallback (`ShellEraPolicy.ResolveIndex`, `RuntimeShellEra.Context`): when a vehicle uses the open-ended final-era sentinel date `9999.12.31` (Sandbox / late-era designs), Expanded Ballistics now places it in the last valid era (`eras.Length - 1`) itself instead of relying on an external `GetEraIndex` patch (`SprocketColdWarExpansionPack.dll`). Invalid era timelines are still rejected by `ShellEraPolicy.Valid`.

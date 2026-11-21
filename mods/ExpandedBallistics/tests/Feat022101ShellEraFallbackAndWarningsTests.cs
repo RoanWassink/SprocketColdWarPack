@@ -181,15 +181,71 @@ internal static class Feat022101ShellEraFallbackAndWarningsTests
             && selection.Contains("ui.InfoField(eraWarning,", StringComparison.Ordinal),
             "5 RuntimeShellSelection displays diagnostic warning in cannon inspector");
 
-        Check(Read("Plugin.cs").Contains("\"0.22.101\"", StringComparison.Ordinal)
-            && Read("SprocketExpandedBallistics.csproj").Contains("<Version>0.22.101</Version>", StringComparison.Ordinal)
-            && Read("RELEASE-NOTES.md").Contains("## 0.22.101", StringComparison.Ordinal),
-            "5 Plugin.cs, csproj, and RELEASE-NOTES.md carry version 0.22.101");
+        Check(Read("Plugin.cs").Contains("\"0.22.102\"", StringComparison.Ordinal)
+            && Read("SprocketExpandedBallistics.csproj").Contains("<Version>0.22.102</Version>", StringComparison.Ordinal)
+            && Read("RELEASE-NOTES.md").Contains("## 0.22.102", StringComparison.Ordinal),
+            "5 Plugin.cs, csproj, and RELEASE-NOTES.md carry version 0.22.102");
 
         int hooks = Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
             .Where(f => { var r = f.Replace('\\', '/'); return !r.Contains("/tests/") && !r.Contains("/bin/") && !r.Contains("/obj/"); })
             .Sum(f => File.ReadLines(f).Count(l => l.Contains("[HarmonyPatch", StringComparison.Ordinal)));
         Check(hooks == 48, $"5 Non-test [HarmonyPatch line count stays 48 (actual={hooks})");
+
+        // 6. 0.22.102: Shell Editor date picker, dropdown, and availability line reflect real technology dates
+        ShellTechnologyDates.Configure(shippedTechDir);
+        var editorTemp = Path.Combine(Path.GetTempPath(), "eb-feat102-editor-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(editorTemp);
+        try
+        {
+            var rt = Path.Combine(editorTemp, "shells.json");
+            var au = Path.Combine(editorTemp, "modules.json");
+            var im = Path.Combine(editorTemp, "modules.import.json");
+            File.WriteAllText(rt, ReleaseProfiles.Defaults());
+
+            var m = ShellEditorModel.Open(rt, au, im, false, ShellEraCatalogue.BuiltIn);
+            m.Cannon = new ShellPreviewCannon(120, 1000, 1800, 500, VehicleEra: "Coldwar3");
+            m.Availability = id => id == "heat_tandem"
+                ? new ShellAvailability(false, "From 1987", new DateTime(1987, 1, 1))
+                : new ShellAvailability(true, "", new DateTime(1940, 1, 1));
+
+            m.Select("heat_tandem");
+            Check(m.FieldText(ShellEditorModel.EraKey) == "1987.01.01",
+                $"6 heat_tandem shows real tech date 1987.01.01 in date field (actual='{m.FieldText(ShellEditorModel.EraKey)}')");
+            Check(m.EraIndex == 0 && m.EraOptions[0].Label == "Cold War III · 1987.01.01 (tech)",
+                $"6 heat_tandem dropdown shows tech era & date (actual='{m.EraOptions[0].Label}')");
+            Check(m.EraAvailability == "Available from 1987.01.01 (Cold War III) · this vehicle: Cold War III (From 1987)",
+                $"6 heat_tandem availability line shows real date and vehicle status without box glyphs (actual='{m.EraAvailability}')");
+            Check(!m.EraAvailability.Contains("Available in every era", StringComparison.Ordinal)
+                && !m.EraAvailability.Contains('✓') && !m.EraAvailability.Contains('✗'),
+                "6 heat_tandem never claims 'Available in every era' or uses missing checkmark glyphs");
+            Check(!m.Dirty, "6 displaying tech date does not mark draft dirty");
+
+            // Calling SetMinimumDate with the displayed tech default keeps the draft clean
+            m.SetMinimumDate("1987.01.01");
+            Check(!m.Dirty, "6 confirming displayed tech date keeps draft clean");
+
+            // Picking an earlier era warns about tech floor
+            m.SetEra(m.EraOptions.ToList().FindIndex(o => o.Value == "1960.01.01"));
+            Check(m.FieldText(ShellEditorModel.EraKey) == "1960.01.01"
+                && m.EraAvailability.Contains("tech floor", StringComparison.Ordinal)
+                && m.EraAvailability.Contains("1987.01.01", StringComparison.Ordinal),
+                "6 custom date earlier than tech date explains tech floor");
+
+            // Restoring option 0 clears custom override back to tech default
+            m.SetEra(0);
+            Check(m.FieldText(ShellEditorModel.EraKey) == "1987.01.01"
+                && !m.EraAvailability.Contains("tech floor", StringComparison.Ordinal),
+                "6 picking tech default restores 1987.01.01 without tech-floor note");
+
+            // Available vehicle case
+            m.Availability = _ => new ShellAvailability(true, "", new DateTime(1987, 1, 1));
+            Check(m.EraAvailability == "Available from 1987.01.01 (Cold War III) · this vehicle: Cold War III (available)",
+                $"6 available vehicle shows '(available)' (actual='{m.EraAvailability}')");
+        }
+        finally
+        {
+            if (Directory.Exists(editorTemp)) Directory.Delete(editorTemp, true);
+        }
 
         Console.WriteLine($"FEAT101: {checks} checks, {failures} failures");
     }

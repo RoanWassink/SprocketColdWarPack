@@ -3,6 +3,6 @@
   <PropertyGroup>
     <AssemblyName>SprocketFloppyParts</AssemblyName>
     <RootNamespace>SprocketFloppyParts</RootNamespace>
-    <Version>0.3.4</Version>
+    <Version>0.3.6</Version>
   </PropertyGroup>
 </Project>

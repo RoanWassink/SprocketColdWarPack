@@ -442,7 +442,7 @@ internal static class FloppyOverlayRuntime
                     continue;
                 }
 
-                if (designer && diagnosticOverlay)
+                if ((designer && diagnosticOverlay) || TankPaintReader.IsXRayMaterial(plate))
                 {
                     Suspend(key);
                     continue;
@@ -555,6 +555,12 @@ internal static class FloppyOverlayRuntime
         {
             Suspend(key);
             pending.Schedule(key, plate, Time.unscaledTime, 1.0f);
+            return;
+        }
+
+        if ((designer && diagnosticOverlay) || TankPaintReader.IsXRayMaterial(plate))
+        {
+            Suspend(key);
             return;
         }
 

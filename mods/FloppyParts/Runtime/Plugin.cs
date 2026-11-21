@@ -12,7 +12,7 @@ public sealed class Plugin : BasePlugin
 {
     internal const string PluginGuid = "sprocket.floppyparts";
     internal const string PluginName = "Sprocket Floppy Parts";
-    internal const string PluginVersion = "0.3.4";
+    internal const string PluginVersion = "0.3.6";
     internal const string ExpandedBallisticsGuid = "sprocket.expandedballistics";
 
     internal static ManualLogSource ModLog = null!;

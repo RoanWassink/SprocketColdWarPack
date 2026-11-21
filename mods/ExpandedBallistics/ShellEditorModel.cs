@@ -43,7 +43,7 @@ internal sealed class ShellEditorModel
         internal readonly Dictionary<string,(string[] Values,string[] Labels,int Index)> ModuleOptions=new(StringComparer.Ordinal);
         internal readonly Dictionary<string,int> ChoiceIndex=new(StringComparer.Ordinal);
         internal readonly Dictionary<string,string> Descriptions=new(StringComparer.Ordinal);
-        internal string MinimumDate="";internal IReadOnlyList<(string Label,string? Group,string Value)> EraOptions=Array.Empty<(string,string?,string)>();
+        internal string MinimumDate="";internal ShellNativeDate? TechDate;internal IReadOnlyList<(string Label,string? Group,string Value)> EraOptions=Array.Empty<(string,string?,string)>();
         internal int EraIndex;internal string EraAvailability="";
         internal string Subtitle="",Chain="";
     }
@@ -66,7 +66,7 @@ internal sealed class ShellEditorModel
     /// Saved-shell availability on the opening cannon's vehicle (runtime: <c>ShellEditorAvailability.For</c>);
     /// null = no vehicle context: nothing is dimmed. Asked once per shell per catalogue/context, never per frame.
     /// </summary>
-    internal Func<string,ShellAvailability?>? Availability{get=>availability;set{availability=value;known.Clear();Version++;}}
+    internal Func<string,ShellAvailability?>? Availability{get=>availability;set{availability=value;known.Clear();states.Clear();Version++;}}
     private Func<string,ShellAvailability?>? availability;
     private readonly Dictionary<string,ShellAvailability?> known=new(StringComparer.Ordinal);
     private ShellAvailability? AvailabilityOf(string id)
@@ -194,8 +194,10 @@ internal sealed class ShellEditorModel
         // Invalid typed text stays visible and selectable as the custom option
         // until it is corrected; it is never written to the draft.
         if(pending.TryGetValue((s.Id,EraKey),out var typedDate))s.MinimumDate=typedDate.Text;
-        s.EraOptions=ShellEraCatalogue.Options(Eras,s.MinimumDate);s.EraIndex=ShellEraCatalogue.OptionIndex(Eras,s.MinimumDate);
-        s.EraAvailability=ShellEraCatalogue.Availability(Eras,s.MinimumDate,Cannon?.VehicleEra);
+        s.TechDate=TechDateFor(index,s.Behavior);
+        var avail=AvailabilityOf(s.Id);
+        s.EraOptions=ShellEraCatalogue.Options(Eras,s.MinimumDate,s.TechDate);s.EraIndex=ShellEraCatalogue.OptionIndex(Eras,s.MinimumDate);
+        s.EraAvailability=ShellEraCatalogue.Availability(Eras,s.MinimumDate,Cannon?.VehicleEra,s.TechDate,avail?.Available,avail?.Reason);
         foreach(var group in Groups)
         {
             if(ModuleKey(group) is not {} key)continue;
@@ -210,6 +212,20 @@ internal sealed class ShellEditorModel
         Rules(s);
         states[id]=s;
         return s;
+    }
+    private ShellNativeDate? TechDateFor(int index,string? behavior)
+    {
+        ShellNativeDate? latest=null;
+        void Consider(string? id)
+        {
+            if(string.IsNullOrWhiteSpace(id))return;
+            if(ShellTechnologyDates.Date(id) is {} d&&(latest is null||d>latest.Value))latest=d;
+        }
+        if(!string.IsNullOrWhiteSpace(behavior))Consider("expandedBallistics_"+behavior);
+        if(Draft.Profiles[index]?["nativeTechnologyIds"] is JsonArray ids)
+            foreach(var node in ids)
+                if(node is JsonValue v&&v.TryGetValue<string>(out var id))Consider(id);
+        return latest;
     }
     private static T Safe<T>(Func<T> get,T fallback){try{return get();}catch(Exception ex) when (ex is InvalidOperationException or FormatException or NullReferenceException or KeyNotFoundException or ArgumentException or JsonException){return fallback;}}
     private double MaxFor(ShellState s,ModularShellDraft.Field f)=>f.Key=="launchSpeed"&&s.Numbers.TryGetValue("flightSpeed",out var fs)&&double.IsFinite(fs)?Math.Min(f.Max,fs):f.Max;
@@ -257,7 +273,7 @@ internal sealed class ShellEditorModel
     {
         var s=Sel;if(s==null)return "";
         if(pending.TryGetValue((s.Id,key),out var p))return p.Text;
-        if(key==EraKey)return s.MinimumDate;
+        if(key==EraKey)return s.MinimumDate.Length>0?s.MinimumDate:(s.TechDate?.Text??"");
         return key==LabelKey?s.Label:s.Texts.GetValueOrDefault(key,"");
     }
     internal string Choice(string key)=>Sel?.Choices.GetValueOrDefault(key,"")??"";
@@ -333,6 +349,8 @@ internal sealed class ShellEditorModel
         var value=(text??"").Trim();
         if(ShellEraCatalogue.Error(Eras,value) is {} error){pending[(s.Id,EraKey)]=(text??"",error);Changed(s.Id);return;}
         var had=pending.Remove((s.Id,EraKey));
+        // Displayed tech default when no custom minimumDate is stored: keep the draft clean.
+        if(s.MinimumDate.Length==0&&s.TechDate is {} td&&value==td.Text){if(had)Changed(null);return;}
         if(value==s.MinimumDate){if(had)Changed(null);return;}
         var index=Selected;Draft.Set(index,"modifiers."+EraKey,value);Changed(Profile(index));
     }

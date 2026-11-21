@@ -73,10 +73,28 @@ internal static class ShellEraCatalogue
                string.Equals(text,"ww1",StringComparison.OrdinalIgnoreCase)&&string.Equals(eras[i].Name,"WWI",StringComparison.OrdinalIgnoreCase))return i;
         return UnknownEra;
     }
-    /// <summary>Dropdown entries: "always" first, then era start dates as insert helpers, then a custom date if typed.</summary>
-    internal static IReadOnlyList<(string Label,string? Group,string Value)> Options(IReadOnlyList<ShellEra> eras,string? current)
+    /// <summary>Era whose start date covers <paramref name="date"/>, or null when before the first era.</summary>
+    internal static ShellEra? EraForDate(IReadOnlyList<ShellEra> eras,ShellNativeDate date)
     {
-        var list=new List<(string,string?,string)>{("No restriction (always available)",null,"")};
+        ShellEra? best=null;
+        for(int i=0;i<eras.Count;i++)
+        {
+            var start=new ShellNativeDate(eras[i].Start.Year,eras[i].Start.Month,eras[i].Start.Day);
+            if(date>=start)best=eras[i];
+        }
+        return best;
+    }
+    /// <summary>Dropdown entries: tech default (or "always" when no tech date exists) first, then era start dates as insert helpers, then a custom date if typed.</summary>
+    internal static IReadOnlyList<(string Label,string? Group,string Value)> Options(IReadOnlyList<ShellEra> eras,string? current,ShellNativeDate? techDate=null)
+    {
+        string defaultLabel;
+        if(techDate is {} td)
+        {
+            var era=EraForDate(eras,td);
+            defaultLabel=era!=null?$"{era.Friendly} · {td.Text} (tech)":$"Tech default · {td.Text}";
+        }
+        else defaultLabel="No restriction (always available)";
+        var list=new List<(string,string?,string)>{(defaultLabel,null,"")};
         foreach(var e in eras)list.Add(($"{e.Friendly} · from {e.StartText}",e.Group,e.Start.ToString("yyyy.MM.dd",CultureInfo.InvariantCulture)));
         if(!string.IsNullOrWhiteSpace(current)&&eras.All(e=>e.Start.ToString("yyyy.MM.dd",CultureInfo.InvariantCulture)!=current.Trim()))
             list.Add(($"Custom date: {current.Trim()}","Custom",current.Trim()));
@@ -98,17 +116,42 @@ internal static class ShellEraCatalogue
             ?null
             :"Use a real date as yyyy.MM.dd.";
     }
-    /// <summary>"Available from 1975.01.01 · this vehicle: Coldwar III ✓".</summary>
-    internal static string Availability(IReadOnlyList<ShellEra> eras,string? current,string? vehicleEra)
+    /// <summary>"Available from 1987.01.01 (Cold War III) · this vehicle: Cold War III (available)".</summary>
+    internal static string Availability(IReadOnlyList<ShellEra> eras,string? current,string? vehicleEra,
+        ShellNativeDate? techDate=null,bool? vehicleAvailable=null,string? vehicleReason=null)
     {
-        ShellNativeDate? date=null;string text;
-        if(string.IsNullOrWhiteSpace(current))text="Available in every era";
-        else if(!ShellNativeDate.TryParse(current.Trim(),out var parsed)||!parsed.Valid)return "Never available: enter a real date.";
-        else{date=parsed;text=$"Available from {parsed.Text}";}
+        ShellNativeDate? custom=null;
+        if(!string.IsNullOrWhiteSpace(current))
+        {
+            if(!ShellNativeDate.TryParse(current.Trim(),out var parsed)||!parsed.Valid)
+                return "Never available: enter a real date.";
+            custom=parsed;
+        }
+        ShellNativeDate? effective=custom is {} c&&techDate is {} t?(c>=t?c:t):(custom??techDate);
+        string text;
+        if(effective is {} eff)
+        {
+            var era=EraForDate(eras,eff);
+            var eraSuffix=era!=null?$" ({era.Friendly})":"";
+            if(custom is {} customVal&&techDate is {} techVal&&customVal<techVal)
+                text=$"Available from {techVal.Text}{eraSuffix} (tech floor; custom date {customVal.Text} is earlier)";
+            else
+                text=$"Available from {eff.Text}{eraSuffix}";
+        }
+        else text="Available in every era";
+
         if(vehicleEra==null)return text;
         var v=Find(eras,vehicleEra);
+        var vehicleLabel=v>=0?eras[v].Friendly:Friendly(vehicleEra);
+        if(vehicleAvailable is {} avail)
+        {
+            if(avail)return text+$" · this vehicle: {vehicleLabel} (available)";
+            var detail=!string.IsNullOrWhiteSpace(vehicleReason)?vehicleReason:"unavailable";
+            return text+$" · this vehicle: {vehicleLabel} ({detail})";
+        }
         if(v<0)return text;
-        var start=new ShellNativeDate(eras[v].Start.Year,eras[v].Start.Month,eras[v].Start.Day);
-        return text+$" · this vehicle: {eras[v].Friendly} "+(date is null||date.Value>=start?"✓":"✗");
+        bool inEra=effective is null||v==eras.Count-1||
+            effective.Value<new ShellNativeDate(eras[v+1].Start.Year,eras[v+1].Start.Month,eras[v+1].Start.Day);
+        return text+$" · this vehicle: {vehicleLabel} "+(inEra?"(available)":"(not in this era)");
     }
 }

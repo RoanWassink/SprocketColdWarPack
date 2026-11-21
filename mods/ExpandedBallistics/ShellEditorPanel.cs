@@ -247,13 +247,13 @@ internal static class ShellEditorPanel
     {
         var row=body.Row(8);
         row.VisibleWhen(()=>model?.Selected>=0).Error(()=>model?.FieldError(ShellEditorModel.EraKey))
-            .Tooltip("Optional extra availability date on top of the native technology dates. Use yyyy.MM.dd.");
+            .Tooltip("Shows the shell's native technology date by default. Enter a later date (yyyy.MM.dd) to restrict it further, or clear it to restore the tech default.");
         row.Label(ShellEditorText.Caption(ShellEditorModel.EraKey),TextStyle.Value).Colour("#b8ad94").Flex();
         row.TextField(()=>model?.FieldText(ShellEditorModel.EraKey)??"",v=>model?.SetMinimumDate(v),"yyyy.MM.dd")
             .MaxChars(10).Width(130);
-        row.Dropdown(EraChoices,()=>model?.EraIndex??0,i=>model?.SetEra(i)).Width(220)
-            .Tooltip("Insert an era start date. The saved value is always a date, never an era name.");
-        body.Label(()=>model?.EraAvailability??"",TextStyle.Small).VisibleWhen(()=>model?.Selected>=0);
+        row.Dropdown(EraChoices,()=>model?.EraIndex??0,i=>model?.SetEra(i)).Width(270)
+            .Tooltip("Tech default or insert an era start date. The saved value is always a date, never an era name.");
+        body.Label(()=>model?.EraAvailability??"",TextStyle.Small).Wrap().VisibleWhen(()=>model?.Selected>=0);
     }
 
     private static void BuildLive(Column c)

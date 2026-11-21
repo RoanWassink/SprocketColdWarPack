@@ -491,6 +491,33 @@ internal sealed class XpbdClothSolver
             return;
         }
 
+        int jetCount = Math.Min(32, airflowJets.Length);
+        Span<float> clippedRanges = stackalloc float[32];
+        if (jetCount > 0)
+        {
+            bool clipWithColliders = enableSurfaceCollision && preparedColliders.Length > 0;
+            if (clipWithColliders)
+            {
+                int aLen = Math.Min(anchorW2L.Length, anchorLocalToWorld.Length);
+                for (int a = 0; a < aLen; a++)
+                {
+                    if (!Matrix4x4.Invert(anchorLocalToWorld[a], out anchorW2L[a]))
+                        anchorW2L[a] = Matrix4x4.Identity;
+                }
+            }
+            for (int j = 0; j < jetCount; j++)
+            {
+                clippedRanges[j] = clipWithColliders
+                    ? SurfaceCollision.ClipJetRangeByColliders(
+                        airflowJets[j].Origin,
+                        airflowJets[j].Direction,
+                        airflowJets[j].RangeM,
+                        preparedColliders,
+                        anchorW2L)
+                    : airflowJets[j].RangeM;
+            }
+        }
+
         if (motion == MotionProfile.Hinged)
         {
             if (blastTimer > 0f)
@@ -499,7 +526,18 @@ internal sealed class XpbdClothSolver
                 ApplyOverpressure(blastOrigin, blastDir, blastCaliber, impulseScale: 3.5f * blastFrac * dt);
                 blastTimer = MathF.Max(0f, blastTimer - dt);
             }
-            StepHinged(dt, time, l2w0, plateWorldToLocal, stiffness, damping, windScale, maxSwingDeg, outLocalPositions, airflowJets);
+            StepHinged(
+                dt,
+                time,
+                l2w0,
+                plateWorldToLocal,
+                stiffness,
+                damping,
+                windScale,
+                maxSwingDeg,
+                outLocalPositions,
+                airflowJets.Slice(0, jetCount),
+                clippedRanges.Slice(0, jetCount));
             UpdatePreviousAnchors(anchorLocalToWorld);
             return;
         }
@@ -616,12 +654,12 @@ internal sealed class XpbdClothSolver
                 if (areaAccum[i] > 1e-8f)
                     v += (aeroAccum[i] / areaAccum[i]) * subDt;
 
-                if (!airflowJets.IsEmpty)
+                if (jetCount > 0)
                 {
                     float jetScale = motion == MotionProfile.Cloth ? 1.0f : 0.45f;
-                    for (int j = 0; j < airflowJets.Length; j++)
+                    for (int j = 0; j < jetCount; j++)
                     {
-                        if (TryEvaluateJetAt(airflowJets[j], worldPos[i], time, i, out var jetAccel))
+                        if (TryEvaluateJetAt(airflowJets[j], clippedRanges[j], worldPos[i], time, i, out var jetAccel))
                             v += jetAccel * (jetScale * subDt);
                     }
                 }
@@ -806,7 +844,8 @@ internal sealed class XpbdClothSolver
         float windScale,
         float maxSwingDeg,
         Span<Vector3> outLocalPositions,
-        ReadOnlySpan<AirflowJet> airflowJets = default)
+        ReadOnlySpan<AirflowJet> airflowJets = default,
+        ReadOnlySpan<float> clippedRanges = default)
     {
         float clampedStiff = Math.Clamp(stiffness, 0.05f, 1.0f);
         float clampedDamp = Math.Clamp(damping, 0.02f, 0.95f);
@@ -879,7 +918,8 @@ internal sealed class XpbdClothSolver
                 var islandCenter = pivotW + comDirW;
                 for (int j = 0; j < airflowJets.Length; j++)
                 {
-                    if (!TryEvaluateJetAt(airflowJets[j], islandCenter, time, isl, out var jetAccel))
+                    float effectiveRange = j < clippedRanges.Length ? clippedRanges[j] : airflowJets[j].RangeM;
+                    if (!TryEvaluateJetAt(airflowJets[j], effectiveRange, islandCenter, time, isl, out var jetAccel))
                         continue;
                     float tComp = Vector3.Dot(Vector3.Cross(comDirW, jetAccel), axisW);
                     if (MathF.Abs(tComp) < 1e-4f)
@@ -946,29 +986,30 @@ internal sealed class XpbdClothSolver
 
     private static bool TryEvaluateJetAt(
         in AirflowJet jet,
+        float effectiveRangeM,
         Vector3 pointWorld,
         float time,
         int sampleIndex,
         out Vector3 accel)
     {
         accel = Vector3.Zero;
-        if (jet.Strength <= 1e-4f || jet.RangeM <= 1e-4f || jet.RadiusM <= 1e-4f)
+        if (effectiveRangeM < 0.10f || jet.Strength <= 1e-4f || jet.RadiusM <= 1e-4f)
             return false;
 
         var jDir = NormalizeSafe(jet.Direction);
         var toPoint = pointWorld - jet.Origin;
         float axial = Vector3.Dot(toPoint, jDir);
-        if (axial < -0.15f || axial > jet.RangeM)
+        if (axial < -0.05f || axial > effectiveRangeM)
             return false;
 
         float radialSq = (toPoint - jDir * axial).LengthSquared();
-        float coneRadius = jet.RadiusM + MathF.Max(0f, axial) * 0.35f;
+        float coneRadius = jet.RadiusM + MathF.Max(0f, axial) * 0.22f;
         if (radialSq > coneRadius * coneRadius)
             return false;
 
         float axialFalloff = axial < 0f
-            ? Math.Clamp(1f + axial / 0.15f, 0f, 1f)
-            : 1f - axial / jet.RangeM;
+            ? Math.Clamp(1f + axial / 0.05f, 0f, 1f)
+            : 1f - axial / effectiveRangeM;
         float radialFalloff = 1f - MathF.Sqrt(radialSq) / coneRadius;
         float pulse = 0.70f + 0.30f * MathF.Sin(time * jet.PulseHz * MathF.PI * 2f + jet.Phase - axial * 3.0f);
         float swirl = MathF.Sin(time * 11.0f + sampleIndex * 1.73f + jet.Phase) * 0.35f;

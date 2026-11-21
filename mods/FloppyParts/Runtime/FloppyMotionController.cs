@@ -59,6 +59,7 @@ internal static class FloppyMotionController
         internal Il2CppStructArray<Vector3> UnityVerts = null!;
         internal Il2CppStructArray<Vector3> UnityNorms = null!;
         internal NMatrix[] AnchorLocalToWorld = null!;
+        internal Vector3 RestLocalCenter;
 
         internal bool AtRest = true;
         internal bool ShowingPinPreview;
@@ -212,6 +213,21 @@ internal static class FloppyMotionController
 
         var desc = BuildDescription(cfg, simRestPos.Length, pins, scan.AnchorNames, proxy != null, children.Length);
 
+        var restCenter = Vector3.zero;
+        if (shell.RestVertices.Length > 0)
+        {
+            var rMin = shell.RestVertices[0];
+            var rMax = rMin;
+            for (int i = 1; i < shell.RestVertices.Length; i++)
+            {
+                rMin = NVector.Min(rMin, shell.RestVertices[i]);
+                rMax = NVector.Max(rMax, shell.RestVertices[i]);
+            }
+            var mid = (rMin + rMax) * 0.5f;
+            if (float.IsFinite(mid.X) && float.IsFinite(mid.Y) && float.IsFinite(mid.Z))
+                restCenter = new Vector3(mid.X, mid.Y, mid.Z);
+        }
+
         var inst = new MotionInstance
         {
             Plate = plate,
@@ -240,6 +256,7 @@ internal static class FloppyMotionController
             UnityVerts = new Il2CppStructArray<Vector3>(uVerts),
             UnityNorms = new Il2CppStructArray<Vector3>(uNorms),
             AnchorLocalToWorld = anchorMatrices,
+            RestLocalCenter = restCenter,
             AtRest = true,
             FramePhase = instances.Count,
             Description = desc
@@ -468,7 +485,7 @@ internal static class FloppyMotionController
 
         bool surfaceCollision = Plugin.SurfaceCollisionEnabled.Value;
         GroundPlane ground = surfaceCollision && (cfg.Motion == MotionProfile.Cloth || cfg.Motion == MotionProfile.Rubber)
-            ? SampleGroundPlane(inst.Plate.transform.position, inst.Plate.VUID.Value)
+            ? SampleGroundPlane(inst)
             : default;
 
         int jetCount = FillAirflowJets(inst);
@@ -562,7 +579,7 @@ internal static class FloppyMotionController
             var cfg = PlateConfigStore.Get(inst.Plate);
             inst.Description = BuildDescription(cfg, simRestPos.Length, inst.Pins, inst.AnchorNames, proxy != null, inst.Children.Length);
 
-            if (Plugin.Detailed)
+            if (Plugin.Detailed && inst.Children.Length > 0)
                 Plugin.ModLog.LogInfo($"[Hinged] Plate #{inst.Plate.VUID.Value} refreshed attached children: {inst.Children.Length}");
         }
         catch (Exception ex)
@@ -852,37 +869,65 @@ internal static class FloppyMotionController
             MarkSubtreeRecursive(children[i], depth + 1, visited, rootUnityTf, plateTf, invPlateRot, seenDetached, detached);
     }
 
-    private static GroundPlane SampleGroundPlane(Vector3 worldPos, long plateVuid)
+    private static GroundPlane SampleGroundPlane(MotionInstance inst)
     {
+        long plateVuid = inst.Plate.VUID.Value;
         try
         {
-            var terrain = Terrain.activeTerrain;
-            if (terrain == null) return default;
-            float baseY = terrain.transform.position.y;
-            float h0 = terrain.SampleHeight(worldPos);
-            float hx = terrain.SampleHeight(worldPos + new Vector3(0.5f, 0f, 0f));
-            float hz = terrain.SampleHeight(worldPos + new Vector3(0f, 0f, 0.5f));
-            float y0 = baseY + h0;
-            float yx = baseY + hx;
-            float yz = baseY + hz;
+            var plateTf = inst.Plate.transform;
+            var vehicleRoot = plateTf.root;
+            var samplePos = plateTf.TransformPoint(inst.RestLocalCenter);
+            if (!float.IsFinite(samplePos.x) || !float.IsFinite(samplePos.y) || !float.IsFinite(samplePos.z))
+                return default;
 
-            bool accepted = float.IsFinite(y0) && float.IsFinite(yx) && float.IsFinite(yz) &&
-                            y0 <= worldPos.y + 0.5f && y0 >= worldPos.y - 20.0f;
+            bool upright = vehicleRoot == null || vehicleRoot.up.y > 0.25f;
+            float rayStartY = upright && vehicleRoot != null
+                ? MathF.Min(samplePos.y + 0.15f, vehicleRoot.position.y + 0.85f)
+                : samplePos.y + 0.15f;
+            float maxGroundY = MathF.Min(
+                samplePos.y - 0.02f,
+                upright && vehicleRoot != null ? vehicleRoot.position.y + 0.35f : samplePos.y - 0.02f);
+
+            var hits = Physics.RaycastAll(new Vector3(samplePos.x, rayStartY, samplePos.z), Vector3.down, 12.0f);
+            bool found = false;
+            float bestY = float.NegativeInfinity;
+            Vector3 bestN = Vector3.up;
+
+            if (hits != null)
+            {
+                for (int i = 0; i < hits.Length; i++)
+                {
+                    var hit = hits[i];
+                    var col = hit.collider;
+                    if (col == null || col.isTrigger) continue;
+                    if (vehicleRoot != null && col.transform.IsChildOf(vehicleRoot)) continue;
+
+                    var pt = hit.point;
+                    var nrm = hit.normal;
+                    if (!float.IsFinite(pt.x) || !float.IsFinite(pt.y) || !float.IsFinite(pt.z) ||
+                        !float.IsFinite(nrm.x) || !float.IsFinite(nrm.y) || !float.IsFinite(nrm.z))
+                        continue;
+                    if (nrm.y < 0.45f) continue;
+                    if (pt.y > maxGroundY || pt.y < rayStartY - 12.0f) continue;
+
+                    if (!found || pt.y > bestY)
+                    {
+                        found = true;
+                        bestY = pt.y;
+                        bestN = nrm.sqrMagnitude > 1e-8f ? nrm.normalized : Vector3.up;
+                    }
+                }
+            }
+
             if (Plugin.Detailed && groundLogged.Add(plateVuid))
             {
                 Plugin.ModLog.LogInfo(
-                    $"[Ground] Plate #{plateVuid}: plateY={worldPos.y:F2} baseY={baseY:F2} sampleH={h0:F2} worldY={y0:F2} accepted={accepted}");
+                    $"[Ground] Plate #{plateVuid}: sampleY={samplePos.y:F2} rayStartY={rayStartY:F2} maxGroundY={maxGroundY:F2} hitY={(found ? bestY : float.NaN):F2} found={found}");
             }
-            if (!accepted) return default;
 
-            var p0 = new NVector(worldPos.x, y0, worldPos.z);
-            var vx = new NVector(0.5f, yx - y0, 0f);
-            var vz = new NVector(0f, yz - y0, 0.5f);
-            var n = NVector.Cross(vz, vx);
-            float lenSq = n.LengthSquared();
-            var normal = lenSq > 1e-12f ? n / MathF.Sqrt(lenSq) : NVector.UnitY;
-            if (normal.Y < 0f) normal = -normal;
-            return new GroundPlane(true, p0, normal);
+            return found
+                ? new GroundPlane(true, new NVector(samplePos.x, bestY, samplePos.z), new NVector(bestN.x, bestN.y, bestN.z))
+                : default;
         }
         catch
         {
@@ -1182,10 +1227,12 @@ internal static class FloppyMotionController
                     : Vector3.up;
 
                 float exitSize = v.exitSize;
+                var sc = vt.lossyScale;
+                float scaleAvg = (MathF.Abs(sc.x) + MathF.Abs(sc.y) + MathF.Abs(sc.z)) / 3f;
                 float ventRadius = Math.Clamp(
-                    float.IsFinite(exitSize) && exitSize > 0.01f ? exitSize * 0.85f : 0.45f,
-                    0.20f,
-                    1.5f);
+                    (float.IsFinite(exitSize) && exitSize > 0.01f ? exitSize : 1.0f) * Math.Clamp(scaleAvg, 0.3f, 2.5f) * 0.42f,
+                    0.18f,
+                    0.70f);
 
                 var origU = vt.TransformPoint(localPos);
                 if (!float.IsFinite(origU.x) || !float.IsFinite(origU.y) || !float.IsFinite(origU.z))
@@ -1204,8 +1251,8 @@ internal static class FloppyMotionController
                 }
                 dirU.Normalize();
 
-                float rangeM = 1.6f + 0.8f * activity;
-                float strength = 3.0f + 5.5f * activity;
+                float rangeM = 0.90f + 0.45f * activity;
+                float strength = 2.4f + 4.8f * activity;
                 float ventHz = Math.Clamp(4.5f + activity * 6f, 4f, 16f);
 
                 inst.JetBuffer[jetCount++] = new AirflowJet(

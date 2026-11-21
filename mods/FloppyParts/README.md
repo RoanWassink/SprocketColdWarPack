@@ -1,8 +1,8 @@
-# Sprocket Floppy Parts
+﻿# Sprocket Floppy Parts
 
 Visual plate-look and soft-body / hinged plate motion mod for Sprocket (BepInEx 6 IL2CPP).
 
-- Version: 0.3.4
+- Version: 0.3.6
 - Needs: no other mod
 
 ## Features

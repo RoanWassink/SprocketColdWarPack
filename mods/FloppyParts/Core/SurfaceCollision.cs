@@ -436,4 +436,125 @@ internal static class SurfaceCollision
         if (MathF.Abs(denom) < 1e-20f) return a;
         return a + ab * (vb / denom) + ac * (vc / denom);
     }
+
+    internal static float ClipJetRangeByColliders(
+        Vector3 originWorld,
+        Vector3 dirWorld,
+        float maxRangeM,
+        LocalColliderMesh[]? colliders,
+        ReadOnlySpan<Matrix4x4> anchorW2L)
+    {
+        if (maxRangeM <= 0.06f || colliders == null || colliders.Length == 0 || anchorW2L.IsEmpty)
+            return MathF.Max(0f, maxRangeM);
+
+        float dLenSq = dirWorld.LengthSquared();
+        if (dLenSq < 1e-12f || !float.IsFinite(dLenSq))
+            return MathF.Max(0f, maxRangeM);
+
+        var dirNorm = dirWorld / MathF.Sqrt(dLenSq);
+        float bestT = maxRangeM;
+
+        for (int c = 0; c < colliders.Length; c++)
+        {
+            var col = colliders[c];
+            if (!col.IsPlate ||
+                col.LocalVertices == null ||
+                col.Triangles == null ||
+                col.TriMin == null ||
+                col.TriMax == null ||
+                (uint)col.AnchorIndex >= (uint)anchorW2L.Length)
+                continue;
+
+            var w2l = anchorW2L[col.AnchorIndex];
+            var localOrigin = Vector3.Transform(originWorld, w2l);
+            var localDir = Vector3.TransformNormal(dirNorm, w2l);
+
+            if (!RayIntersectsAabb(localOrigin, localDir, col.LocalMin, col.LocalMax, 0.06f, bestT))
+                continue;
+
+            var verts = col.LocalVertices;
+            var tris = col.Triangles;
+            var tMin = col.TriMin;
+            var tMax = col.TriMax;
+            int triCount = tris.Length / 3;
+
+            for (int t = 0; t < triCount; t++)
+            {
+                if (!RayIntersectsAabb(localOrigin, localDir, tMin[t], tMax[t], 0.06f, bestT))
+                    continue;
+
+                var a = verts[tris[t * 3]];
+                var b = verts[tris[t * 3 + 1]];
+                var cv = verts[tris[t * 3 + 2]];
+                if (RayIntersectsTriangleDoubleSided(localOrigin, localDir, a, b, cv, 0.06f, bestT, out float hitT) &&
+                    hitT < bestT)
+                {
+                    bestT = hitT;
+                }
+            }
+        }
+
+        return bestT;
+    }
+
+    private static bool RayIntersectsAabb(
+        Vector3 orig,
+        Vector3 dir,
+        Vector3 minB,
+        Vector3 maxB,
+        float tMin,
+        float tMax)
+    {
+        if (!RayAxisSlab(orig.X, dir.X, minB.X, maxB.X, ref tMin, ref tMax)) return false;
+        if (!RayAxisSlab(orig.Y, dir.Y, minB.Y, maxB.Y, ref tMin, ref tMax)) return false;
+        if (!RayAxisSlab(orig.Z, dir.Z, minB.Z, maxB.Z, ref tMin, ref tMax)) return false;
+        return tMin <= tMax;
+    }
+
+    private static bool RayAxisSlab(float o, float d, float mn, float mx, ref float tMin, ref float tMax)
+    {
+        if (MathF.Abs(d) < 1e-9f)
+            return o >= mn && o <= mx;
+
+        float inv = 1f / d;
+        float t1 = (mn - o) * inv;
+        float t2 = (mx - o) * inv;
+        if (t1 > t2) (t1, t2) = (t2, t1);
+        if (t1 > tMin) tMin = t1;
+        if (t2 < tMax) tMax = t2;
+        return tMin <= tMax;
+    }
+
+    private static bool RayIntersectsTriangleDoubleSided(
+        Vector3 orig,
+        Vector3 dir,
+        Vector3 v0,
+        Vector3 v1,
+        Vector3 v2,
+        float tMin,
+        float tMax,
+        out float hitT)
+    {
+        hitT = 0f;
+        var e1 = v1 - v0;
+        var e2 = v2 - v0;
+        var pvec = Vector3.Cross(dir, e2);
+        float det = Vector3.Dot(e1, pvec);
+        if (MathF.Abs(det) < 1e-8f) return false;
+
+        float invDet = 1f / det;
+        var tvec = orig - v0;
+        float u = Vector3.Dot(tvec, pvec) * invDet;
+        if (u < -1e-4f || u > 1.0001f) return false;
+
+        var qvec = Vector3.Cross(tvec, e1);
+        float v = Vector3.Dot(dir, qvec) * invDet;
+        if (v < -1e-4f || u + v > 1.0001f) return false;
+
+        float t = Vector3.Dot(e2, qvec) * invDet;
+        if (t < tMin || t >= tMax) return false;
+
+        hitT = t;
+        return true;
+    }
 }

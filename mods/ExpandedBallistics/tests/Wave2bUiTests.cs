@@ -123,7 +123,7 @@ internal static class Wave2bUiTests
         var options=ShellEraCatalogue.Options(eras,"coldwar3x");
         check(options.Count==6&&options[0].Value==""&&options[^1].Value=="coldwar3x"&&ShellEraCatalogue.OptionIndex(eras,"coldwar3x")==5&&ShellEraCatalogue.OptionIndex(eras,"1960.01.01")==3,"options: always, era start dates, then the custom date");
         check(ShellEraCatalogue.Error(eras,"coldwar3x")!.Contains("real date")&&ShellEraCatalogue.Error(eras,"1945.09.03")==null,"invalid date is an error, a real date is not");
-        check(ShellEraCatalogue.Availability(eras,"1975.01.01","Coldwar1").EndsWith("✓",StringComparison.Ordinal)&&ShellEraCatalogue.Availability(eras,"1960.01.01","Coldwar3").EndsWith("✗",StringComparison.Ordinal),"availability date against the vehicle era");
+        check(ShellEraCatalogue.Availability(eras,"1975.01.01","Coldwar1").EndsWith("(not in this era)",StringComparison.Ordinal)&&ShellEraCatalogue.Availability(eras,"1960.01.01","Coldwar3").EndsWith("(available)",StringComparison.Ordinal),"availability date against the vehicle era");
     }
     private static (string Runtime,string Authoring,string Import) Files(string root,string name)
     {
