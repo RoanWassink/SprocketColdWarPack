@@ -61,4 +61,4 @@ The Emitter has no keys of its own. Where a key is needed, for example to open t
 
 A .NET project in this folder (`SprocketEmitter.csproj`, net6.0, warnings as errors). It builds against the game's interop assemblies: `dotnet build -c Release -p:GameDir=<path to Sprocket folder>`. `Verify.ps1` builds and runs the offline checks in `checks/`.
 
-Docs: [GUIDE.md](GUIDE.md) (developer notes), [ASSET-PROVENANCE.md](ASSET-PROVENANCE.md). Licence: All rights reserved (see the repository LICENSE). Author: Nero.
+Docs: [GUIDE.md](GUIDE.md) (developer notes), [ASSET-PROVENANCE.md](ASSET-PROVENANCE.md). Licence: GPL-3.0-only (see the repository LICENSE). Author: Nero.
