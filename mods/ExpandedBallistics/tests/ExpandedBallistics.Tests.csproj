@@ -6,7 +6,7 @@
   <ItemGroup><Compile Include="..\AtgmGuidance.cs" Link="AtgmGuidance.cs" /><Compile Include="../AtgmSightHead.cs" Link="AtgmSightHead.cs" /><Compile Include="../AtgmSightElevationState.cs" Link="AtgmSightElevationState.cs" /><Compile Include="../AtgmSightHudModel.cs" Link="AtgmSightHudModel.cs" /></ItemGroup>
   <ItemGroup><Compile Include="..\PcmWave.cs" Link="PcmWave.cs"/><EmbeddedResource Include="..\audio\atgm.wav" LogicalName="ExpandedBallistics.Audio.atgm.wav"/><EmbeddedResource Include="..\audio\atgm_gun.wav" LogicalName="ExpandedBallistics.Audio.atgm_gun.wav"/></ItemGroup>
   <ItemGroup><Compile Include="..\ArmourResponses.cs" Link="ArmourResponses.cs"/><Compile Include="..\ArmourResponseModel.cs" Link="ArmourResponseModel.cs"/><EmbeddedResource Include="armour-response-fixture.json" LogicalName="ArmourResponse.Fixture"/></ItemGroup>
-<ItemGroup><Compile Include="..\ShellEraPolicy.cs" Link="ShellEraPolicy.cs" /></ItemGroup>
+<ItemGroup><Compile Include="..\ShellEraPolicy.cs" Link="ShellEraPolicy.cs" /><Compile Include="..\ShellEraDiagnostics.cs" Link="ShellEraDiagnostics.cs" /></ItemGroup>
 <ItemGroup><Compile Include="..\ShellNativeTypeCache.cs" Link="ShellNativeTypeCache.cs" /></ItemGroup>
 <ItemGroup><Compile Include="..\ShellChemicalBudget.cs" Link="ShellChemicalBudget.cs" /></ItemGroup>
 <ItemGroup><Compile Include="..\ShellDatePolicy.cs" Link="ShellDatePolicy.cs" /></ItemGroup>

@@ -4,7 +4,7 @@ Visual Effects adds a visual layer to cannon shots: a muzzle blast, smoke puffs 
 
 ![Mast, hinge, turntable, emitter and cupola](../../docs/img/mast-hinge-rotator-emitter-cupola.png)
 
-- Version: 0.5.3
+- Version: 0.5.4
 - Plugin GUID: `sprocket.visualeffects`
 - Needs: no other Sprocket mod
 - Works together with: Sprocket Telescopic Mast, for lamp settings per lamp and for switching lamps in the I/O Flow editor

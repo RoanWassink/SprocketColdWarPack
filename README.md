@@ -120,8 +120,8 @@ Every mod has a folder in [`mods`](mods) with its own page: what it does, its se
 
 | Mod | Version | In short |
 |---|---|---|
-| [Expanded Ballistics](mods/ExpandedBallistics) | 0.22.99 | Shells, armour, reactive armour, guided missiles, combat report |
-| [Plate Destruction](mods/PlateDestruction) | 0.8.3 | Destructible armour plates, blast dents, holes, and torn edges |
+| [Expanded Ballistics](mods/ExpandedBallistics) | 0.22.101 | Shells, armour, reactive armour, guided missiles, combat report |
+| [Plate Destruction](mods/PlateDestruction) | 0.8.4 | Destructible armour plates, blast dents, holes, and torn edges |
 | [Thermal Sight](mods/ThermalSight) | 0.5.4 | Night vision and thermal sights, searchlight, rangefinders |
 | [Gun Sights](mods/GunSights) | 0.3.0 | 33 period gunner's sights |
 | [Carousel Autoloader](mods/CarouselAutoloader) | 0.3.4 | Bustle, semi, revolver and belt-fed loaders, carousel |
@@ -134,7 +134,7 @@ Every mod has a folder in [`mods`](mods) with its own page: what it does, its se
 | [Emitter](mods/Emitter) | 0.1.3 | Ejected shell casings |
 | [Cupolas](mods/Cupolas) | 0.1.0 | Modern commander's cupolas and T-90A driver hatch |
 | [Floppy Parts](mods/FloppyParts) | 0.3.4 | Cloth, rubber and hinged plate motion + custom plate materials |
-| [Visual Effects](mods/VisualEffects) | 0.5.3 | Muzzle blast, smoke, lamps |
+| [Visual Effects](mods/VisualEffects) | 0.5.4 | Muzzle blast, smoke, lamps |
 | [AI Orders](mods/AIOrders) | 0.5.4 | Orders and map for AI allies |
 | [Cold War Expansion Pack](mods/ColdWarExpansionPack) | 0.2.0 | Three Cold War eras |
 | [Keybinds](mods/Keybinds) | 0.1.10 | Key menu for all mods |
@@ -146,7 +146,7 @@ Some mods need others to work: Thermal Sight, Hydropneumatic, Smoke Launchers, T
 ## How to install
 
 1. **Install the mod loader.** The pack runs on BepInEx 6. Use the **Sprocket Mod Loader** by Hans21223, which installs the right BepInEx version with a fix for Sprocket: <https://github.com/Hans21223/Sprocket-Mod-Loader>. The "Easy install" with the Mod Manager is the simplest way. It is a separate project and not part of this pack. Start the game once afterwards, so it can set itself up. The first start takes a while.
-2. **Install the pack.** Download `SprocketColdWarPack-v1.2.0.zip` from the [Releases](../../releases) page and extract it into the Sprocket game folder (the folder with `Sprocket.exe`). Merge it with the existing `BepInEx` and `Sprocket_Data` folders.
+2. **Install the pack.** Download `SprocketColdWarPack-v1.2.1.zip` from the [Releases](../../releases) page and extract it into the Sprocket game folder (the folder with `Sprocket.exe`). Merge it with the existing `BepInEx` and `Sprocket_Data` folders.
 3. **Start the game.** Settings are in the folder `BepInEx\config`. They are created at the first start. The mods that need keys do not choose them for you: set your own in the game's Settings screen, under Controls.
 
 To remove a mod, delete its `SprocketXxx` folder in `BepInEx\plugins`. If you update by extracting a newer zip over an older one, your edited settings files are overwritten, so keep a copy.

@@ -309,7 +309,7 @@ public sealed class LampRuntime:MonoBehaviour
     private void HideHalos(){foreach(var halo in halos)if(halo.Root!=null)halo.Root.SetActive(false);}
     private void HideLenses(){foreach(var lens in lenses)if(lens.Root!=null)lens.Root.SetActive(false);}
     private void HideAll(){HideLights();HideHalos();HideLenses();}
-    private void Fail(Exception ex){if(errors++<3)Plugin.Instance.Log.LogWarning("Lamp optional path: "+ex.GetType().Name+": "+ex.Message);}
+    [HideFromIl2Cpp] private void Fail(Exception ex){if(errors++<3)Plugin.Instance.Log.LogWarning("Lamp optional path: "+ex.GetType().Name+": "+ex.Message);}
     private void Clear() {
         HideAll();
         lamps.Clear();ordered.Clear();glowing.Clear();sessionRules.Clear();states.Clear();

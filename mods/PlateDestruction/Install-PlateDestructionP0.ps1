@@ -79,7 +79,7 @@ if($Restore){
 }
 $manifestPath=Join-Path $PSScriptRoot 'package-manifest.json'
 $manifest=Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
-if($manifest.Mod -ne 'nero.sprocket.platedestruction.p0' -or $manifest.Version -ne '0.8.3'){throw 'Unexpected package identity.'}
+if($manifest.Mod -ne 'nero.sprocket.platedestruction.p0' -or $manifest.Version -ne '0.8.4'){throw 'Unexpected package identity.'}
 if(@($manifest.Files).Count -ne 1){throw 'Manifest must contain exactly the one allowlisted DLL.'}
 $entries=@()
 foreach($item in $manifest.Files){
@@ -90,13 +90,13 @@ foreach($item in $manifest.Files){
     if((Hash $source) -ne $item.SHA256){throw "Package hash mismatch: $source"}
     $existed=Test-Path -LiteralPath $target -PathType Leaf
     $before=if($existed){Hash $target}else{$null}
-    # Known installed versions: 0.0.1..0.8.2 or 0.8.3 itself (re-install); also a fresh game folder with nothing installed. Anything else is refused.
-    $known=@('E1B607845DAE7220AC6A15B635960583EB63C44D3AAA930A5836DDBE238D53B2','D8101A5F1AD5DDDEE736E2B9629D312175EC45FE8F27B58EAA5BD9CBBA802DA0','D425EB8D0951D02D2E50B91D70D10217A68C21EB7985ABC0AF1AFCBBF7D05E52','92E005C01BF555BCBF546E5F3E478F80D709879A504AF1D7959A14367A7428B6','A3753BD756C551547F6481789C3CB2B6961EC84AD8797B41100C6F76E690BA88','1032B999F8809CA8C6B8DD641AA0C3B85FB3177339841C9E5B9E0818E1B9766C','C2D866D2D6CC2291F2E13EE4E61A6AD93BB308CA647AF1A881C6FDF7F0FE358E','8AD85915B613CB94F0CC0434E7696E63B744EA28365F495A278C80AE422679FB','5E302C5CE4DF872B69E8641EEA60B8A8DC7AA396A7E4A496EC2151270508C708','7FD729A7EC16AC416E7DA01951206364E1ED08A0E613E27FFA40C038803FF75D','1A2358731E4452D8DF9AADC68EE079BCF49FE59AA438E485516D72AA845DEDAA','1A6A03DF467A70594D63E8585A80F04F91286137ED042DE5BC163C2B2BEFC35A','EA68C33262EBCF32286FF901F920BAE7E588372256DB90ABF679B076E27852EA','B2D1D72EB06DE79BE3D68E1B6FC9DD0403667497F4B32585C82A164BBED3706F','E02C3F5FC501398731A11EA2E954A908D245EA917D2085DC59B40CC7C7D046E1','8399B1FEC252DBD39AD5E2E695B3C5151CEEE5D8D09875792EB11F6E1ECE55FE','4CD27D5500F43D90D7F0DF48D629992DF0557A705E7775BE684E2EE152D7B33C','97AF68EB55DC6A8657B4890103C3243934CF5DA9AA185F96021E74991E8FADB1',$item.SHA256)
+    # Known installed versions: 0.0.1..0.8.3 or 0.8.4 itself (re-install); also a fresh game folder with nothing installed. Anything else is refused.
+    $known=@('E1B607845DAE7220AC6A15B635960583EB63C44D3AAA930A5836DDBE238D53B2','D8101A5F1AD5DDDEE736E2B9629D312175EC45FE8F27B58EAA5BD9CBBA802DA0','D425EB8D0951D02D2E50B91D70D10217A68C21EB7985ABC0AF1AFCBBF7D05E52','92E005C01BF555BCBF546E5F3E478F80D709879A504AF1D7959A14367A7428B6','A3753BD756C551547F6481789C3CB2B6961EC84AD8797B41100C6F76E690BA88','1032B999F8809CA8C6B8DD641AA0C3B85FB3177339841C9E5B9E0818E1B9766C','C2D866D2D6CC2291F2E13EE4E61A6AD93BB308CA647AF1A881C6FDF7F0FE358E','8AD85915B613CB94F0CC0434E7696E63B744EA28365F495A278C80AE422679FB','5E302C5CE4DF872B69E8641EEA60B8A8DC7AA396A7E4A496EC2151270508C708','7FD729A7EC16AC416E7DA01951206364E1ED08A0E613E27FFA40C038803FF75D','1A2358731E4452D8DF9AADC68EE079BCF49FE59AA438E485516D72AA845DEDAA','1A6A03DF467A70594D63E8585A80F04F91286137ED042DE5BC163C2B2BEFC35A','EA68C33262EBCF32286FF901F920BAE7E588372256DB90ABF679B076E27852EA','B2D1D72EB06DE79BE3D68E1B6FC9DD0403667497F4B32585C82A164BBED3706F','E02C3F5FC501398731A11EA2E954A908D245EA917D2085DC59B40CC7C7D046E1','8399B1FEC252DBD39AD5E2E695B3C5151CEEE5D8D09875792EB11F6E1ECE55FE','4CD27D5500F43D90D7F0DF48D629992DF0557A705E7775BE684E2EE152D7B33C','97AF68EB55DC6A8657B4890103C3243934CF5DA9AA185F96021E74991E8FADB1','CF5D72EC572B74AF49584A7D6D6B723EBA49CE065E40B067608A50681580195C',$item.SHA256)
     if($existed -and $known -notcontains $before){throw "Installed DLL has unexpected hash $before; refusing to overwrite."}
-    Write-Output "Existing version: $(if(-not $existed){'none'}elseif($before -eq $known[0]){'0.0.1'}elseif($before -eq $known[1]){'0.0.2'}elseif($before -eq $known[2]){'0.0.3'}elseif($before -eq $known[3]){'0.0.4'}elseif($before -eq $known[4]){'0.1.0'}elseif($before -eq $known[5]){'0.1.1'}elseif($before -eq $known[6]){'0.2.0'}elseif($before -eq $known[7]){'0.3.0'}elseif($before -eq $known[8]){'0.3.1'}elseif($before -eq $known[9]){'0.4.0'}elseif($before -eq $known[10]){'0.4.1'}elseif($before -eq $known[11]){'0.5.0'}elseif($before -eq $known[12]){'0.6.0'}elseif($before -eq $known[13]){'0.7.0'}elseif($before -eq $known[14]){'0.7.1'}elseif($before -eq $known[15]){'0.8.0'}elseif($before -eq $known[16]){'0.8.1'}elseif($before -eq $known[17]){'0.8.2'}else{'0.8.3'})"
+    Write-Output "Existing version: $(if(-not $existed){'none'}elseif($before -eq $known[0]){'0.0.1'}elseif($before -eq $known[1]){'0.0.2'}elseif($before -eq $known[2]){'0.0.3'}elseif($before -eq $known[3]){'0.0.4'}elseif($before -eq $known[4]){'0.1.0'}elseif($before -eq $known[5]){'0.1.1'}elseif($before -eq $known[6]){'0.2.0'}elseif($before -eq $known[7]){'0.3.0'}elseif($before -eq $known[8]){'0.3.1'}elseif($before -eq $known[9]){'0.4.0'}elseif($before -eq $known[10]){'0.4.1'}elseif($before -eq $known[11]){'0.5.0'}elseif($before -eq $known[12]){'0.6.0'}elseif($before -eq $known[13]){'0.7.0'}elseif($before -eq $known[14]){'0.7.1'}elseif($before -eq $known[15]){'0.8.0'}elseif($before -eq $known[16]){'0.8.1'}elseif($before -eq $known[17]){'0.8.2'}elseif($before -eq $known[18]){'0.8.3'}else{'0.8.4'})"
     $entries+= [pscustomobject]@{Relative=$item.Relative;Existed=$existed;BeforeHash=$before;AfterHash=$item.SHA256}
 }
-if($PSCmdlet.ShouldProcess($gameRoot,'Back up and install SprocketPlateDestructionP0 0.8.3; preserve existing config')){
+if($PSCmdlet.ShouldProcess($gameRoot,'Back up and install SprocketPlateDestructionP0 0.8.4; preserve existing config')){
     Assert-GameClosed
     $backup=Assert-PlainPath (Join-Path $backupRoot ([DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss-fffffff'))) $backupRoot
     New-Item -ItemType Directory -Path $backup -Force | Out-Null
@@ -108,7 +108,7 @@ if($PSCmdlet.ShouldProcess($gameRoot,'Back up and install SprocketPlateDestructi
             if((Hash $destination) -ne $entry.BeforeHash){throw 'Backup verification failed; install not started.'}
         }
     }
-    [pscustomobject]@{Mod='nero.sprocket.platedestruction.p0';Version='0.8.3';GamePath=$gameRoot;Files=$entries} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $backup 'receipt.json') -Encoding UTF8
+    [pscustomobject]@{Mod='nero.sprocket.platedestruction.p0';Version='0.8.4';GamePath=$gameRoot;Files=$entries} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $backup 'receipt.json') -Encoding UTF8
     foreach($entry in $entries){
         $target=Target $entry.Relative
         if($entry.Relative -eq $configRelative -and $entry.Existed){continue}

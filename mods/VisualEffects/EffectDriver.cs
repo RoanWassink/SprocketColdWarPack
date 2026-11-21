@@ -176,6 +176,7 @@ public sealed class EffectDriver:MonoBehaviour
         }
         catch(Exception ex){Plugin.Instance.Warn(ex);Dispose();}
     }
+    [HideFromIl2Cpp]
     internal void Emit(Vector3 origin,Quaternion rotation,float calibre,Transform? cannonTransform=null)
     {
         if(!Ready||disposed||!IsMainThread||!Finite(origin)||!float.IsFinite(calibre))return;
@@ -204,6 +205,7 @@ public sealed class EffectDriver:MonoBehaviour
         Render(shot,camera,0);
         reports++;Plugin.Instance.Trace($"Shot #{reports} Renderer=Billboard calibre={calibre}mm slot={i} world=({origin.x:F2},{origin.y:F2},{origin.z:F2}) scale={shot.Scale:F2} (ScaleMultiplier; atlas opacity, no density)");
     }
+    [HideFromIl2Cpp]
     internal void EmitImpact(ImpactKind kind,Vector3 pos,Vector3 normal,Vector3 velocity,float calibreMm)
     {
         if(!Ready||disposed||!IsMainThread||mode!=1||volume==null)return;
@@ -211,6 +213,7 @@ public sealed class EffectDriver:MonoBehaviour
         if(desc!=null&&Plugin.Instance.Detailed.Value&&impactReports++<80)
             Plugin.Instance.Trace($"Impact #{impactReports} {desc} world=({pos.x:F2},{pos.y:F2},{pos.z:F2})");
     }
+    [HideFromIl2Cpp]
     internal void EmitCookoff(Vector3 pos,float mass,float impulse)
     {
         if(!Ready||disposed||!IsMainThread||mode!=1||volume==null)return;
@@ -242,6 +245,7 @@ public sealed class EffectDriver:MonoBehaviour
         else ClearShots();
     }
     public void OnDestroy()=>Dispose();
+    [HideFromIl2Cpp]
     public void Dispose()
     {
         if(disposed)return;disposed=true;Ready=false;

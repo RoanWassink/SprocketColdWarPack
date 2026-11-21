@@ -98,7 +98,6 @@ internal static class RuntimeCassettePlateVisual
         opacity.SettingChanged+=(_,_)=>InvalidateCatalogue();
         smoothness=config.Bind("Plate visual","Smoothness",.15f,new ConfigDescription("Layer surface smoothness (0: matte, 1: polished).",new AcceptableValueRange<float>(0,1)));
         smoothness.SettingChanged+=(_,_)=>InvalidateCatalogue();
-        RuntimeCustomTextures.Initialize();
         CassetteVisualKeys.Configure();
     }
     /// <summary>"Show cassette layers" (or the inspector): sets the manual state and logs one line saying what happened.</summary>

@@ -14,10 +14,19 @@ using UnityEngine.SceneManagement;
 using Object=UnityEngine.Object;
 namespace PlateDestructionP0;
 
-// 0.5.0: Destructible and deformable plates, fast hit/blast filtering, core-part attachment guards, and InPlace armour updates.
-public sealed partial class Runtime:MonoBehaviour
+// 0.8.4: Thin MonoBehaviour host so Il2CppInterop registers only Start/Update/OnDestroy (zero unsupported-parameter warnings).
+public sealed class RuntimeDriver:MonoBehaviour
 {
-    public Runtime(IntPtr pointer):base(pointer){}
+    public RuntimeDriver(IntPtr pointer):base(pointer){}
+    private Runtime? core;
+    public void Start(){core=new Runtime();core.Start();}
+    public void Update(){core?.Update();}
+    public void OnDestroy(){core?.OnDestroy();core=null;}
+}
+
+// 0.5.0: Destructible and deformable plates, fast hit/blast filtering, core-part attachment guards, and InPlace armour updates.
+public sealed partial class Runtime
+{
 
     private sealed class PlateEntry
     {

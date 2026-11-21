@@ -91,8 +91,8 @@ internal static class Feat02295GameBuildGateTests
         Check(gate.Contains("internal static bool AllowHotPath")&&gate.Contains("internal static string? Hash")&&gate.Contains("internal static bool Known"),"4 API AllowHotPath / Hash / Known present");
 
         // ================= 5. wiring and version =================
-        Check(plugin.Contains("\"0.22.99\""),"5 Plugin.cs version 0.22.99 (0.22.95 gate unchanged)");
-        Check(Read("SprocketExpandedBallistics.csproj").Contains("<Version>0.22.99</Version>"),"5 csproj version 0.22.99");
+        Check(plugin.Contains("\"0.22.101\""),"5 Plugin.cs version 0.22.101 (0.22.95 gate unchanged)");
+        Check(Read("SprocketExpandedBallistics.csproj").Contains("<Version>0.22.101</Version>"),"5 csproj version 0.22.101");
         Check(plugin.Contains("GameBuildGate.Configure(Config,Log);"),"5 Plugin.Load binds the gate config");
         Check(plugin.IndexOf("GameBuildGate.Configure",StringComparison.Ordinal)>=0&&
               plugin.IndexOf("GameBuildGate.Configure",StringComparison.Ordinal)<plugin.IndexOf("PatchAll(typeof(NativeCassetteGeometry)",StringComparison.Ordinal),

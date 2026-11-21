@@ -1,5 +1,18 @@
 # Expanded Ballistics
 
+## 0.22.101 (standalone 9999.12.31 era fallback & clear missing-files / broken-Eras warnings)
+
+- Standalone `9999.12.31` fallback (`ShellEraPolicy.ResolveIndex`, `RuntimeShellEra.Context`): when a vehicle uses the open-ended final-era sentinel date `9999.12.31` (Sandbox / late-era designs), Expanded Ballistics now places it in the last valid era (`eras.Length - 1`) itself instead of relying on an external `GetEraIndex` patch (`SprocketColdWarExpansionPack.dll`). Invalid era timelines are still rejected by `ShellEraPolicy.Valid`.
+- Clear installation & era diagnostics (`ShellEraDiagnostics`, `RuntimeShellEra.DiagnosticWarning`): when `Sprocket_Data\StreamingAssets\Technology\ExpandedBallistics-*.json` files are missing or incomplete, when `Sprocket_Data\StreamingAssets\Eras\` has an invalid timeline (empty, missing/duplicate names, invalid or non-ascending start dates, or unmatched vehicle date), or when the files exist on disk but were not loaded in the current session, Expanded Ballistics displays a clear warning banner at the top of the Shell Editor (`ShellEditorPanel`) and at the top of the cannon inspector section (`RuntimeShellSelection`), and logs it once to `BepInEx\LogOutput.log`.
+- 0 new Harmony hooks (stays at 48 `[HarmonyPatch` annotations).
+
+## 0.22.100 (automatic material-look handoff when SprocketFloppyParts is loaded)
+
+- Material visuals (`RuntimeMaterialLooks`): when `sprocket.floppyparts` is loaded (checked dynamically via `IL2CPPChainloader.Instance.Plugins` so load order does not matter), Expanded Ballistics automatically disables its own material overlays for `ebFabric`, `ebRubber`, `ebWood`, and `ebGlass` and restores any hidden native plate renderers, logging one Info line per session (`[Material look] Disabled automatically: sprocket.floppyparts is loaded; armour protection for ebWood, ebRubber, ebFabric and ebGlass remains active.`).
+- `RuntimeCustomTextures.Initialize()` is now deferred until `RuntimeMaterialLooks.GetMaterial` needs a material look, skipping unused texture scans, warnings, and VRAM allocations whenever `sprocket.floppyparts` is active.
+- Armour protection, mass, cost, material menu availability, cassettes, and combat report behaviour for `ebWood`, `ebRubber`, `ebFabric`, and `ebGlass` remain unchanged; removing `sprocket.floppyparts` restores EB's material looks automatically.
+- 0 new Harmony hooks (stays at 48 `[HarmonyPatch` annotations).
+
 ## 0.22.99 (HEAT burst/spall performance, inspector load order with arrows, switcher & mixed-autoloader fixes)
 
 - HEAT impact performance: `ShellBalance.HeatBurstTarget` tapers and caps HEAT payload bursts to at most 3 (`32 -> 16 -> 8`, 4th+ suppressed) per shot instead of firing full 32-fragment bursts on every armor/ERA housing wall; `SpallGapModel.NextSolidGapMm` scans the full unsorted native intersection buffer so `MinSpallGapMm` and continuation fragments correctly suppress bursts into backed plates; `GapLookahead` allocates zero arrays per material block, and `LayerScope` / `BurstState` are stack value types (`readonly record struct`).

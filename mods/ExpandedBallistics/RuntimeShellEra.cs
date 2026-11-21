@@ -39,13 +39,55 @@ internal static class RuntimeShellEra
     // at the start of a redraw so repeated profile queries share one build.
     private static readonly Dictionary<(IntPtr Owner,int Date,IntPtr Tech,int EraHash,int EraCount),CachedContext> contexts=new();
     private static bool technologyDatesConfigured;
-    internal static void InvalidateContexts()=>contexts.Clear();
+    private static TechnologyFilesStatus? cachedTechFiles;
+    private static string TechnologyDirectory()=>Path.Combine(Paths.GameRootPath,"Sprocket_Data","StreamingAssets","Technology");
+    internal static void InvalidateContexts(){contexts.Clear();cachedTechFiles=null;}
+    internal static void RefreshDiagnostics()=>cachedTechFiles=null;
     internal static void BeginInspectorRedraw()=>contexts.Clear();
     private static void ConfigureTechnologyDates()
     {
         if(technologyDatesConfigured)return;
         technologyDatesConfigured=true;
-        try{ShellTechnologyDates.Configure(Path.Combine(Paths.GameRootPath,"Sprocket_Data/StreamingAssets/Technology"));}catch{}
+        try{ShellTechnologyDates.Configure(TechnologyDirectory());}catch{}
+    }
+    internal static string? DiagnosticWarning(IVehicleGateway? owner)
+    {
+        try
+        {
+            ConfigureTechnologyDates();
+            var files=cachedTechFiles??=ShellEraDiagnostics.CheckTechnologyDirectory(TechnologyDirectory());
+            var eras=VehicleClassifications.eras;
+            string?[]? names=null;ShellNativeDate[]? starts=null;
+            if(eras!=null)
+            {
+                names=new string?[eras.Length];starts=new ShellNativeDate[eras.Length];
+                for(var i=0;i<eras.Length;i++)
+                {
+                    if(eras[i]==null)continue;
+                    names[i]=eras[i].Name;var start=eras[i].StartDate;starts[i]=new(start.Year,start.Month,start.Day);
+                }
+            }
+            ShellNativeDate? vehicleDate=null;int resolvedIndex=-1;
+            if(owner?.DesignInfo is {} info)
+            {
+                var raw=info.Date;
+                var date=new ShellNativeDate(raw.Year,raw.Month,raw.Day);
+                vehicleDate=date;
+                var count=eras?.Length??0;
+                resolvedIndex=ShellEraPolicy.ResolveIndex(date,count,
+                    date==ShellNativeDate.Maximum?-1:VehicleClassifications.GetEraIndex(info.Date));
+            }
+            var timelineWarning=ShellEraDiagnostics.DiagnoseTimeline(vehicleDate,names,starts,resolvedIndex);
+            var context=owner!=null?Context(owner):null;
+            ShellNativeDate? earliest=null;
+            foreach(var behavior in behaviors)
+                if(ShellTechnologyDates.Date("expandedBallistics_"+behavior) is {} d&&(earliest==null||d<earliest.Value))earliest=d;
+            var warning=ShellEraDiagnostics.Diagnose(files,timelineWarning,context,earliest);
+            if(!string.IsNullOrEmpty(warning)&&warnings.Add("diag:"+warning))
+                Plugin.ModLog.LogWarning("[Shell era] "+warning);
+            return warning;
+        }
+        catch{return null;}
     }
     internal static ShellEraContext? Context(IVehicleGateway? owner,IEnumerable<string>? requirements=null)
     {
@@ -63,9 +105,10 @@ internal static class RuntimeShellEra
                     if(eras[i]==null)return null;
                     names[i]=eras[i].Name;var start=eras[i].StartDate;starts[i]=new(start.Year,start.Month,start.Day);
                 }
-                // Native classification, including the core's last-era boundary fix,
-                // is authoritative. Do not substitute any date into the tech frame.
-                var index=VehicleClassifications.GetEraIndex(info.Date);
+                // Own safety net for the open-ended final-era sentinel 9999.12.31 so EB works
+                // standalone on Sandbox/late vehicles even without an external era boundary patch.
+                var index=ShellEraPolicy.ResolveIndex(date,eras.Length,
+                    date==ShellNativeDate.Maximum?-1:VehicleClassifications.GetEraIndex(info.Date));
                 var available=new HashSet<string>(StringComparer.Ordinal);double? heatFactor=null;
                 foreach(var behavior in behaviors)
                     if(tech.TryGetTech("expandedBallistics_"+behavior,out var shellTech)&&shellTech!=null&&shellTech.GetBool("enabled",false))

@@ -2,6 +2,12 @@ namespace SprocketExpandedBallistics;
 internal sealed record ShellEraContext(ShellNativeDate Date,string[] Names,ShellNativeDate[] Starts,int Index,IReadOnlySet<string> AvailableBehaviors,double? HeatFactor=null,IReadOnlySet<string>? AvailableTechnologies=null);
 internal static class ShellEraPolicy
 {
+    /// <summary>
+    /// Places the open-ended final-era sentinel 9999.12.31 in the last valid era
+    /// even when vanilla GetEraIndex returns out-of-range without an external era patch.
+    /// </summary>
+    internal static int ResolveIndex(ShellNativeDate date,int eraCount,int nativeIndex)
+        =>date==ShellNativeDate.Maximum&&eraCount>0?eraCount-1:nativeIndex;
     internal static bool Valid(ShellEraContext? c)
     {
         if(c==null||!c.Date.Valid||c.Names.Length!=c.Starts.Length||!ShellDatePolicy.ValidTimeline(c.Starts)||c.Index<0||c.Index>=c.Names.Length)return false;

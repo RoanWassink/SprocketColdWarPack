@@ -7,7 +7,7 @@ namespace PlateDestructionP0;
 [BepInPlugin("nero.sprocket.platedestruction.p0","Plate Destruction P0",Version)]
 public sealed class Plugin:BasePlugin
 {
-    internal const string Version="0.8.3";
+    internal const string Version="0.8.4";
     internal static Plugin Instance=null!;
     internal static ConfigFile Cfg=null!;
     internal ConfigEntry<string> TargetMode=null!,KeyBreak=null!,KeyDent=null!,RebuildMode=null!,ArmourUpdateMode=null!,BlastHoleMode=null!;
@@ -112,7 +112,7 @@ public sealed class Plugin:BasePlugin
             catch(Exception e){Log.LogError("[PD-P0] builder patching failed, per-side break disabled (plates break as one piece): "+e);}
         }
         else Log.LogInfo("[PD-P0] builder patches switched off (Switches/BuilderPatch=false): per-side break disabled.");
-        AddComponent<Runtime>();
+        AddComponent<RuntimeDriver>();
         Log.LogInfo("Plate Destruction P0 "+Version+" loaded: Destructable plates dent under hits, break cell by cell under blasts and the torn piece flies away. Test keys: "+KeyBreak.Value+" (tear off the last targeted plate), "+KeyDent.Value+" (test dent).");
     }
     internal static void Info(string s)=>Instance.Log.LogInfo("[PD-P0] "+s);

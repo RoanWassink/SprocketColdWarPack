@@ -23,7 +23,7 @@ internal static class ShellEditorPanel
 
     private static Panel? panel;
     private static ShellEditorModel? model;
-    private static string? conflict,loadError;
+    private static string? conflict,loadError,eraWarning;
     private static Action? refresh,redraw;
     private static Sprocket.Vehicles.Cannons.Cannon? lastCannon;
     private static ShellPreviewCannon? cannonContext;
@@ -68,6 +68,8 @@ internal static class ShellEditorPanel
         refresh=refreshAction;redraw=redrawAction;lastCannon=cannon;
         cannonContext=Capture(cannon);
         eras??=ShellEraCatalogue.Load(Path.Combine(UnityEngine.Application.streamingAssetsPath,"Eras"));
+        RuntimeShellEra.RefreshDiagnostics();
+        eraWarning=RuntimeShellEra.DiagnosticWarning(cannon?.Vehicle);
         conflict=null;loadError=null;model=null;shownId=null;openState.Clear();
         var p=panel!;
         if(p.ModalOpen)p.CloseModal();
@@ -80,7 +82,8 @@ internal static class ShellEditorPanel
             m.Availability=id=>RuntimeShellSelection.Profiles.FirstOrDefault(x=>x.Id==id) is {} profile
                 ?ShellEditorAvailability.For(profile,vehicleCannon) is var a?new ShellAvailability(a.Available,a.Reason,ShellEditorAvailability.Date(profile)):null:null;
             model=m;
-            if(m.Notice is {} notice){p.SetStatus(notice,StatusKind.Info);RuntimeShellEditor.LastSaveMessage=notice;}
+            if(!string.IsNullOrEmpty(eraWarning))p.SetStatus(eraWarning,StatusKind.Warning);
+            else if(m.Notice is {} notice){p.SetStatus(notice,StatusKind.Info);RuntimeShellEditor.LastSaveMessage=notice;}
             else p.SetStatus($"{m.Count} shells loaded. Changes stay in the editor until you save.",StatusKind.Info);
         }
         catch(Exception ex) when (ShellEditorModel.IsConflict(ex))
@@ -124,7 +127,7 @@ internal static class ShellEditorPanel
         p.AllowedContexts=UiContexts.Designer;
         p.StayOpenWhilePaused=true;
         p.OnCloseRequest=ConfirmIfDirty;
-        p.OnClose+=()=>{model=null;conflict=null;loadError=null;shownId=null;};
+        p.OnClose+=()=>{model=null;conflict=null;loadError=null;eraWarning=null;shownId=null;};
         p.DefaultAction(Save);
         p.AddKeyHint("Enter","save");
         p.AddShortcut("Ctrl+N",NewShell);
@@ -132,6 +135,9 @@ internal static class ShellEditorPanel
         p.AddShortcut("Delete",DeleteSelected,"delete draft");
         p.AddShortcut("Alt+UpArrow",()=>Move(-1));
         p.AddShortcut("Alt+DownArrow",()=>Move(1));
+        var diagBanner=p.Body.Stack(0);
+        diagBanner.Padding(8,12,0,12).VisibleWhen(()=>!string.IsNullOrEmpty(eraWarning));
+        diagBanner.Warning(()=>eraWarning??"").Severity(StatusKind.Warning);
         // 0.22.3: a wider rail so names and short subtitles fit at 1920x1080 (the middle column had spare room).
         var cols=p.Columns(440,0,400);
         BuildList(cols[0]);BuildForm(cols[1]);BuildLive(cols[2]);

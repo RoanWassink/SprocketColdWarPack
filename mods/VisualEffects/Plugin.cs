@@ -15,7 +15,7 @@ using System.Diagnostics;
 using Il2CppInterop.Runtime;
 namespace SprocketVisualEffects;
 
-[BepInPlugin("sprocket.visualeffects","Sprocket Visual Effects","0.5.3")]
+[BepInPlugin("sprocket.visualeffects","Sprocket Visual Effects","0.5.4")]
 [BepInDependency("sprocket.telescopicmast",BepInDependency.DependencyFlags.SoftDependency)]
 public sealed class Plugin:BasePlugin
 {

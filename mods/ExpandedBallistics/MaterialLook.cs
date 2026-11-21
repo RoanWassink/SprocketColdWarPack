@@ -3,6 +3,7 @@ namespace SprocketExpandedBallistics;
 
 internal sealed record MaterialLook(string Id,string Guid,string Asset,Vector4 Rect,Vector2 Tile,float Smoothness)
 {
+    internal const string FloppyPartsGuid="sprocket.floppyparts";
     // Rect: min U,V / size U,V. Pixel rectangles are top-down; Unity V is bottom-up.
     internal static readonly MaterialLook[] All={
         new("ebWood","952c18e622dfe1a4aa366948d5d17e07","TrimVaneMaterial",Pixels(4,48,204,208,256),new(.36f,.40f),.22f),
@@ -12,6 +13,12 @@ internal sealed record MaterialLook(string Id,string Guid,string Asset,Vector4 R
     };
     private static Vector4 Pixels(float x,float y,float right,float bottom,float size)=>new(x/size,1-bottom/size,(right-x)/size,(bottom-y)/size);
     internal static MaterialLook? For(string? id)=>Array.Find(All,l=>l.Id==id);
+    internal static bool OverlaysEnabled(Func<string,bool>? isPluginLoaded)
+    {
+        if(isPluginLoaded==null)return true;
+        try{return !isPluginLoaded(FloppyPartsGuid);}
+        catch(Exception){return true;}
+    }
     internal bool Glass=>Id=="ebGlass";
     internal static bool TransparentGlass(bool shaderSupported,bool properties,bool validated,bool surface,bool queue)=>shaderSupported&&properties&&validated&&surface&&queue;
 }
@@ -23,6 +30,7 @@ internal sealed class MaterialLookCache<T> where T:class
     private readonly Dictionary<long,(string Signature,T View)> entries=new();
     private readonly Action<T> dispose;
     internal MaterialLookCache(Action<T> dispose){this.dispose=dispose;}
+    internal int Count=>entries.Count;
     internal int Rebuilds {get;private set;}
     internal IEnumerable<KeyValuePair<long,(string Signature,T View)>> Entries=>entries;
     internal bool TryReuse(long owner,string signature,out T? view)

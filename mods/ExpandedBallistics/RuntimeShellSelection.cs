@@ -207,6 +207,8 @@ internal static class RuntimeShellSelection
             {
                 if(visibility.ShellControls)
                 {
+                    if(RuntimeShellEra.DiagnosticWarning(cannon.Vehicle) is {} eraWarning)
+                        ui.InfoField(eraWarning,Math.Clamp((eraWarning.Length+39)/40,2,6));
                     var carried=RuntimeAmmoLoadout.HasLoadout(cannon);
                     var keep=new List<string>(2);
                     if(StoredSelection(blueprint) is {} storedId)keep.Add(storedId);

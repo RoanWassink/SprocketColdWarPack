@@ -4,7 +4,7 @@ Plate Destruction lets armour plates and applique panels take visible and struct
 
 ![Front hull armour torn open by blast damage, exposing the driver inside](../../docs/img/plate-destruction-hull-breach.jpg)
 
-- Version: 0.8.3
+- Version: 0.8.4
 - Plugin GUID: `nero.sprocket.platedestruction.p0`
 - Needs: no other mod
 - Game version tested: 0.2.56.2 (updated for the 18 November 2026 GameAssembly)

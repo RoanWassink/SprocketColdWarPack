@@ -30,12 +30,35 @@ internal static class RuntimeMaterialLooks
     private static readonly MaterialLookCache<View> cache=new(v=>{if(v.Root!=null){v.Root.SetActive(false);Object.DestroyImmediate(v.Root);}if(v.Mesh!=null)Object.DestroyImmediate(v.Mesh);});
     private static readonly HashSet<string> warnings=new();
     private static readonly List<long> removed=new();
-    private static bool diagnosticOverlay,wasDesigner;
+    private static readonly Func<string,bool> pluginLoaded=IsPluginLoaded;
+    private static bool diagnosticOverlay,wasDesigner,suppressedLogged;
     private static float nextPoll;
     private static int lastFrame=-1;
 
+    private static bool IsPluginLoaded(string guid)
+    {
+        var plugins=BepInEx.Unity.IL2CPP.IL2CPPChainloader.Instance?.Plugins;
+        return plugins!=null&&plugins.ContainsKey(guid);
+    }
+    internal static bool SuppressedByFloppyParts()
+    {
+        if(MaterialLook.OverlaysEnabled(pluginLoaded))return false;
+        if(!suppressedLogged)
+        {
+            suppressedLogged=true;
+            Plugin.ModLog.LogInfo($"[Material look] Disabled automatically: {MaterialLook.FloppyPartsGuid} is loaded; armour protection for ebWood, ebRubber, ebFabric and ebGlass remains active.");
+        }
+        if(plates.Count>0||pending.Count>0||hidden.Count>0||cache.Count>0)
+        {
+            try{SuspendAll();cache.Clear();hidden.RestoreAll();pending.Clear();plates.Clear();}
+            catch(Exception ex){Warn("suppress",ex.Message);}
+        }
+        return true;
+    }
+
     internal static void NoteModel(VehicleObjectModel model)
     {
+        if(SuppressedByFloppyParts())return;
         try
         {
             var components=model?.VehicleObject?.Components;if(components==null)return;
@@ -46,6 +69,7 @@ internal static class RuntimeMaterialLooks
     }
     internal static void Note(PlateStructure plate,bool changed=false)
     {
+        if(SuppressedByFloppyParts())return;
         try
         {
             if(plate==null)return;
@@ -59,17 +83,19 @@ internal static class RuntimeMaterialLooks
     }
     internal static void Overlay(bool active)
     {
+        if(SuppressedByFloppyParts())return;
         if(diagnosticOverlay==active)return;
         diagnosticOverlay=active;SuspendAll();foreach(var p in plates)pending.Schedule(p.Key,p.Value,Time.unscaledTime,.15f);
     }
-    internal static void BeginEdit(){SuspendAll();foreach(var p in plates)pending.Schedule(p.Key,p.Value,Time.unscaledTime,.15f);}
+    internal static void BeginEdit(){if(SuppressedByFloppyParts())return;SuspendAll();foreach(var p in plates)pending.Schedule(p.Key,p.Value,Time.unscaledTime,.15f);}
     internal static void Release(PlateStructure plate)
-    {long key=plate.Pointer.ToInt64();hidden.Restore(key);cache.Remove(key);pending.Remove(key);plates.Remove(key);}
+    {if(plate==null)return;long key=plate.Pointer.ToInt64();hidden.Restore(key);cache.Remove(key);pending.Remove(key);plates.Remove(key);}
     private static void Suspend(long key){hidden.Restore(key);if(cache.TryGet(key,out var v)&&v!.Root!=null)v.Root.SetActive(false);}
     private static void SuspendAll(){foreach(var e in cache.Entries)Suspend(e.Key);}
     internal static void Tick(bool designer)
     {
         if(lastFrame==Time.frameCount)return;lastFrame=Time.frameCount;
+        if(SuppressedByFloppyParts())return;
         try{TickCore(designer);}catch(Exception ex){SuspendAll();Warn("tick",ex.Message);}
     }
     private static void TickCore(bool designer)
@@ -112,6 +138,7 @@ internal static class RuntimeMaterialLooks
     }
     private static void Build(PlateStructure plate,bool designer)
     {
+        if(SuppressedByFloppyParts())return;
         if(plate==null)return;
         long key=plate.Pointer.ToInt64();var look=MaterialLook.For(plate.armourTechID);
         if(look==null||plate.VehicleObject==null||plate.VehicleObject.Released){Release(plate);return;}
@@ -215,6 +242,7 @@ internal static class RuntimeMaterialLooks
         if(source.Failed)return null;
         try
         {
+            RuntimeCustomTextures.Initialize();
             var custom=RuntimeCustomTextures.For(look.Id);
             if(custom!=null&&!source.CustomFailed)
             {
@@ -289,6 +317,6 @@ internal static class RuntimeMaterialLooks
     {
         SuspendAll();cache.Clear();hidden.RestoreAll();pending.Clear();plates.Clear();
         foreach(var source in sources.Values){if(source.Material!=null)Object.DestroyImmediate(source.Material);try{source.Request?.Cancel();source.Request?.Unload();}catch(Exception ex){Warn("unload",ex.Message);}}
-        sources.Clear();RuntimeCustomTextures.Clear();warnings.Clear();removed.Clear();diagnosticOverlay=false;wasDesigner=false;nextPoll=0;lastFrame=-1;
+        sources.Clear();RuntimeCustomTextures.Clear();warnings.Clear();removed.Clear();diagnosticOverlay=false;wasDesigner=false;suppressedLogged=false;nextPoll=0;lastFrame=-1;
     }
 }

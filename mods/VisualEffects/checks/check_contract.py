@@ -140,7 +140,7 @@ check('[BepInDependency("sprocket.telescopicmast",BepInDependency.DependencyFlag
       and 'public const string MastGuid = "sprocket.telescopicmast";' in client
       and 'GetType("SprocketTelescopicMast.Io.IoApi", false)' in client
       and 'SprocketTelescopicMast.dll' not in (mod / 'SprocketVisualEffects.csproj').read_text(), 'Mast stays a reflection-only soft dependency: GUID sprocket.telescopicmast in Plugin.cs and IoApiClient.cs, facade type SprocketTelescopicMast.Io.IoApi')
-check('[BepInPlugin("sprocket.visualeffects","Sprocket Visual Effects","0.5.3")]' in plugin
+check('[BepInPlugin("sprocket.visualeffects","Sprocket Visual Effects","0.5.4")]' in plugin
       and 'new Harmony("sprocket.visualeffects.inspector")' in plugin
       and 'new Harmony("sprocket.visualeffects.observer")' in plugin
       and 'new Harmony("sprocket.visualeffects.impacts")' in plugin
