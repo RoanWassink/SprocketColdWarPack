@@ -1,6 +1,8 @@
 # Sprocket Cold War Pack
 
-A set of mods for the tank game **Sprocket** that brings the Cold War to the tank designer: new eras, realistic armour and ammunition, period sights, night vision, new turret and loader types, and a few handy tools.
+> **Important:** Can't guarantee compatibility with other mods. No user support given if you don't read the instructions!
+
+A set of mods for the tank game **Sprocket** that brings the Cold War to the tank designer: new eras, realistic armour and ammunition, period sights, night vision, new turret and loader types, wheeled vehicles, and a few handy tools.
 
 The mods work on their own, but they are made to be installed together as one pack.
 
@@ -67,7 +69,12 @@ The cassette composer builds armour packages layer by layer and shows how well t
 - **Hydropneumatic suspension.** Raise, lower and tilt your tank while you drive. Travel, stiffness and damping are set in the designer.
 - **Stabilization.** A gun stabiliser for turret drives, with realistic speed limits.
 - **Engine Expansion.** Diesel and gas turbine engines, a smaller gearbox, and a power pack that fits engine and gearbox as one block.
+- **Wheeled Vehicles.** Real 4x4, 6x4, 6x6, 8x4, 8x8 and 10x10 wheeled chassis presets, air-tyre wheels, per-axle drive and front/rear steering, Ackermann steering geometry, tuned wheel suspension, and soft rubber tyre audio.
 - **Smoke Launchers.** A bank of three smoke tubes, fired with one key.
+
+![Air-tyre wheels and suspension under the hull](docs/img/wheeled-vehicles-tyres.jpg)
+
+![Track inspector with 4x4 to 10x10 presets, per-axle drive and steering, and suspension settings](docs/img/wheeled-vehicles-inspector.jpg)
 
 ![The animated T-72 style carousel in a turret basket](docs/img/carousel-t72.webp)
 
@@ -120,7 +127,7 @@ Every mod has a folder in [`mods`](mods) with its own page: what it does, its se
 
 | Mod | Version | In short |
 |---|---|---|
-| [Expanded Ballistics](mods/ExpandedBallistics) | 0.22.102 | Shells, armour, reactive armour, guided missiles, combat report |
+| [Expanded Ballistics](mods/ExpandedBallistics) | 0.22.109 | Shells, armour, reactive armour, guided missiles, combat report |
 | [Plate Destruction](mods/PlateDestruction) | 0.8.4 | Destructible armour plates, blast dents, holes, and torn edges |
 | [Thermal Sight](mods/ThermalSight) | 0.5.4 | Night vision and thermal sights, searchlight, rangefinders |
 | [Gun Sights](mods/GunSights) | 0.3.0 | 33 period gunner's sights |
@@ -129,6 +136,7 @@ Every mod has a folder in [`mods`](mods) with its own page: what it does, its se
 | [Oscillating Turret](mods/OscillatingTurret) | 0.3.1 | Tilting turret and heavy trunnion mount |
 | [Stabilization](mods/Stabilization) | 0.7.4 | Gun stabiliser |
 | [Engine Expansion](mods/EngineExpansion) | 0.7.3 | Diesel and gas turbine engines, power pack |
+| [Wheeled Vehicles](mods/WheeledVehicles) | 0.4.2 | Real 4x4–10x10 wheeled chassis, per-axle steering & air-tyre wheels |
 | [Smoke Launchers](mods/SmokeLaunchers) | 0.2.5 | Smoke launcher bank |
 | [Telescopic Mast](mods/TelescopicMast) | 0.9.9 | Mast, hinge, turntable, signal editor |
 | [Emitter](mods/Emitter) | 0.1.3 | Ejected shell casings |
@@ -146,7 +154,7 @@ Some mods need others to work: Thermal Sight, Hydropneumatic, Smoke Launchers, T
 ## How to install
 
 1. **Install the mod loader.** The pack runs on BepInEx 6. Use the **Sprocket Mod Loader** by Hans21223, which installs the right BepInEx version with a fix for Sprocket: <https://github.com/Hans21223/Sprocket-Mod-Loader>. The "Easy install" with the Mod Manager is the simplest way. It is a separate project and not part of this pack. Start the game once afterwards, so it can set itself up. The first start takes a while.
-2. **Install the pack.** Download `SprocketColdWarPack-v1.2.2.zip` from the [Releases](../../releases) page and extract it into the Sprocket game folder (the folder with `Sprocket.exe`). Merge it with the existing `BepInEx` and `Sprocket_Data` folders.
+2. **Install the pack.** Download `SprocketColdWarPack-v1.3.0.zip` from the [Releases](../../releases) page and extract it into the Sprocket game folder (the folder with `Sprocket.exe`). Merge it with the existing `BepInEx` and `Sprocket_Data` folders.
 3. **Start the game.** Settings are in the folder `BepInEx\config`. They are created at the first start. The mods that need keys do not choose them for you: set your own in the game's Settings screen, under Controls.
 
 To remove a mod, delete its `SprocketXxx` folder in `BepInEx\plugins`. If you update by extracting a newer zip over an older one, your edited settings files are overwritten, so keep a copy.

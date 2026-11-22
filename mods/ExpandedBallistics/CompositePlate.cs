@@ -657,6 +657,13 @@ internal static class SolidBlockApply
     internal static bool NativeCollider=true;
     internal static string ColliderSummary=>NativeCollider?SolidCollider:ThinShell;
     internal const string InLayers="This plate is in layers: a plate in layers cannot be a solid block at the same time. Choose Back to box first, then Solid block.";
+    /// <summary>
+    /// 0.22.103: a plate with a leftover [Layers] tag whose current mesh is already a single closed piece
+    /// (e.g. reshaped by hand into one closed box) can convert directly to Solid block without losing its shape.
+    /// Multi-piece or open layered meshes stay blocked with the Back to box advice.
+    /// </summary>
+    internal static bool BlockedByLayers(bool inLayers,SolidTargetInfo? solid)=>inLayers&&!(solid is {Refusal:null,Pieces:1});
+    internal static bool BlockedByLayers(bool inLayers,SolidShapeResult shape)=>inLayers&&!(shape.Closed&&shape.Pieces==1);
     internal const string Leaves="This plate is a Solid block: this Apply removes the mark [Solid block] (the plate is paid as its skins again).";
     /// <summary>The armour mass of a solid block: closed volume x the density of the recipe over its nominal depth (air included: CassetteModel.Passive.Density).</summary>
     internal static double MassKg(double volumeM3,double densityKgM3)=>volumeM3*densityKgM3;

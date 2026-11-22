@@ -271,9 +271,15 @@ internal static class RuntimeShellSelection
                     ui.InfoField(selectedProfile.Behavior=="he" ? $"{dart.Velocity:0} m/s | native HE power {ShellBalance.BlastPower(selectedProfile,blueprint.Caliber):0.0}" : selectedProfile.Behavior is "heat" or "hesh" or "atgm" or "atgm_gun" ? $"{dart.Velocity:0} m/s | {RuntimeShellEra.ChemicalBudget(selectedProfile,blueprint.Caliber,cannon.Vehicle):0} mm chemical proxy penetration" : $"{dart.Velocity:0} m/s | {pen:0} mm base RHA penetration", 2);
                     if(selectedProfile.Behavior is "heat" or "hesh" or "atgm" or "atgm_gun")
                         ui.InfoField(RuntimeShellEra.ChemicalDescription(selectedProfile,cannon.Vehicle),2);
-                    ui.InfoField(CannonProfile(cannon)!.Behavior == "aphe"
-                        ? "APHE: reduced penetration | amplified native AP spall"
-                        : CannonProfile(cannon)!.Behavior == "apfsds" ? "APFSDS: narrow cone | spall increases as remaining penetration falls"
+                    if(selectedProfile.Behavior == "aphe")
+                    {
+                        var aphe=ApheRules.Effective(selectedProfile,RuntimeSpall.Aphe);
+                        var plan=ApheRules.Plan(blueprint.Caliber,RuntimeSpall.Settings.ApheSpallMultiplier/4.0,aphe);
+                        var fragPen=ApheRules.EstimateFragmentPenetrationMm(plan,dart.PenetratorConstant);
+                        ui.InfoField(FormattableString.Invariant($"APHE: fuse >= {aphe.FuseSensitivityRhaMm:0.#} mm RHA, delay {aphe.FuseDelayMeters:0.##} m | {plan.TotalCount} frags (~{fragPen:0} mm RHA, {aphe.ConeHalfAngleDegrees*2:0}°)"), 2);
+                    }
+                    else
+                    ui.InfoField(selectedProfile.Behavior == "apfsds" ? "APFSDS: narrow cone | spall increases as remaining penetration falls"
                         : selectedProfile.Behavior is "he" or "heat" or "hesh" or "atgm" or "atgm_gun" ? $"{selectedProfile.Behavior.ToUpperInvariant()}: impact effect" : $"Fragment damage: {dart.DamageMultiplier:P0} | no explosive filler", 2);
                     }
                     catch(InvalidOperationException ex){ui.InfoField("Shell unavailable: "+ex.Message,2);}

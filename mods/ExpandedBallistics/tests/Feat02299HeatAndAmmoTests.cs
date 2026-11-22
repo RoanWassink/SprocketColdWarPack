@@ -78,9 +78,9 @@ internal static class Feat02299HeatAndAmmoTests
         // 6. Source/allocation/version/hook-count checks
         var root=FindRoot();
         string Read(string rel)=>File.ReadAllText(Path.Combine(root,rel));
-        Check(Read("Plugin.cs").Contains("\"0.22.102\"",StringComparison.Ordinal)
-            &&Read("SprocketExpandedBallistics.csproj").Contains("<Version>0.22.102</Version>",StringComparison.Ordinal)
-            &&Read("RELEASE-NOTES.md").Contains("## 0.22.102",StringComparison.Ordinal),"version 0.22.102 in Plugin.cs, csproj, RELEASE-NOTES");
+        Check(Read("Plugin.cs").Contains("\"0.22.109\"",StringComparison.Ordinal)
+            &&Read("SprocketExpandedBallistics.csproj").Contains("<Version>0.22.109</Version>",StringComparison.Ordinal)
+            &&Read("RELEASE-NOTES.md").Contains("## 0.22.109",StringComparison.Ordinal),"version 0.22.109 in Plugin.cs, csproj, RELEASE-NOTES");
         var spallSrc=Read("RuntimeSpall.cs");
         Check(spallSrc.Contains("record struct LayerScope",StringComparison.Ordinal)
             &&spallSrc.Contains("record struct BurstState",StringComparison.Ordinal)

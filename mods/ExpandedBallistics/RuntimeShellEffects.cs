@@ -23,7 +23,7 @@ internal static class RuntimeShellEffects
         var assets=__instance.explosionAssets;
         if(assets==null)return;
         __state=new(__instance,assets,assets.MinScale,assets.MaxScale);
-        var scale=ShellBalance.Visual(context.Behavior=="aphe" ? RuntimeSpall.Settings.ApheExplosionScale : context.Profile!.ExplosionScale,context.GunDiameter*1000);
+        var scale=ShellBalance.Visual(context.Behavior=="aphe" ? ApheRules.Effective(context.Profile,RuntimeSpall.Aphe).ExplosionVisualScale : context.Profile!.ExplosionScale,context.GunDiameter*1000);
         assets.MinScale*=(float)scale;
         assets.MaxScale*=(float)scale;
         __instance.explosionAssets=assets;

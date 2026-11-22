@@ -76,7 +76,7 @@ internal sealed class ShellEditorSession:EditorSession
             "Body"=>"Dimensions and density define the native penetrator proxy. A shaped-charge body alone does not add a HEAT jet.",
             "Effect"=>p["modules"]!["effect"]!["kind"]!.GetValue<string>() switch
             {
-                "spall"=>"An internal fragment burst. Its burst size and cone currently follow the shared APHE settings.",
+                "spall"=>"Post-penetration APHE detonation. Configure fuse sensitivity, fuse delay, burst cone, fragmentation power and safety margins per shell.",
                 "heat"=>"Set precursor penetration above zero for tandem HEAT. Both charge values use the reference calibre; zero precursor means a single charge.",
                 _=>"The selected effect determines impact; rocket propulsion and guidance do not change it."
             },

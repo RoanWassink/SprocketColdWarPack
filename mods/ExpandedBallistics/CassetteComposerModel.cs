@@ -862,10 +862,11 @@ internal sealed class CassetteComposerModel
             if(applyChoice==ComposerApplyChoice.BackToBox)return !target.Composite?"Select a composite plate.":!InLayers?"This plate is not in layers.":null;
             if(applyChoice==ComposerApplyChoice.ThicknessOnly&&target.Composite&&InLayers)return "This plate is in layers: choose Convert to layers to rebuild it with the recipe, or Back to box to reshape it.";
             if(!target.Composite&&target.ConvertBlocker is {} why)return why;
-            // 0.22.82: Solid block needs a closed shape and a plate that is not in layers (the reason and the advice are shown; nothing is changed).
+            // 0.22.82 / 0.22.103: Solid block needs a closed shape and refuses multi-piece/open plates in layers;
+            // a single closed box carrying a leftover [Layers] tag is allowed to convert directly.
             if(applyChoice==ComposerApplyChoice.SolidBlock)
             {
-                if(InLayers)return SolidBlockApply.InLayers;
+                if(SolidBlockApply.BlockedByLayers(InLayers,target.Solid))return SolidBlockApply.InLayers;
                 if(target.Solid is {Refusal:{} open})return open;
             }
             // 0.22.74: an option can be chosen before anything else and Apply does it all: a plate that is not composite is converted in the same step (the recipe is needed for that);

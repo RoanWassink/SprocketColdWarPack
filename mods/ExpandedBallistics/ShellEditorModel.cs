@@ -618,8 +618,23 @@ internal sealed class ShellEditorModel
                 double budget;try{budget=c.ChemicalBudget?.Invoke(profile)??ShellBalance.ChemicalPenetration(profile,c.CalibreMm);}catch(Exception){budget=ShellBalance.ChemicalPenetration(profile,c.CalibreMm);}
                 values[6]=$"{budget:0} mm chemical"+(profile.TandemPrecursorPenetrationMm>0?$" · tandem {profile.TandemPrecursorPenetrationMm:0} mm":"");
             }
+            else if(profile.Behavior=="aphe")
+            {
+                var aphe=ApheRules.Effective(profile,ApheSettings.Default);
+                var basePen=c.Penetration is {} pen?FormattableString.Invariant($"{pen(dart):0} mm RHA"):"RHA: needs the game";
+                values[6]=FormattableString.Invariant($"{basePen} · fuse \u2265{aphe.FuseSensitivityRhaMm:0.#} mm / {aphe.FuseDelayMeters:0.##} m");
+            }
             else values[6]=c.Penetration is {} pen?$"{pen(dart):0} mm RHA":"RHA: needs the game";
-            values[7]=ShellBalance.FlightEnabled(profile)&&profile.Atgm is {} a?$"{a.FlightSpeed:0} m/s · {a.MaxTurnRate:0}°/s · {ShellEditorText.Option("guidanceMode",a.GuidanceMode)}":"Ballistic";
+            if(ShellBalance.FlightEnabled(profile)&&profile.Atgm is {} a)
+                values[7]=$"{a.FlightSpeed:0} m/s · {a.MaxTurnRate:0}°/s · {ShellEditorText.Option("guidanceMode",a.GuidanceMode)}";
+            else if(profile.Behavior=="aphe")
+            {
+                var aphe=ApheRules.Effective(profile,ApheSettings.Default);
+                var plan=ApheRules.Plan(c.CalibreMm,1.0,aphe);
+                var fragPen=ApheRules.EstimateFragmentPenetrationMm(plan,dart.PenetratorConstant);
+                values[7]=FormattableString.Invariant($"{plan.TotalCount} frags · {plan.TotalMassKg*1000/plan.TotalCount:0} g · ~{fragPen:0} mm ({aphe.ConeHalfAngleDegrees*2:0}°)");
+            }
+            else values[7]="Ballistic";
         }
         catch(Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {found.Add(new("No numbers for this cannon: "+ex.Message,ShellIssueKind.Warning));}

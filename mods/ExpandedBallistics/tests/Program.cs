@@ -1,4 +1,5 @@
 using SprocketExpandedBallistics;
+if(args.Contains("--feat104-only")){var n=0;var bad=0;Feat022104ApheDetonationTests.Run((ok,t)=>{n++;Console.WriteLine((ok?"PASS ":"FAIL ")+t);if(!ok){bad++;Environment.ExitCode=1;}});Console.WriteLine($"FEAT104 ONLY: {n} checks, {bad} failures");return;}
 if(args.Contains("--feat101-only")){var n=0;var bad=0;Feat022101ShellEraFallbackAndWarningsTests.Run((ok,t)=>{n++;Console.WriteLine((ok?"PASS ":"FAIL ")+t);if(!ok){bad++;Environment.ExitCode=1;}});Console.WriteLine($"FEAT101 ONLY: {n} checks, {bad} failures");return;}
 if(args.Contains("--shell-era-regression")){var n=0;var bad=0;void C(bool ok,string t){n++;if(!ok){bad++;Environment.ExitCode=1;Console.WriteLine("FAIL "+t);}}n+=ShellEraListTests.Run();EraDateGateTests.Run(C);Release0223Tests.Run(C);Wave2bUiTests.Run(C);Console.WriteLine($"SHELL-ERA REGRESSION: {n} checks, {bad} failures");return;}
 if(args.Contains("--feat100-only")){var n=0;var bad=0;Feat022100FloppyPartsHandoffTests.Run((ok,t)=>{n++;Console.WriteLine((ok?"PASS ":"FAIL ")+t);if(!ok){bad++;Environment.ExitCode=1;}});Console.WriteLine($"FEAT100 ONLY: {n} checks, {bad} failures");return;}

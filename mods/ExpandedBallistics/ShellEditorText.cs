@@ -38,7 +38,19 @@ internal static class ShellEditorText
         // Rebalance 0.21.1 fields (not in this base yet; readable after the merge).
         ["kineticKind"]="Kinetic type",["carrierDiameterFactor"]="Carrier diameter",["carrierMassFraction"]="Carrier mass",
         ["chemicalSource"]="Penetration source",["standoffFreeCalibres"]="Free standoff",
-        ["keepAfterRetirement"]="Keep in later eras (archive)"
+        ["keepAfterRetirement"]="Keep in later eras (archive)",
+        ["apheFuseSensitivityRhaMm"]="Fuse sensitivity (min armour)",
+        ["apheFuseDelayMeters"]="Fuse delay (depth inside)",
+        ["apheDetonateOnStop"]="Detonate if stopped inside",
+        ["apheConeHalfAngleDegrees"]="Burst cone half-angle (180° = 360°)",
+        ["apheForwardMomentumBlend"]="Forward shell-speed carry",
+        ["apheFragmentCountAt100Mm"]="Fragments (at 100 mm)",
+        ["apheFragmentMassKgAt100Mm"]="Shrapnel mass (at 100 mm)",
+        ["apheFragmentSpeedMetersPerSecond"]="Explosive burst speed",
+        ["apheMaxGapFraction"]="Narrow-compartment clamp",
+        ["apheMinWallClearanceMeters"]="Far-wall clearance",
+        ["apheOpenFallbackMeters"]="Open-space fallback delay",
+        ["apheExplosionVisualScale"]="Explosion visual scale"
     };
     /// <summary>Unit shown next to the number. Used instead of the MSD unit when the MSD unit is empty or a description.</summary>
     internal static readonly IReadOnlyDictionary<string,string> Units=new Dictionary<string,string>(StringComparer.Ordinal)
@@ -48,7 +60,8 @@ internal static class ShellEditorText
         ["velocityEfficiency"]="×",["velocityMultiplier"]="×",["maximumVelocityFactor"]="×",["launchSpeedMultiplier"]="×",
         ["penetrationQuality"]="×",["fragmentDamageMultiplier"]="×",["spallMultiplier"]="×",["explosionScale"]="×",
         ["secondPlatePenetrationFactor"]="×",["airGapLossPerCalibre"]="per cal.",
-        ["carrierDiameterFactor"]="× calibre",["carrierMassFraction"]="× shell mass",["standoffFreeCalibres"]="calibres"
+        ["carrierDiameterFactor"]="× calibre",["carrierMassFraction"]="× shell mass",["standoffFreeCalibres"]="calibres",
+        ["apheForwardMomentumBlend"]="×",["apheMaxGapFraction"]="× gap",["apheExplosionVisualScale"]="×"
     };
     private static readonly IReadOnlyDictionary<string,IReadOnlyDictionary<string,string>> FieldOptions=new Dictionary<string,IReadOnlyDictionary<string,string>>(StringComparer.Ordinal)
     {
@@ -146,7 +159,7 @@ internal static class ShellEditorText
             "Body"=>"Dimensions and density define the native penetrator proxy. A shaped-charge body alone does not add a HEAT jet.",
             "Effect"=>effect switch
             {
-                "spall"=>"An internal fragment burst. Its size and cone follow the shared APHE settings.",
+                "spall"=>"Post-penetration APHE detonation. Configure fuse sensitivity, fuse delay, burst cone, fragmentation power and safety margins per shell.",
                 "heat"=>"Set the precursor above zero for tandem HEAT. Both charges use the reference calibre; zero means a single charge.",
                 _=>"The effect module decides the impact; rocket propulsion and guidance do not change it."
             },

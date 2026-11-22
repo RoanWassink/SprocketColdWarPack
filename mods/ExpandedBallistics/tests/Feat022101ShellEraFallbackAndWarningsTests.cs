@@ -181,10 +181,10 @@ internal static class Feat022101ShellEraFallbackAndWarningsTests
             && selection.Contains("ui.InfoField(eraWarning,", StringComparison.Ordinal),
             "5 RuntimeShellSelection displays diagnostic warning in cannon inspector");
 
-        Check(Read("Plugin.cs").Contains("\"0.22.102\"", StringComparison.Ordinal)
-            && Read("SprocketExpandedBallistics.csproj").Contains("<Version>0.22.102</Version>", StringComparison.Ordinal)
-            && Read("RELEASE-NOTES.md").Contains("## 0.22.102", StringComparison.Ordinal),
-            "5 Plugin.cs, csproj, and RELEASE-NOTES.md carry version 0.22.102");
+        Check(Read("Plugin.cs").Contains("\"0.22.109\"", StringComparison.Ordinal)
+            && Read("SprocketExpandedBallistics.csproj").Contains("<Version>0.22.109</Version>", StringComparison.Ordinal)
+            && Read("RELEASE-NOTES.md").Contains("## 0.22.109", StringComparison.Ordinal),
+            "5 Plugin.cs, csproj, and RELEASE-NOTES.md carry version 0.22.109");
 
         int hooks = Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
             .Where(f => { var r = f.Replace('\\', '/'); return !r.Contains("/tests/") && !r.Contains("/bin/") && !r.Contains("/obj/"); })
@@ -246,6 +246,33 @@ internal static class Feat022101ShellEraFallbackAndWarningsTests
         {
             if (Directory.Exists(editorTemp)) Directory.Delete(editorTemp, true);
         }
+
+        // 7. 0.22.103: single closed box with leftover [Layers] tag can convert directly to Solid block
+        var singleClosedInfo = new SolidTargetInfo(1, 0.992, null, 0, 5);
+        var multiPieceInfo = new SolidTargetInfo(4, 0.992, null, 0, 5);
+        var openInfo = new SolidTargetInfo(0, 0, "Open mesh", 0, 5);
+        Check(!SolidBlockApply.BlockedByLayers(true, singleClosedInfo),
+            "7 BlockedByLayers allows single closed box with leftover [Layers] tag");
+        Check(SolidBlockApply.BlockedByLayers(true, multiPieceInfo),
+            "7 BlockedByLayers refuses multi-piece plate in layers");
+        Check(SolidBlockApply.BlockedByLayers(true, openInfo),
+            "7 BlockedByLayers refuses open plate in layers");
+        Check(SolidBlockApply.BlockedByLayers(true, (SolidTargetInfo?)null),
+            "7 BlockedByLayers refuses unreadable plate in layers");
+        Check(!SolidBlockApply.BlockedByLayers(false, multiPieceInfo),
+            "7 BlockedByLayers never blocks plates that are not in layers");
+
+        var singleShape = new SolidShapeResult(1, new[] { 0.992 }, new[] { 6 }, 0, Array.Empty<SolidGap>(), 0, 0, 0.992, true, null);
+        var multiShape = new SolidShapeResult(2, new[] { 0.5, 0.492 }, new[] { 6, 6 }, 0, Array.Empty<SolidGap>(), 0, 0, 0.992, true, null);
+        var openShape = new SolidShapeResult(0, Array.Empty<double>(), Array.Empty<int>(), 0, Array.Empty<SolidGap>(), 4, 0, 0, false, "Open mesh");
+        Check(!SolidBlockApply.BlockedByLayers(true, singleShape)
+            && SolidBlockApply.BlockedByLayers(true, multiShape)
+            && SolidBlockApply.BlockedByLayers(true, openShape),
+            "7 SolidShapeResult overload matches SolidTargetInfo policy");
+
+        var runtimeEdit = Read("RuntimeCompositePlateEdit.cs");
+        Check(runtimeEdit.Contains("SolidBlockApply.BlockedByLayers(inLayers,shape)", StringComparison.Ordinal),
+            "7 RuntimeCompositePlateEdit.TrySolidBlock uses SolidBlockApply.BlockedByLayers");
 
         Console.WriteLine($"FEAT101: {checks} checks, {failures} failures");
     }

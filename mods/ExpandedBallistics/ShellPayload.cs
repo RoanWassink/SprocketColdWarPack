@@ -39,5 +39,10 @@ internal static class ShellPayload
    throw new FormatException($"Profile '{p.Id}': chemicalPenetrationMm is 0; expected >0–2000 for {p.Behavior}.");
   if(p.Behavior=="he" && p.NativeExplosivePower<=0)
    throw new FormatException($"Profile '{p.Id}': nativeExplosivePower is 0; expected >0–500 for he.");
+  if(p.Aphe is {} aphe)
+  {
+   if(p.Behavior!="aphe")throw new FormatException($"Profile '{p.Id}': APHE detonation settings require aphe behavior.");
+   ApheRules.ValidateOverrides(p.Id,aphe);
+  }
  }
 }

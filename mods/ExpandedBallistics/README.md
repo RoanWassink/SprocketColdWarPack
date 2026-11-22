@@ -4,7 +4,7 @@ Expanded Ballistics changes how shells and armour work in Sprocket, so the way y
 
 ![Armour cassettes (ERA) you can place on a tank](../../docs/img/era-cassettes.png)
 
-- Version: 0.22.102
+- Version: 0.22.109
 - Plugin GUID: `sprocket.expandedballistics`
 - Author: Nero. GPL-3.0-only licence (see `LICENSE`).
 - Requires: Sprocket JSON Editor (`sprocket.jsoneditor`, 0.1.5 or later 0.1.x) and Sprocket UI Kit (`sprocket.uikit`, 0.1.7 or later 0.1.x)
@@ -29,7 +29,7 @@ Expanded Ballistics changes how shells and armour work in Sprocket, so the way y
 
 1. Select a cannon in the designer and open its inspector.
 2. Open Shell profile and choose a Shell type. The list shows the shells that fit the date and technology of your vehicle.
-3. To make your own shell, open the shell editor from the same inspector. It uses the shared JSON editor. Copy one of the existing profiles, give it a new name, change the values and save. A valid profile is available at once.
+3. To make your own shell, open the shell editor from the same inspector. It uses the shared JSON editor. Copy one of the existing profiles, give it a new name, change the values and save. A valid profile is available at once. For **APHE (`Internal burst (APHE)`)** shells, all 12 detonation settings (fuse sensitivity, fuse delay, burst cone angle, fragment count/mass, burst speed, etc.) can be tuned per shell right under **Effect** with live fragment/penetration previews.
 4. To carry several shell types, set up the ammunition loadout for the cannon design. In battle you switch type with the keys you set (see Settings below), and the HUD shows what is loaded.
 
 <!-- SCREENSHOT: ballistics-shell-editor.png (the shell editor in the cannon inspector) -->

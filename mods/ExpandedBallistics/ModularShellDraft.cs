@@ -68,6 +68,18 @@ internal sealed class ModularShellDraft
         new("spallMultiplier","Effect",1,12,.1),new("coneHalfAngleDegrees","Effect",1,90,1,"°"),
         new("explosionScale","Effect",.1,3,.01),new("secondPlatePenetrationFactor","Effect",.01,1,.01),
         new("airGapLossPerCalibre","Effect",0,100,.1),new("referenceCalibreMm","Effect",10,500,1,"mm"),
+        new("apheFuseSensitivityRhaMm","Effect",1,200,1,"mm RHA"),
+        new("apheFuseDelayMeters","Effect",0,3,.05,"m"),
+        new("apheDetonateOnStop","Effect",0,0,0,Choices:new[]{"no","yes"}),
+        new("apheConeHalfAngleDegrees","Effect",15,180,5,"°"),
+        new("apheForwardMomentumBlend","Effect",0,.6,.05),
+        new("apheFragmentCountAt100Mm","Effect",16,160,4,"frags"),
+        new("apheFragmentMassKgAt100Mm","Effect",.2,30,.2,"kg"),
+        new("apheFragmentSpeedMetersPerSecond","Effect",250,1800,25,"m/s"),
+        new("apheMaxGapFraction","Effect",.15,.9,.05),
+        new("apheMinWallClearanceMeters","Effect",.01,.25,.01,"m"),
+        new("apheOpenFallbackMeters","Effect",.02,.5,.01,"m"),
+        new("apheExplosionVisualScale","Effect",.1,2,.05),
         new("keepAfterRetirement","Carrier",0,0,0,Choices:new[]{"no","yes"})
     };
     private static readonly HashSet<string> ModifierKeys = Fields.Select(f=>f.Key).Append("minimumDate").ToHashSet(StringComparer.Ordinal);
@@ -313,6 +325,12 @@ internal sealed class ModularShellDraft
             var legacy=p["legacyProfile"]?[field];
             return JsonValue.Create(legacy is JsonValue value&&value.TryGetValue<bool>(out var keep)&&keep?"yes":"no")!;
         }
+        if(field=="apheDetonateOnStop")
+        {
+            if(p["modifiers"]?[field] is {} explicitStop)return Copy(explicitStop);
+            var legacy=p["legacyProfile"]?[field];
+            return JsonValue.Create(legacy is JsonValue value&&value.TryGetValue<bool>(out var det)?(det?"yes":"no"):(ApheSettings.Default.DetonateOnStop?"yes":"no"))!;
+        }
         if(p["modifiers"]?[field] is {} changed)return changed;
         if(p["legacyProfile"]?[field] is {} original)return original;
         if(field=="minimumDate")return JsonValue.Create("")!;
@@ -343,6 +361,17 @@ internal sealed class ModularShellDraft
             "launchSpeedMultiplier"=>JsonValue.Create(1d),"spallMultiplier"=>JsonValue.Create(1d),"coneHalfAngleDegrees"=>JsonValue.Create(90d),
             "explosionScale"=>JsonValue.Create(1d),"secondPlatePenetrationFactor"=>JsonValue.Create((Behavior(p)??Infer(p["legacyProfile"]!.AsObject()))=="hesh"?.1:.15),
             "airGapLossPerCalibre"=>JsonValue.Create((Behavior(p)??Infer(p["legacyProfile"]!.AsObject()))=="hesh"?12d:.35),"referenceCalibreMm"=>JsonValue.Create(100d),
+            "apheFuseSensitivityRhaMm"=>JsonValue.Create(ApheSettings.Default.FuseSensitivityRhaMm),
+            "apheFuseDelayMeters"=>JsonValue.Create(ApheSettings.Default.FuseDelayMeters),
+            "apheMaxGapFraction"=>JsonValue.Create(ApheSettings.Default.MaxGapFraction),
+            "apheMinWallClearanceMeters"=>JsonValue.Create(ApheSettings.Default.MinWallClearanceMeters),
+            "apheOpenFallbackMeters"=>JsonValue.Create(ApheSettings.Default.OpenFallbackMeters),
+            "apheConeHalfAngleDegrees"=>JsonValue.Create(ApheSettings.Default.ConeHalfAngleDegrees),
+            "apheForwardMomentumBlend"=>JsonValue.Create(ApheSettings.Default.ForwardMomentumBlend),
+            "apheFragmentCountAt100Mm"=>JsonValue.Create((double)ApheSettings.Default.FragmentCountAt100Mm),
+            "apheFragmentMassKgAt100Mm"=>JsonValue.Create(ApheSettings.Default.FragmentMassKgAt100Mm),
+            "apheFragmentSpeedMetersPerSecond"=>JsonValue.Create(ApheSettings.Default.FragmentSpeedMetersPerSecond),
+            "apheExplosionVisualScale"=>JsonValue.Create(ApheSettings.Default.ExplosionVisualScale),
             _=>JsonValue.Create(0d)
         };
         return defaultValue!;
@@ -405,6 +434,7 @@ internal sealed class ModularShellDraft
         if(key=="nativeExplosivePower")return effect=="blast";
         if(key=="tandemPrecursorPenetrationMm")return effect=="heat";
         if(key is "chemicalPenetrationMm" or "referenceCalibreMm" or "secondPlatePenetrationFactor" or "airGapLossPerCalibre" or "spallMultiplier" or "coneHalfAngleDegrees")return effect is "heat" or "hesh";
+        if(key.StartsWith("aphe",StringComparison.Ordinal))return effect=="spall";
         return key=="explosionScale"&&effect is "heat" or "hesh" or "blast";
     }
     private static JsonObject DefaultProfile(string behavior)=>JsonNode.Parse(ReleaseProfiles.Defaults())!["profiles"]!.AsArray()
@@ -451,9 +481,14 @@ internal sealed class ModularShellDraft
         var row=Copy(p["legacyProfile"]!).AsObject();
         foreach(var modifier in p["modifiers"]!.AsObject())
         {
-            if(modifier.Key=="keepAfterRetirement")
+            if(modifier.Key is "keepAfterRetirement" or "apheDetonateOnStop")
             {
                 row[modifier.Key]=JsonValue.Create(modifier.Value!.GetValue<string>()=="yes");
+                continue;
+            }
+            if(modifier.Key=="apheFragmentCountAt100Mm"&&modifier.Value is JsonValue fragVal&&fragVal.TryGetValue<double>(out var fragCount))
+            {
+                row[modifier.Key]=JsonValue.Create((int)Math.Round(fragCount));
                 continue;
             }
             row[modifier.Key]=modifier.Value==null?null:Copy(modifier.Value);

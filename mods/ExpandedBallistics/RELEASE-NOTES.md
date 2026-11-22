@@ -1,5 +1,69 @@
 # Expanded Ballistics
 
+## 0.22.109 (Full per-shell APHE configuration in the Shell Editor UI & live fragment preview)
+
+- Shell Editor (`ModularShellDraft.cs`, `ShellEditorModel.cs`, `ShellEditorText.cs`, `ShellProfiles.cs`, `ShellPayload.cs`, `ApheRules.cs`, `RuntimeSpall.cs`, `RuntimeShellEffects.cs`, `RuntimeShellSelection.cs`):
+  - Every APHE shell (`Effect = Internal burst (APHE)`) now exposes all 12 APHE detonation controls directly in the Shell Editor UI under **Effect**, saved per shell profile in `sprocket.expandedballistics.shells.json` (100% optional & backwards-compatible; omitted fields fall back to global `spall.json` / defaults, and multiple distinct APHE shells can each have their own tuning):
+    - **Fuse sensitivity (min armour):** `1–200 mm RHA` (default `15`)
+    - **Fuse delay (depth inside):** `0–3.00 m` (default `0.60`)
+    - **Detonate if stopped inside:** toggle `Yes/No` (default `Yes`)
+    - **Burst cone half-angle (180° = 360°):** `15–180°` (default `180°`)
+    - **Forward shell-speed carry:** `0–0.60 ×` (default `0.25`)
+    - **Fragments (at 100 mm):** `16–160` (default `72`, scales with calibre)
+    - **Shrapnel mass (at 100 mm):** `0.2–30.0 kg` (default `4.5`, scales with calibre^2.5)
+    - **Explosive burst speed:** `250–1800 m/s` (default `1050`)
+    - **Narrow-compartment clamp:** `0.15–0.90 × gap` (default `0.65`)
+    - **Far-wall clearance:** `0.01–0.25 m` (default `0.05`)
+    - **Open-space fallback delay:** `0.02–0.50 m` (default `0.20`)
+    - **Explosion visual scale:** `0.10–2.00 ×` (default `0.85`)
+  - The Shell Editor **Live** column and the cannon inspector now calculate and display the live calibre-scaled APHE fragment count, per-fragment mass, estimated 0° RHA splinter penetration, fuse sensitivity/delay, and cone angle for the active cannon as you adjust the sliders.
+  - Changes apply immediately on Save without restarting Sprocket.
+- 0 new Harmony hooks (stays at 48 `[HarmonyPatch` annotations).
+
+## 0.22.108 (APHE single-detonation fix: consume physical projectile after burst, no second explosion or "no armour" ghost hit)
+
+- Fixed APHE shell surviving after detonation in Play mode (`RuntimeSpall.cs`, `ApheRules.cs`):
+  - Native `ArmourPiercingProjectileFunction.HitDamageModel` only destroys the live projectile when `PenetrationSimulation.FinalOriginalPenetrator` carries `PenetrationFragmentFlag.Terminated` (`Absorbed | Killed`). Because `0.22.107` left the detonating Air segment marked only `Penetrated` (so the Armour Simulator draws the green line to the detonation center), the physical projectile survived at full speed and continued flying through the vehicle — causing either a phantom `"Unknown: no resolved native armour interaction"` (`no armour`) shot or a **second** full APHE detonation inside the same tank and an exit impact on the ground behind it.
+  - `SpawnApheDetonation` now appends one invisible zero-length terminal `OriginalPenetrator` marker (`OriginalPenetrator | Penetrated | Killed`, `speed = 0`, `travelDistance = 0`) after the 360° shrapnel fragments. `HitDamageModel` immediately destroys the physical projectile after the single real APHE detonation, while the green penetration line to the burst center in the Armour Simulator remains intact.
+  - Combat Report `APHE detonation` note now formats numbers with `CultureInfo.InvariantCulture` (matching the rest of the report).
+- 0 new Harmony hooks (stays at 48 `[HarmonyPatch` annotations).
+
+## 0.22.107 (APHE real Air-space detonation: fix mid-air killed fragments, AP hardened steel splinter profile, genuine fuse-delay flight & internal stop detonation)
+
+- Fixed the two root causes that made APHE spall disappear in mid-air or get swallowed by thin internal plates in `0.22.104–0.22.106` (`ApheRules.cs`, `RuntimeSpall.cs`):
+  - **Root cause 1 (Mid-air fragment death):** shifting `CreateSpallBurst`'s `spawnPoint` out into empty Air while leaving `materialIndex = plateMaterial` and `depthLookup[RHA] = 1` caused native `CompoundStructure.SimulateFragment` to treat empty air as solid steel (immediately killing/embedding 70–100% of APHE fragments with 0 damage). APHE now lets the armed `OriginalPenetrator` fly natively into the compartment in Air (`materialIndex = -1`), probes exact open air ahead via `GetAllIntersections`, and spawns every APHE fragment natively in Air (`materialIndex = -1`, `depthLookup = null`, `flags = FragmentFlag.PenetrationPrecomputed`).
+  - **Root cause 2 (Weak native spall profile):** `CreateSpallBurst` assigns `projectileProfileIndex = (byte)materialIndex + 1`, which used Sprocket's soft spall profile (`K = 4000`, `apModifier = 0.75`, `obliquityExponent = 2.66`) limiting fragments to ~9–12 mm RHA even at huge mass. With `materialIndex = -1`, `projectileProfileIndex` wraps cleanly to `0` (hardened AP steel casing profile), allowing realistic casing splinters (`72` fragments, `4.5 kg @ 100 mm`, `1050 m/s`) to punch cleanly through crew, fuel tanks, ammo racks, drives, and 5–30 mm internal bulkheads while stopping realistically in heavy 40+ mm outer walls.
+  - **True fuse-delay trajectory & Armour Simulator fidelity:** fuse arms only after exiting solid armour into Air (`>= 15 mm` RHA-eq), traverses close interior modules/seams/spaced plates natively, detonates in a uniform 360° Fibonacci sphere with real shell-velocity vector addition at `0.60 m` (clamped safely inside narrow far walls, or right in front of an internal obstacle like an engine block if stopped), keeps the detonating shell segment marked `Penetrated` (green line to burst center in Armour Simulator, no false `Stopped`), and records an explicit `APHE detonation` note in the Combat Report.
+- 0 new Harmony hooks (stays at 48 `[HarmonyPatch` annotations).
+
+## 0.22.106 (APHE true 360° sphere fix: clear native planeNormal half-space filter, 0.45 m fuse delay & heavier shrapnel)
+
+- Fixed native half-space rejection in `CompoundStructure.CreateSpallBurst` (`RuntimeSpall.cs`): native `CreateSpallBurst` discards/retries any fragment whose direction has `dot(dir, o.planeNormal) < 0`, which was stripping the rear hemisphere of the 360° APHE explosion. Zeroing `o.planeNormal` during APHE detonation lets all 360° directions pass cleanly on the first sample.
+- Tuned APHE fuse delay to `0.45 m` (`maxGapFraction = 0.40`, `openFallbackMeters = 0.10 m`) so detonation lands right in the crew compartment instead of overshooting toward the roof or rear wall, and increased shrapnel mass/speed (`14.0 kg @ 100 mm`, `1150 m/s`) for decisive internal damage.
+- 0 new Harmony hooks (stays at 48 `[HarmonyPatch` annotations).
+
+## 0.22.105 (APHE gap-recording fix, safe interior clamping & heavier shrapnel)
+
+- Fixed APHE gap lookahead (`RuntimeSpall.cs`): `GapLedger` now records forward wall distance for `aphe` as well (previously skipped because `SpallGapModel.Applies("aphe")` is false), so APHE actually knows the interior depth of the tank (`gap` in mm instead of always `inf`) and never pushes the detonation point outside the far wall.
+- Safe open-space fallback (`ApheRules.OpenFallbackMeters = 0.15 m`): when no far wall exists ahead on the shot line (e.g. corner/grazing exit or single test plate), APHE detonates right behind the exited plate instead of 0.90 m out in empty air; thin inter-plate gaps (`< minSpallGapMm`) defer detonation until the open compartment.
+- Increased APHE shrapnel mass and speed (`fragmentMassKgAt100Mm = 8.0 kg`, `fragmentSpeedMetersPerSecond = 1050 m/s`) so fragments reliably defeat internal modules, crew, and ammo racks.
+- 0 new Harmony hooks (stays at 48 `[HarmonyPatch` annotations).
+
+## 0.22.104 (real post-penetration APHE detonation: fuse sensitivity, fuse delay, 360° fragmentation sphere & multi-burst count)
+
+- Post-penetration APHE (`ApheRules.cs`, `RuntimeSpall.cs`, `RuntimeShellEffects.cs`):
+  - **Fuse sensitivity (`fuseSensitivityRhaMm`, default `15 mm` RHA):** thin skirts, tracks, and fenders below the fuse threshold no longer prematurely detonate or kill the APHE shell; it passes through intact until it penetrates real armour.
+  - **Fuse delay into the compartment (`fuseDelayMeters`, default `0.9 m`, clamped safely inside the far wall via `maxGapFraction = 0.55`):** after penetrating, the detonation point (and visual explosion effect) advances into the turret/hull interior instead of exploding flat against the inner wall.
+  - **360° internal explosion (`coneHalfAngleDegrees = 180°`, `forwardMomentumBlend = 0.15`):** fragments now fly in a full 360° sphere around the detonation point with a subtle forward momentum bias, hitting crew, ammo racks, and modules throughout the compartment.
+  - **Multi-burst fragment count & lethality:** scales cleanly beyond native `CreateSpallBurst`'s 32-fragment single-call cap (e.g. ~57 fragments @ 75 mm, ~80 @ 100 mm, ~102 @ 122 mm, up to 128 @ 152 mm, at ~950 m/s with ~3.2 kg steel shrapnel at 100 mm), consuming the shell body cleanly on detonation.
+  - All parameters are optionally configurable under an `"aphe"` section in `sprocket.expandedballistics.spall.json` (same backwards-compatible pattern as `"hesh"` and `"he"`).
+- 0 new Harmony hooks (stays at 48 `[HarmonyPatch` annotations).
+
+## 0.22.103 (allow direct Solid block conversion on a single closed box with a leftover [Layers] tag)
+
+- Cassette Composer (`SolidBlockApply.BlockedByLayers`, `CassetteComposerModel.ApplyBlocker`, `RuntimeCompositePlateEdit.TrySolidBlock`): when a plate still carries a leftover `[Layers]` tag in its mesh name (e.g. after being reshaped by hand into a single closed box), `Apply: Solid block` is now allowed directly without requiring `Back to box` first. Multi-piece or open layered meshes remain refused with the `Back to box` advice.
+- 0 new Harmony hooks (stays at 48 `[HarmonyPatch` annotations).
+
 ## 0.22.102 (Shell Editor date picker & dropdown show real technology dates and accurate vehicle availability)
 
 - Shell Editor (`ShellEditorModel`, `ShellEraCatalogue`, `ShellEditorPanel`): shells whose availability comes from their native Technology JSON files (such as `HEAT-FS tandem` from `1987.01.01`, `APFSDS` variants, `ATGMs`, etc.) now show their real technology date in the `Available from (date)` field, show the matching era and tech date in the dropdown (e.g. `Cold War III · 1987.01.01 (tech)` instead of `No restriction (always available)`), and show the accurate effective date and actual vehicle availability underneath without marking the draft dirty.

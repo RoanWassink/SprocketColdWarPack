@@ -57,8 +57,9 @@ internal static class RuntimeCompositePlateEdit
         try
         {
             if(PlateMeshAccess.Read(plate,"solid block",SnapshotUse.Fresh)==null){message=PlateMeshAccess.Busy;return false;}
-            if(CompositePlate.LayoutFromName(plate.Mesh.ToMeshBlueprint(false)?.Name)!=null){message=SolidBlockApply.Label+": "+SolidBlockApply.InLayers;return false;}
+            var inLayers=CompositePlate.LayoutFromName(plate.Mesh.ToMeshBlueprint(false)?.Name)!=null;
             var json=plate.Mesh.ToJson(true);shape=SolidShape.FromJson(json);thick=SolidShape.ThickFaces(json);
+            if(SolidBlockApply.BlockedByLayers(inLayers,shape)){message=SolidBlockApply.Label+": "+SolidBlockApply.InLayers;return false;}
         }
         catch(Exception ex){message=SolidBlockApply.Label+": the plate could not be read ("+ex.Message+"). Nothing changed.";return false;}
         if(!shape.Closed){message=SolidBlockApply.Label+": "+shape.Refusal;Plugin.ModLog.LogInfo("[Solid block] Apply refused on plate #"+plate.VUID.Value+": "+shape.Refusal);return false;}

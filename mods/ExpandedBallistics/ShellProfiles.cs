@@ -11,7 +11,7 @@ internal sealed record ShellProfile(string Id, string Label, DartSettings Settin
     double AirGapLossPerCalibre = .35, double ReferenceCalibreMm = 100, AtgmSettings? Atgm = null,ShellNativeDate? MinimumDate=null,
     ShellFlight? Flight=null,IReadOnlyList<string>? NativeTechnologyIds=null,WireOptions? Wire=null,string ThreatClass="unknown",double TandemPrecursorPenetrationMm=0,IReadOnlyList<string>? ArmourThreatTags=null,
     string KineticKind="",string ChemicalSource="profile",double StandoffFreeCalibres=0,
-    ShellNativeDate? RetiredAfter=null,bool KeepAfterRetirement=false)
+    ShellNativeDate? RetiredAfter=null,bool KeepAfterRetirement=false,ApheProfileOverrides? Aphe=null)
 {
     internal string EffectiveKineticKind=>KineticKind.Length==0?"ap":KineticKind;
 }
@@ -29,7 +29,7 @@ internal static class ShellProfiles
         "penetrationQuality", "fragmentDamageMultiplier"
     };
     private static readonly HashSet<string> Optional = new(StringComparer.Ordinal)
-    { "kineticKind", "carrierDiameterFactor", "carrierMassFraction", "chemicalSource", "standoffFreeCalibres", "retiredAfter", "keepAfterRetirement", "armourThreatTags", "tandemPrecursorPenetrationMm", "threatClass", "guidanceTransport", "wireMaximumLength", "wireRetentionSeconds", "wireDisplayWidth", "wireSampleDistance", "flight", "nativeTechnologyIds", "minimumDate", "minimumEra", "behavior", "chemicalPenetrationMm", "nativeExplosivePower", "spallMultiplier", "coneHalfAngleDegrees", "explosionScale", "secondPlatePenetrationFactor", "airGapLossPerCalibre", "referenceCalibreMm", "flightSpeed", "maxTurnRate", "maximumFlightTime", "guidanceDelay", "guidanceMode", "launchSpeed", "launchSpeedMode", "launchSpeedMultiplier", "acceleration", "motorDelay", "motorBurnTime", "coastDeceleration", "topAttackAltitude", "topAttackClimbAngle", "topAttackDiveAngle", "guidanceLaw", "leadDistanceM", "rangePattern", "humpHeightM", "humpRangeMinM", "humpRangeMaxM", "humpTerminalDistanceM", "humpRampDistanceM", "directRangeBelowM", "shortRangeThresholdM", "shortRangeGuidanceDelay", "spiralAmplitudeM", "spiralFrequencyHz", "disturbanceAmplitudeM", "disturbanceFrequencyHz", "speedCalibration", "initialElevationDegrees" };
+    { "kineticKind", "carrierDiameterFactor", "carrierMassFraction", "chemicalSource", "standoffFreeCalibres", "retiredAfter", "keepAfterRetirement", "armourThreatTags", "tandemPrecursorPenetrationMm", "threatClass", "guidanceTransport", "wireMaximumLength", "wireRetentionSeconds", "wireDisplayWidth", "wireSampleDistance", "flight", "nativeTechnologyIds", "minimumDate", "minimumEra", "behavior", "chemicalPenetrationMm", "nativeExplosivePower", "spallMultiplier", "coneHalfAngleDegrees", "explosionScale", "secondPlatePenetrationFactor", "airGapLossPerCalibre", "referenceCalibreMm", "flightSpeed", "maxTurnRate", "maximumFlightTime", "guidanceDelay", "guidanceMode", "launchSpeed", "launchSpeedMode", "launchSpeedMultiplier", "acceleration", "motorDelay", "motorBurnTime", "coastDeceleration", "topAttackAltitude", "topAttackClimbAngle", "topAttackDiveAngle", "guidanceLaw", "leadDistanceM", "rangePattern", "humpHeightM", "humpRangeMinM", "humpRangeMaxM", "humpTerminalDistanceM", "humpRampDistanceM", "directRangeBelowM", "shortRangeThresholdM", "shortRangeGuidanceDelay", "spiralAmplitudeM", "spiralFrequencyHz", "disturbanceAmplitudeM", "disturbanceFrequencyHz", "speedCalibration", "initialElevationDegrees", "apheFuseSensitivityRhaMm", "apheFuseDelayMeters", "apheMaxGapFraction", "apheMinWallClearanceMeters", "apheOpenFallbackMeters", "apheConeHalfAngleDegrees", "apheForwardMomentumBlend", "apheFragmentCountAt100Mm", "apheFragmentMassKgAt100Mm", "apheFragmentSpeedMetersPerSecond", "apheExplosionVisualScale", "apheDetonateOnStop" };
 
     internal static IReadOnlyList<ShellProfile> Parse(string json)
     {
@@ -130,6 +130,36 @@ internal static class ShellProfiles
                     throw new FormatException($"Profile '{id}': minimumDate and minimumEra disagree.");
                 minimumDate=migrated;
             }
+            ApheProfileOverrides? apheOverrides=null;
+            if(item.EnumerateObject().Any(p=>p.Name.StartsWith("aphe",StringComparison.Ordinal)))
+            {
+                bool? apheDetonateOnStop=null;
+                if(item.TryGetProperty("apheDetonateOnStop",out var stopJson))
+                {
+                    if(stopJson.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
+                        throw new FormatException($"Profile '{id}': apheDetonateOnStop must be a JSON boolean.");
+                    apheDetonateOnStop=stopJson.GetBoolean();
+                }
+                int? apheFragCount=null;
+                if(OptionalNumber("apheFragmentCountAt100Mm") is {} rawCount)
+                {
+                    if(!double.IsFinite(rawCount))throw new FormatException($"Profile '{id}': apheFragmentCountAt100Mm must be finite.");
+                    apheFragCount=(int)Math.Round(rawCount);
+                }
+                apheOverrides=new ApheProfileOverrides(
+                    FuseSensitivityRhaMm:OptionalNumber("apheFuseSensitivityRhaMm"),
+                    FuseDelayMeters:OptionalNumber("apheFuseDelayMeters"),
+                    MaxGapFraction:OptionalNumber("apheMaxGapFraction"),
+                    MinWallClearanceMeters:OptionalNumber("apheMinWallClearanceMeters"),
+                    OpenFallbackMeters:OptionalNumber("apheOpenFallbackMeters"),
+                    ConeHalfAngleDegrees:OptionalNumber("apheConeHalfAngleDegrees"),
+                    ForwardMomentumBlend:OptionalNumber("apheForwardMomentumBlend"),
+                    FragmentCountAt100Mm:apheFragCount,
+                    FragmentMassKgAt100Mm:OptionalNumber("apheFragmentMassKgAt100Mm"),
+                    FragmentSpeedMetersPerSecond:OptionalNumber("apheFragmentSpeedMetersPerSecond"),
+                    ExplosionVisualScale:OptionalNumber("apheExplosionVisualScale"),
+                    DetonateOnStop:apheDetonateOnStop);
+            }
             var profile = new ShellProfile(id,label,settings,behavior,
                 Option("chemicalPenetrationMm",0),Option("nativeExplosivePower",0),
                 Option("spallMultiplier",1),Option("coneHalfAngleDegrees",90),Option("explosionScale",1),Option("secondPlatePenetrationFactor",behavior=="hesh"?.1:.15),Option("airGapLossPerCalibre",behavior=="hesh"?12:.35),Option("referenceCalibreMm",100),
@@ -142,7 +172,7 @@ internal static class ShellProfiles
                     ?new WireOptions(TextOption("guidanceTransport","current"),Option("wireMaximumLength",4000),Option("wireRetentionSeconds",20),Option("wireDisplayWidth",.008),Option("wireSampleDistance",2)):null,
                 KineticKind:TextOption("kineticKind",""),ChemicalSource:TextOption("chemicalSource","profile"),
                 StandoffFreeCalibres:Option("standoffFreeCalibres",behavior is "heat" or "atgm" or "atgm_gun" ? 2d : 0d),
-                RetiredAfter:retiredAfter,KeepAfterRetirement:keepAfterRetirement);
+                RetiredAfter:retiredAfter,KeepAfterRetirement:keepAfterRetirement,Aphe:apheOverrides);
             if(profile.ThreatClass is not ("unknown" or "unitaryAntitankGrenade"))
                 throw new FormatException($"Profile '{id}': invalid threatClass; expected unknown or unitaryAntitankGrenade.");
             if(profile.ThreatClass=="unitaryAntitankGrenade" && (profile.Behavior!="heat" || profile.Flight is {Guidance:not "none"}))

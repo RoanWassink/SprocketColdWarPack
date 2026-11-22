@@ -15,6 +15,8 @@ internal sealed class ShellImpactContext
     internal bool ChemicalVisualPlayed;
     internal readonly HashSet<IntPtr> PayloadBursts = new();
     internal readonly Dictionary<IntPtr,int> HeatBurstCounts = new();
+    internal readonly Dictionary<IntPtr,ApheShotState> ApheStates = new();
+    internal ApheShotState GetApheState(IntPtr sim)=>ApheStates.TryGetValue(sim,out var state)?state:ApheStates[sim]=new();
     internal readonly SpacedKineticGate SpacedKineticShots = new();
     internal readonly HashSet<IntPtr> CapStripped = new();
     internal readonly Dictionary<IntPtr,ChemicalLayers> Layers = new();
@@ -37,13 +39,17 @@ internal static class RuntimeSpall
     internal static SpallSettings Settings = new();
     internal static HeshSettings Hesh=HeshSettings.Default; // 0.22.78 HESH
     internal static HeSettings He=HeSettings.Default; // 0.22.86 HE
+    internal static ApheSettings Aphe=ApheSettings.Default; // 0.22.104 APHE
+    private static ApheSettings EffectiveAphe(ShellImpactContext context)=>ApheRules.Effective(context.Profile,Aphe);
     [ThreadStatic] internal static ShellImpactContext? Impact;
     [ThreadStatic] private static UnityEngine.Vector3? apheAxis;
+    [ThreadStatic] private static bool apheExtraBurst;
     [ThreadStatic] private static PenetrationSimulation? layerSimulation;
     [ThreadStatic] private static short layerFragment;
     [ThreadStatic] private static CompoundStructure? layerStructure;
     [ThreadStatic] private static PenetrationSimulation? obliquityArmedSimulation;
     private static int chemicalDiagnosticBudget=80;
+    private static int apheProbeWarnings;
     // 0.22.22: the simulation of the fragment now being simulated (set for every impact with a context, unlike layerSimulation),
     // the gap ledger of the current Penetrate call, and the ricochet bookkeeping (chain weight per fragment, children that still owe a thin-gap check).
     [ThreadStatic] private static PenetrationSimulation? activeSimulation;
@@ -57,13 +63,43 @@ internal static class RuntimeSpall
     private readonly record struct LayerScope(PenetrationSimulation? Simulation,short Index,CompoundStructure? Structure,
         PenetrationSimulation? PreviousArmedSimulation=null,PenetrationSimulation? ChemicalSimulation=null,float? OriginalObliquity=null,
         int RicochetBefore=-1,FragmentFlag RicochetPreFlags=FragmentFlag.None,
-        PenetrationSimulation? PreviousActive=null,UnityEngine.Vector3 RicochetPreDirection=default);
+        PenetrationSimulation? PreviousActive=null,UnityEngine.Vector3 RicochetPreDirection=default,
+        bool ApheTrackOriginal=false,short AphePreMaterial=-1,int ApheCountBefore=0,double ApheAirNextEnterM=double.PositiveInfinity);
     [HarmonyPrefix,HarmonyPatch(typeof(CompoundStructure),nameof(CompoundStructure.SimulateFragment))]
-    private static void BeginLayer(CompoundStructure __instance,PenetrationSimulation sim,short index,out LayerScope __state)
+    private static bool BeginLayer(CompoundStructure __instance,PenetrationSimulation sim,short index,out LayerScope __state)
     {
         var previousArmed=obliquityArmedSimulation;
         __state=new(layerSimulation,layerFragment,layerStructure,previousArmed,PreviousActive:activeSimulation);
         activeSimulation=sim;
+        var impactContext=Impact;
+        if(impactContext is {Behavior:"aphe"}&&index>=0&&index<sim.FragmentCount)
+        {
+            var f=sim.fragments[index];
+            if((f.flags&FragmentFlag.OriginalPenetrator)!=0&&(f.flags&(FragmentFlag.Killed|FragmentFlag.Evaluated))==0)
+            {
+                var apheState=impactContext.GetApheState(sim.Pointer);
+                if(f.materialIndex<0&&apheState.FuseArmed&&!apheState.Detonated)
+                {
+                    var aphe=EffectiveAphe(impactContext);
+                    MeasureApheAirAhead(__instance,sim,f,out var nextEnterM,out var nextIsArmour,out var maxExitM);
+                    var decision=ApheRules.DecideAirStep(apheState.RemainingDelayM,nextEnterM,nextIsArmour,maxExitM,Settings.MinSpallGapMm,aphe,apheState.JustArmed);
+                    if(decision.Action==ApheAirAction.Detonate&&SpawnApheDetonation(sim,index,f,decision.OffsetMeters,decision.Reason,apheState,impactContext))
+                    {
+                        f=sim.fragments[index];
+                        f.travelDistance=(float)decision.OffsetMeters;
+                        f.flags|=FragmentFlag.Penetrated;
+                        f.hitStructureIndex=-1;
+                        sim.fragments[index]=f;
+                        return false;
+                    }
+                    __state=__state with {ApheTrackOriginal=true,AphePreMaterial=f.materialIndex,ApheCountBefore=sim.FragmentCount,ApheAirNextEnterM=nextEnterM};
+                }
+                else if(!apheState.Detonated)
+                {
+                    __state=__state with {ApheTrackOriginal=true,AphePreMaterial=f.materialIndex,ApheCountBefore=sim.FragmentCount,ApheAirNextEnterM=double.PositiveInfinity};
+                }
+            }
+        }
         if(BeginObliquity(sim,index,out var originalObliquity))
         {
             __state=__state with {ChemicalSimulation=sim,OriginalObliquity=originalObliquity};
@@ -83,16 +119,271 @@ internal static class RuntimeSpall
             }
         }
         catch(Exception){/* Fragment ricochet is optional and never changes the native call. */}
+        return true;
     }
     [HarmonyFinalizer,HarmonyPatch(typeof(CompoundStructure),nameof(CompoundStructure.SimulateFragment))]
     private static void EndLayer(LayerScope __state,PenetrationSimulation sim,short index,Exception? __exception)
     {
         try { if(__state.ChemicalSimulation is {} chemical&&__state.OriginalObliquity is float original)RestoreObliquity(chemical,original); }
         finally { obliquityArmedSimulation=__state.PreviousArmedSimulation;layerSimulation=__state.Simulation;layerFragment=__state.Index;layerStructure=__state.Structure;activeSimulation=__state.PreviousActive; }
+        if(__state.ApheTrackOriginal&&__exception==null)
+        {
+            try{AfterApheOriginal(sim,index,__state);}
+            catch(Exception ex){if(apheProbeWarnings++<3)Plugin.ModLog.LogWarning("[APHE] Post-step update unavailable: "+ex.Message);}
+        }
         if(__state.RicochetBefore>=0&&__exception==null)
         {
             try{FragmentRicochet(sim,index,__state.RicochetBefore,__state.RicochetPreFlags,__state.RicochetPreDirection);}
             catch(Exception ex){if(ricochetWarnings++<3)Plugin.ModLog.LogWarning("[Spall] Fragment ricochet unavailable: "+ex.Message);}
+        }
+    }
+    // 0.22.107 APHE: probes exact open Air space along an armed shell's trajectory so detonation always spawns
+    // strictly inside empty Air (0 < offset < nextEnterM) and never inside a solid wall or module.
+    private static void MeasureApheAirAhead(CompoundStructure structure,PenetrationSimulation sim,Fragment frag,
+        out double nextEnterM,out bool nextIsArmour,out double maxExitM)
+    {
+        nextEnterM=double.PositiveInfinity;nextIsArmour=false;maxExitM=double.PositiveInfinity;
+        try
+        {
+            var hitBuffer=CompoundStructure.HitBuffer;
+            if(hitBuffer==null||hitBuffer.Length==0)return;
+            var dir=frag.direction.sqrMagnitude>1e-6f?frag.direction.normalized:UnityEngine.Vector3.forward;
+            var count=structure.GetAllIntersections(frag.spawnPoint,dir,float.PositiveInfinity,hitBuffer);
+            if(count<=0)return;
+            var n=Math.Min(count,hitBuffer.Length);
+            var objects=sim.objects;
+            var materials=structure.materials;
+            double bestEnter=double.PositiveInfinity,furthestHit=-1;
+            bool bestIsArmour=false;
+            for(int i=0;i<n;i++)
+            {
+                var hit=hitBuffer[i];
+                if(!float.IsFinite(hit.distance)||hit.distance<0f)continue;
+                if(hit.objectIndex<0||hit.objectIndex>=objects.Length)continue;
+                var matIdx=objects[hit.objectIndex].materialIndex;
+                if(matIdx<0)continue;
+                var d=(double)hit.distance;
+                if(d>furthestHit)furthestHit=d;
+                if((hit.flags&IntersectionFlags.Enter)!=0&&d<bestEnter)
+                {
+                    bestEnter=d;
+                    bestIsArmour=materials!=null&&matIdx<materials.Length&&materials[matIdx].rhaFactor>=0.30f;
+                }
+            }
+            nextEnterM=bestEnter;
+            nextIsArmour=bestIsArmour;
+            if(furthestHit>=0)maxExitM=furthestHit;
+        }
+        catch(Exception ex){if(apheProbeWarnings++<3)Plugin.ModLog.LogWarning("[APHE] Forward air probe unavailable: "+ex.Message);}
+    }
+    private static void AfterApheOriginal(PenetrationSimulation sim,short index,LayerScope scope)
+    {
+        var context=Impact;
+        if(context is not {Behavior:"aphe"}||index<0||index>=sim.FragmentCount)return;
+        var state=context.GetApheState(sim.Pointer);
+        if(state.Detonated)return;
+        var aphe=EffectiveAphe(context);
+        var f=sim.fragments[index];
+        if(!state.FuseArmed)
+        {
+            if(scope.AphePreMaterial>=0
+                &&(f.flags&(FragmentFlag.Killed|FragmentFlag.Embedded|FragmentFlag.Deflected))==0
+                &&ApheRules.IsFuseArmed(state.AccumulatedRhaMm,aphe))
+            {
+                bool exitedToAir=false;
+                for(int i=scope.ApheCountBefore;i<sim.FragmentCount;i++)
+                {
+                    var c=sim.fragments[i];
+                    if(c.parentIndex==index
+                        &&(c.flags&FragmentFlag.OriginalPenetrator)!=0
+                        &&(c.flags&(FragmentFlag.Killed|FragmentFlag.Embedded|FragmentFlag.Deflected))==0
+                        &&c.materialIndex<0)
+                    {exitedToAir=true;break;}
+                }
+                if(exitedToAir)
+                {
+                    state.FuseArmed=true;
+                    state.RemainingDelayM=Math.Max(0,aphe.FuseDelayMeters);
+                    state.AirTravelSinceArmedM=0;
+                    state.JustArmed=true;
+                    if(ReleaseDiagnostics.Enabled)
+                        Plugin.ModLog.LogInfo($"[APHE] Fuse armed after {state.AccumulatedRhaMm:0.0} mm RHA (>= {aphe.FuseSensitivityRhaMm:0.#} mm); delay={state.RemainingDelayM:0.00} m");
+                }
+            }
+            return;
+        }
+        var travelled=float.IsFinite(f.travelDistance)&&f.travelDistance>0?(double)f.travelDistance:0;
+        if(travelled>0)
+        {
+            state.RemainingDelayM=Math.Max(0,state.RemainingDelayM-travelled);
+            if(scope.AphePreMaterial<0)
+            {
+                state.AirTravelSinceArmedM+=travelled;
+                if(state.AirTravelSinceArmedM>=0.06)state.JustArmed=false;
+            }
+        }
+        if(aphe.DetonateOnStop&&scope.AphePreMaterial<0&&(f.flags&FragmentFlag.ModelExit)==0&&(f.flags&FragmentFlag.Killed)==0)
+        {
+            bool hasLiveOriginalChild=false;
+            for(int i=scope.ApheCountBefore;i<sim.FragmentCount;i++)
+            {
+                var c=sim.fragments[i];
+                if(c.parentIndex==index
+                    &&(c.flags&FragmentFlag.OriginalPenetrator)!=0
+                    &&(c.flags&(FragmentFlag.Killed|FragmentFlag.Embedded))==0)
+                {hasLiveOriginalChild=true;break;}
+            }
+            if(!hasLiveOriginalChild)
+            {
+                var stopOffset=ApheRules.StopDetonationOffset(travelled,scope.ApheAirNextEnterM);
+                if(stopOffset>0)SpawnApheDetonation(sim,index,f,stopOffset,"stopped-interior",state,context);
+            }
+        }
+    }
+    // 0.22.107 APHE: spawns true Air-space detonation fragments (materialIndex=-1, depthLookup=null,
+    // projectileProfileIndex=0 AP steel, flags=PenetrationPrecomputed) in a uniform 360-degree Fibonacci sphere
+    // combined with residual shell velocity. Native SimulateFragment then runs every splinter cleanly through Air.
+    private static bool SpawnApheDetonation(PenetrationSimulation sim,short parentIndex,Fragment parent,
+        double detOffsetM,string reason,ApheShotState state,ShellImpactContext context)
+    {
+        try
+        {
+            var aphe=EffectiveAphe(context);
+            var calibre=context.GunDiameter>0?context.GunDiameter*1000.0:parent.diameter*1000.0;
+            var tuning=Settings.ApheSpallMultiplier/4.0;
+            var plan=ApheRules.Plan(calibre,tuning,aphe);
+            var batches=ApheRules.BatchCounts(plan.TotalCount);
+            var axis=parent.direction.sqrMagnitude>1e-6f?parent.direction.normalized:UnityEngine.Vector3.forward;
+            var detPoint=parent.spawnPoint+axis*(float)detOffsetM;
+            var helper=Math.Abs(axis.y)<0.9f?UnityEngine.Vector3.up:UnityEngine.Vector3.right;
+            var tangent=UnityEngine.Vector3.Cross(helper,axis).normalized;
+            var bitangent=UnityEngine.Vector3.Cross(axis,tangent);
+            var shellSpeed=float.IsFinite(parent.speed)&&parent.speed>0?(double)parent.speed:0.0;
+            var azimuthPhase=System.Random.Shared.NextDouble()*Math.PI*2.0;
+            var countBefore=sim.FragmentCount;
+            var shrapnelEnd=countBefore;
+            var termIdx=-1;
+            var prevExtra=apheExtraBurst;var prevAxis=apheAxis;
+            apheExtraBurst=true;apheAxis=null;
+            try
+            {
+                var pathIdx=(byte)Math.Min(254,parent.pathIndex+1);
+                foreach(var batchCount in batches)
+                {
+                    var burst=new CompoundStructure.SpallSpawnBurst
+                    {
+                        volume=(float)(plan.TotalVolumeM3*batchCount/plan.TotalCount),
+                        density=(float)ApheRules.SteelDensity,
+                        speed=(float)plan.FragmentSpeedMetersPerSecond,
+                        spread=0f,
+                        spallFactor=1f,
+                        crossectionalArea=batchCount,
+                        direction=axis,
+                        planeNormal=UnityEngine.Vector3.zero,
+                        spawnPoint=detPoint,
+                        depthLookup=null,
+                        materialIndex=-1,
+                        parentIndex=parentIndex,
+                        pathIndex=pathIdx
+                    };
+                    CompoundStructure.CreateSpallBurst(sim,ref burst);
+                }
+                shrapnelEnd=sim.FragmentCount;
+                if(shrapnelEnd>countBefore)
+                {
+                    // 0.22.108: append one invisible zero-length terminal OriginalPenetrator (Killed) at the end of
+                    // sim.fragments so PenetrationSimulation.FinalOriginalPenetrator has PenetrationFragmentFlag.Killed (0x20),
+                    // making ArmourPiercingProjectileFunction.HitDamageModel destroy the physical projectile immediately
+                    // while leaving the detonating Air segment (#parentIndex) green/visible in the Armour Simulator.
+                    var termBurst=new CompoundStructure.SpallSpawnBurst
+                    {
+                        volume=(float)(plan.TotalVolumeM3/plan.TotalCount),
+                        density=(float)ApheRules.SteelDensity,
+                        speed=(float)plan.FragmentSpeedMetersPerSecond,
+                        spread=0f,
+                        spallFactor=1f,
+                        crossectionalArea=1f,
+                        direction=axis,
+                        planeNormal=UnityEngine.Vector3.zero,
+                        spawnPoint=detPoint,
+                        depthLookup=null,
+                        materialIndex=-1,
+                        parentIndex=parentIndex,
+                        pathIndex=pathIdx
+                    };
+                    CompoundStructure.CreateSpallBurst(sim,ref termBurst);
+                    if(sim.FragmentCount>shrapnelEnd)termIdx=shrapnelEnd;
+                }
+            }
+            finally{apheExtraBurst=prevExtra;apheAxis=prevAxis;}
+            var spawned=shrapnelEnd-countBefore;
+            if(spawned<=0)return false;
+            for(int i=0;i<spawned;i++)
+            {
+                var idx=countBefore+i;
+                var local=ApheRules.FibonacciSphereDirection(i,spawned,aphe.ConeHalfAngleDegrees,azimuthPhase);
+                var (velDir,velSpeed)=ApheRules.CombineVelocity(local,plan.FragmentSpeedMetersPerSecond,shellSpeed,aphe.ForwardMomentumBlend);
+                var worldDir=(axis*velDir.Z+tangent*velDir.X+bitangent*velDir.Y).normalized;
+                var frag=sim.fragments[idx];
+                frag.spawnPoint=detPoint;
+                frag.direction=worldDir;
+                frag.speed=velSpeed;
+                frag.materialIndex=-1;
+                frag.depthLookup=null;
+                frag.projectileProfileIndex=0;
+                frag.flags=FragmentFlag.PenetrationPrecomputed;
+                sim.fragments[idx]=frag;
+            }
+            if(termIdx>=0&&termIdx<sim.FragmentCount)
+            {
+                var term=sim.fragments[termIdx];
+                term.spawnPoint=detPoint;
+                term.direction=axis;
+                term.speed=0f;
+                term.travelDistance=0f;
+                term.materialIndex=-1;
+                term.depthLookup=null;
+                term.projectileProfileIndex=0;
+                term.parentIndex=parentIndex;
+                term.hitStructureIndex=-1;
+                term.flags=FragmentFlag.OriginalPenetrator|FragmentFlag.Penetrated|FragmentFlag.Killed;
+                sim.fragments[termIdx]=term;
+            }
+            else
+            {
+                var p=sim.fragments[parentIndex];
+                p.speed=0f;
+                p.flags|=FragmentFlag.Killed;
+                sim.fragments[parentIndex]=p;
+            }
+            state.Detonated=true;
+            state.DetonationFragments=spawned;
+            state.DetonationOffsetM=detOffsetM;
+            context.PayloadBursts.Add(sim.Pointer);
+            if(context.LiveImpact&&!context.ExplosionPending)
+            {
+                context.ExplosionPosition=sim.SimToWorldSpacePoint(detPoint);
+                context.ExplosionPending=true;
+            }
+            if(context.LiveImpact)
+            {
+                RuntimeDamageFeed.RecordArmourInteraction(sim,parentIndex,"materialNote",
+                    ApheRules.DetonationReportText(reason,state.AccumulatedRhaMm,detOffsetM,spawned));
+            }
+            if(ReleaseDiagnostics.Enabled)
+            {
+                Plugin.ModLog.LogInfo($"[APHE detonation] reason={reason} rha={state.AccumulatedRhaMm:0.0}mm offset={detOffsetM:0.00}m shellSpeed={shellSpeed:0}m/s totalCount={spawned} ({batches.Length}x) mass={plan.TotalMassKg:0.00}kg blastSpeed={plan.FragmentSpeedMetersPerSecond:0}m/s");
+                var sampleFrag=sim.fragments[countBefore];
+                var pen0Mm=sampleFrag.projectileProfileIndex<sim.projectileProfiles.Length
+                    ?sampleFrag.GetBasePenetration(sim.projectileProfiles[sampleFrag.projectileProfileIndex].penetratorConstant)*1000f:0f;
+                Plugin.ModLog.LogInfo($"[APHE sample] spawned={spawned} firstFrag diam={sampleFrag.diameter*1000:0.0}mm mass={sampleFrag.mass*1000:0}g speed={sampleFrag.speed:0}m/s mat={sampleFrag.materialIndex} profile={sampleFrag.projectileProfileIndex} flags={sampleFrag.flags} pen0={pen0Mm:0.0}mm");
+            }
+            return true;
+        }
+        catch(Exception ex)
+        {
+            Plugin.ModLog.LogWarning("[APHE] Detonation skipped: "+ex.Message);
+            return false;
         }
     }
     private static int ricochetWarnings;
@@ -183,7 +474,8 @@ internal static class RuntimeSpall
                     if(ReleaseDiagnostics.Enabled&&!probeGapKill){probeGapKill=true;Plugin.ModLog.LogInfo($"[Spall probe] ricochet child {layerFragment} killed in a thin gap: next solid block {gapMm:0.0} mm ahead < {rules.ThinGapKillMm:0.#} mm.");}
                 }
             }
-            if(!SpallGapModel.Applies(context.Behavior)||Settings.MinSpallGapMm<=0)return;
+            bool recordGap=(SpallGapModel.Applies(context.Behavior)&&Settings.MinSpallGapMm>0)||context.Behavior=="aphe";
+            if(!recordGap)return;
             var n=Math.Min(__1,__0.Length);
             var exitDist=__0[exit].distance;
             var bestGapMm=double.PositiveInfinity;
@@ -279,6 +571,8 @@ internal static class RuntimeSpall
         var length=Math.Max(0,(__0[exit].distance-__0[entry].distance)*1000);
         var solid=__result.MaterialIndex>=0;
         if(solid){if(__result.MaterialIndex>=__5.Length)return;length*=Math.Max(0,__5[__result.MaterialIndex].rhaFactor);}
+        if(solid&&context.Behavior=="aphe"&&length>0)
+            context.GetApheState(sim.Pointer).AccumulatedRhaMm+=length;
         var chemical=SpallBalance.IsChemicalLayerBehavior(context.Behavior);
         if(chemical&&ReleaseDiagnostics.Enabled&&solid&&layerStructure is {} structure&&chemicalDiagnosticBudget>0)
         {
@@ -423,16 +717,20 @@ internal static class RuntimeSpall
         He=HeRules.Read(heshFree,line=>Plugin.ModLog.LogWarning(line),out var heFree);heshFree=heFree;
         if(ReleaseDiagnostics.Enabled)Plugin.ModLog.LogInfo(HeRules.Describe(He));
         // 0.22.86 HE end
+        // 0.22.104 APHE begin
+        Aphe=ApheRules.Read(heshFree,line=>Plugin.ModLog.LogWarning(line),out var apheFree);heshFree=apheFree;
+        if(ReleaseDiagnostics.Enabled)Plugin.ModLog.LogInfo(ApheRules.Describe(Aphe));
+        // 0.22.104 APHE end
         if(ReleaseDiagnostics.Enabled)Plugin.ModLog.LogInfo(HeshRules.Describe(Hesh));
         if(!ReferenceEquals(heshFree,heshText))
         {
             Settings=SpallBalance.Parse(heshFree);
-            Plugin.ModLog.LogInfo("[Spall] APFSDS remaining-penetration/cone and APHE amplified native AP spall enabled. "+path);
+            Plugin.ModLog.LogInfo("[Spall] APFSDS remaining-penetration/cone and APHE post-penetration detonation enabled. "+path);
             return;
         }
         // 0.22.78 HESH end
         Settings=SpallBalance.Parse(File.ReadAllText(path));
-        Plugin.ModLog.LogInfo("[Spall] APFSDS remaining-penetration/cone and APHE amplified native AP spall enabled. "+path);
+        Plugin.ModLog.LogInfo("[Spall] APFSDS remaining-penetration/cone and APHE post-penetration detonation enabled. "+path);
     }
     private readonly record struct BurstState(int CountBefore,bool Custom,bool Aphe,UnityEngine.Vector3 ExplosionPosition=default,UnityEngine.Vector3? PreviousAxis=null,short ParentIndex=-1);
     [HarmonyPrefix,HarmonyPatch(typeof(CompoundStructure),nameof(CompoundStructure.Penetrate))]
@@ -492,6 +790,7 @@ internal static class RuntimeSpall
     private static bool Burst(PenetrationSimulation simulation,ref CompoundStructure.SpallSpawnBurst o,out BurstState __state)
     {
         __state=new(simulation.FragmentCount,false,false,PreviousAxis:apheAxis);
+        if(apheExtraBurst)return true;
         try
         {
             var context=Impact;
@@ -501,24 +800,38 @@ internal static class RuntimeSpall
             if(context==null || context.Behavior is not ("apfsds" or "aphe" or "heat" or "hesh")) return true;
             if(o.parentIndex<0 || o.parentIndex>=simulation.FragmentCount) return true;
             var parent=simulation.fragments[o.parentIndex];
-            // 0.22.22: no HEAT/HESH/APFSDS fragments from a plate exit that is followed by solid armour within minSpallGapMm (native bursts included).
-            if(SpallGapModel.Applies(context.Behavior)&&Settings.MinSpallGapMm>0&&BurstGapMm(simulation,o,out var byDistance) is {} gap&&SpallGapModel.SuppressBurst(Settings.MinSpallGapMm,gap))
+            // 0.22.22: no HEAT/HESH/APFSDS/APHE fragments from a plate exit that is followed by solid armour within minSpallGapMm (native bursts included).
+            var forwardGapMm=BurstGapMm(simulation,o,out var byDistance);
+            if(SpallGapModel.Applies(context.Behavior)&&Settings.MinSpallGapMm>0&&forwardGapMm is {} gap&&SpallGapModel.SuppressBurst(Settings.MinSpallGapMm,gap))
             {
                 if(ReleaseDiagnostics.Enabled&&!probeGapSuppress){probeGapSuppress=true;Plugin.ModLog.LogInfo($"[Spall probe] {context.Behavior} burst suppressed: next solid armour {gap:0.0} mm ahead < {Settings.MinSpallGapMm:0.#} mm (gap matched {(byDistance?"by exit distance":"by latest block")}; parent {o.parentIndex}).");}
                 return false;
             }
-            if(context.Behavior is "aphe" or "heat" or "hesh" && ShellBalance.SuppressPayloadBurst(context.Behavior,
+            // 0.22.107 APHE: detonation happens cleanly in Air inside BeginLayer/AfterApheOriginal;
+            // suppress secondary spall cascades after detonation and weak plate-exit spall once the fuse will arm.
+            if(context.Behavior=="aphe")
+            {
+                var apheState=context.GetApheState(simulation.Pointer);
+                if(apheState.Detonated)return false;
+                if((parent.flags&FragmentFlag.OriginalPenetrator)==0)return true;
+                var aphe=EffectiveAphe(context);
+                if(ApheRules.IsFuseArmed(apheState.AccumulatedRhaMm,aphe))return false;
+                if(Settings.MinSpallGapMm>0&&forwardGapMm is {} apheThinGap&&SpallGapModel.SuppressBurst(Settings.MinSpallGapMm,apheThinGap))return false;
+                if(ReleaseDiagnostics.Enabled)Plugin.ModLog.LogInfo($"[APHE] Fuse not armed yet ({apheState.AccumulatedRhaMm:0.0} < {aphe.FuseSensitivityRhaMm:0.#} mm RHA); shell continues intact.");
+                return true;
+            }
+            if(context.Behavior is "heat" or "hesh" && ShellBalance.SuppressPayloadBurst(context.Behavior,
                 (parent.flags & FragmentFlag.OriginalPenetrator)!=0,context.PayloadBursts.Contains(simulation.Pointer)))return false;
             if((parent.flags & FragmentFlag.OriginalPenetrator)==0 || parent.materialIndex<0) return true;
             var s=Settings;
-            var aphe=context.Behavior is "aphe" or "heat" or "hesh";
-            if(aphe)
+            var payload=context.Behavior is "heat" or "hesh";
+            if(payload)
             {
                 // Keep native AP origin, material occupancy and fragment profile.
                 // The same native loop evaluates both the original projectile and its fragments.
                 var calibre=context.GunDiameter*1000;
                 if(!float.IsFinite(o.spallFactor)||o.spallFactor<=0)return true;
-                var tuning=context.Behavior=="aphe" ? s.ApheSpallMultiplier/4 : context.Profile!.SpallMultiplier/(context.Behavior=="hesh"?8:1.5);
+                var tuning=context.Profile!.SpallMultiplier/(context.Behavior=="hesh"?8:1.5);
                 o.volume=(float)(ShellBalance.FragmentVolume(context.Behavior,calibre)*tuning);
                 var rawCount=ShellBalance.FragmentTarget(context.Behavior,calibre)*tuning;
                 double count;
@@ -561,7 +874,7 @@ internal static class RuntimeSpall
         return true;
     }
     [HarmonyFinalizer,HarmonyPatch(typeof(CompoundStructure),nameof(CompoundStructure.CreateSpallBurst))]
-    private static void EndBurst(BurstState __state) => apheAxis=__state.PreviousAxis;
+    private static void EndBurst(BurstState __state){apheAxis=__state.PreviousAxis;}
     [HarmonyPrefix,HarmonyPatch(typeof(CompoundStructure),nameof(CompoundStructure.GetFragmentDirection))]
     private static bool ConeDirection(ref UnityEngine.Vector3 __result)
     {
@@ -569,7 +882,7 @@ internal static class RuntimeSpall
         var helper=Math.Abs(axis.y)<.9f?UnityEngine.Vector3.up:UnityEngine.Vector3.right;
         var tangent=UnityEngine.Vector3.Cross(helper,axis).normalized;
         var bitangent=UnityEngine.Vector3.Cross(axis,tangent);
-        var angle=Impact?.Behavior=="aphe" ? Settings.ApheConeHalfAngleDegrees : Impact?.Profile?.ConeHalfAngleDegrees ?? Settings.ApheConeHalfAngleDegrees;
+        var angle=Impact?.Profile?.ConeHalfAngleDegrees ?? Settings.ApheConeHalfAngleDegrees;
         var sample=SpallBalance.Cone(System.Random.Shared.NextDouble(),System.Random.Shared.NextDouble(),angle);
         __result=axis*sample.Z+tangent*sample.X+bitangent*sample.Y;
         return false;
@@ -577,18 +890,12 @@ internal static class RuntimeSpall
     [HarmonyPostfix,HarmonyPatch(typeof(CompoundStructure),nameof(CompoundStructure.CreateSpallBurst))]
     private static void BurstDone(PenetrationSimulation simulation,BurstState __state)
     {
-        if(!__state.Custom)return;
+        if(apheExtraBurst||!__state.Custom)return;
         var count=simulation.FragmentCount-__state.CountBefore;
         if(count>0 && __state.Aphe && Impact is {} impact)
         {
             impact.PayloadBursts.Add(simulation.Pointer);
             if(impact.Behavior=="heat")impact.HeatBurstCounts[simulation.Pointer]=impact.HeatBurstCounts.GetValueOrDefault(simulation.Pointer)+1;
-        }
-        if(count>0 && Impact?.Behavior is "aphe" && __state.ParentIndex>=0)
-        {
-            var parent=simulation.fragments[__state.ParentIndex];
-            parent.flags |= FragmentFlag.Killed;
-            simulation.fragments[__state.ParentIndex]=parent;
         }
         // 0.22.78 HESH begin
         if(count>0&&__state.Aphe&&__state.ParentIndex>=0&&Impact?.Behavior=="hesh")HeshScabDone(simulation,__state.ParentIndex,count);
