@@ -304,7 +304,7 @@ internal static class EditorHooks
                         arrSlot!.MarkModified();
                         track.Build();
                     }
-                    VisualHooks.ApplyTrackAssemblyVisibility(track);
+                    VisualHooks.ApplyTrackAssemblyVisibility(track, allowRestore: true);
                 }
             }
             editor.RequestRedraw();
@@ -367,7 +367,7 @@ internal static class EditorHooks
                 WheeledProfiles.Set(bp, settings.Copy());
                 track.BlueprintSlot.MarkModified();
                 if (updateVisibility)
-                    VisualHooks.ApplyTrackAssemblyVisibility(track);
+                    VisualHooks.ApplyTrackAssemblyVisibility(track, allowRestore: true);
             }
         }
 
@@ -395,7 +395,7 @@ internal static class EditorHooks
                     wheelBp.Assign(StockAirTyreWheelGuid);
                     wheelSlot!.MarkModified();
                     track!.Build();
-                    VisualHooks.ApplyTrackAssemblyVisibility(track);
+                    VisualHooks.ApplyTrackAssemblyVisibility(track, allowRestore: true);
                     changed = true;
                 }
             }

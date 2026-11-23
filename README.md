@@ -136,7 +136,7 @@ Every mod has a folder in [`mods`](mods) with its own page: what it does, its se
 | [Oscillating Turret](mods/OscillatingTurret) | 0.3.1 | Tilting turret and heavy trunnion mount |
 | [Stabilization](mods/Stabilization) | 0.7.4 | Gun stabiliser |
 | [Engine Expansion](mods/EngineExpansion) | 0.7.3 | Diesel and gas turbine engines, power pack |
-| [Wheeled Vehicles](mods/WheeledVehicles) | 0.4.2 | Real 4x4–10x10 wheeled chassis, per-axle steering & air-tyre wheels |
+| [Wheeled Vehicles](mods/WheeledVehicles) | 0.4.3 | Real 4x4–10x10 wheeled chassis, per-axle steering & air-tyre wheels |
 | [Smoke Launchers](mods/SmokeLaunchers) | 0.2.5 | Smoke launcher bank |
 | [Telescopic Mast](mods/TelescopicMast) | 0.9.9 | Mast, hinge, turntable, signal editor |
 | [Emitter](mods/Emitter) | 0.1.3 | Ejected shell casings |
@@ -154,7 +154,7 @@ Some mods need others to work: Thermal Sight, Hydropneumatic, Smoke Launchers, T
 ## How to install
 
 1. **Install the mod loader.** The pack runs on BepInEx 6. Use the **Sprocket Mod Loader** by Hans21223, which installs the right BepInEx version with a fix for Sprocket: <https://github.com/Hans21223/Sprocket-Mod-Loader>. The "Easy install" with the Mod Manager is the simplest way. It is a separate project and not part of this pack. Start the game once afterwards, so it can set itself up. The first start takes a while.
-2. **Install the pack.** Download `SprocketColdWarPack-v1.3.0.zip` from the [Releases](../../releases) page and extract it into the Sprocket game folder (the folder with `Sprocket.exe`). Merge it with the existing `BepInEx` and `Sprocket_Data` folders.
+2. **Install the pack.** Download `SprocketColdWarPack-v1.3.1.zip` from the [Releases](../../releases) page and extract it into the Sprocket game folder (the folder with `Sprocket.exe`). Merge it with the existing `BepInEx` and `Sprocket_Data` folders.
 3. **Start the game.** Settings are in the folder `BepInEx\config`. They are created at the first start. The mods that need keys do not choose them for you: set your own in the game's Settings screen, under Controls.
 
 To remove a mod, delete its `SprocketXxx` folder in `BepInEx\plugins`. If you update by extracting a newer zip over an older one, your edited settings files are overwritten, so keep a copy.

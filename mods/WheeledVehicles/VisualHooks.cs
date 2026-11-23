@@ -10,6 +10,17 @@ namespace SprocketWheeledVehicles;
 [HarmonyPatch]
 internal static class VisualHooks
 {
+    // Tracks the exact TrackAssembly pointers whose belt / end wheels were actively hidden by this mod,
+    // so normal tracked vehicles are NEVER touched and Play-mode clones never have editor segments re-enabled.
+    private static readonly HashSet<IntPtr> HiddenBeltAssemblies = new();
+    private static readonly HashSet<IntPtr> HiddenEndWheelAssemblies = new();
+
+    internal static void ClearTrackedState()
+    {
+        HiddenBeltAssemblies.Clear();
+        HiddenEndWheelAssemblies.Clear();
+    }
+
     [HarmonyPrefix, HarmonyPatch(typeof(TrackBelt), nameof(TrackBelt.CreateBeltRenderer))]
     private static bool CreateBeltRendererPrefix(TrackBelt __instance, ref ITrackBeltRenderer __result)
     {
@@ -61,7 +72,7 @@ internal static class VisualHooks
     {
         try
         {
-            ApplyTrackAssemblyVisibility(__instance);
+            ApplyTrackAssemblyVisibility(__instance, allowRestore: true);
         }
         catch (Exception ex)
         {
@@ -74,7 +85,8 @@ internal static class VisualHooks
     {
         try
         {
-            ApplyTrackAssemblyVisibility(__instance);
+            // Never restore editor belt segments during Play spawn (Sprocket manages tracked belts itself).
+            ApplyTrackAssemblyVisibility(__instance, allowRestore: false);
         }
         catch (Exception ex)
         {
@@ -82,7 +94,7 @@ internal static class VisualHooks
         }
     }
 
-    internal static void ApplyTrackAssemblyVisibility(TrackAssembly? track)
+    internal static void ApplyTrackAssemblyVisibility(TrackAssembly? track, bool allowRestore = false)
     {
         if (track == null) return;
         WheeledSettings? settings = null;
@@ -90,17 +102,49 @@ internal static class VisualHooks
         bool hideBelt = wheeled && settings!.HideTrackBelt;
         bool hideEndWheels = wheeled && settings!.HideEndWheels;
 
-        if (track.Belt != null)
-            SetBeltHidden(track.Belt, hideBelt);
+        IntPtr ptr = track.Pointer;
 
-        // Hide sprocket, idler, front/rear end mounts and return rollers completely:
-        // mount housing (VehicleObjectModel), suspension arms, axle rods, wheel arrays and baked LOD models.
-        // Never disable GameObjects so powertrain ports and component lifecycles stay intact.
-        SetWheelMountHidden(track.SprocketAssembly, hideEndWheels);
-        SetWheelMountHidden(track.IdlerAssembly, hideEndWheels);
-        SetWheelMountHidden(track.FrontWheelAssembly, hideEndWheels);
-        SetWheelMountHidden(track.RearWheelAssembly, hideEndWheels);
-        SetWheelMountArrayHidden(track.Rollers, hideEndWheels);
+        if (track.Belt != null)
+        {
+            if (hideBelt)
+            {
+                SetBeltHidden(track.Belt, true);
+                HiddenBeltAssemblies.Add(ptr);
+            }
+            else if (allowRestore && HiddenBeltAssemblies.Remove(ptr))
+            {
+                SetBeltHidden(track.Belt, false);
+            }
+            else if (!allowRestore)
+            {
+                HiddenBeltAssemblies.Remove(ptr);
+            }
+        }
+
+        // Hide sprocket, idler, front/rear end mounts and return rollers completely on wheeled vehicles.
+        // Never touch mounts/renderers on normal tracked vehicles unless restoring a previously hidden designer assembly.
+        if (hideEndWheels)
+        {
+            SetAllEndWheelsHidden(track, true);
+            HiddenEndWheelAssemblies.Add(ptr);
+        }
+        else if (allowRestore && HiddenEndWheelAssemblies.Remove(ptr))
+        {
+            SetAllEndWheelsHidden(track, false);
+        }
+        else if (!allowRestore)
+        {
+            HiddenEndWheelAssemblies.Remove(ptr);
+        }
+    }
+
+    private static void SetAllEndWheelsHidden(TrackAssembly track, bool hidden)
+    {
+        SetWheelMountHidden(track.SprocketAssembly, hidden);
+        SetWheelMountHidden(track.IdlerAssembly, hidden);
+        SetWheelMountHidden(track.FrontWheelAssembly, hidden);
+        SetWheelMountHidden(track.RearWheelAssembly, hidden);
+        SetWheelMountArrayHidden(track.Rollers, hidden);
     }
 
     internal static void SetTransformRenderersHidden(Transform? root, bool hidden)

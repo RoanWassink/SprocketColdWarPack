@@ -11,7 +11,7 @@ public sealed class Plugin : BasePlugin
 {
     public const string PluginGuid = "sprocket.wheeledvehicles";
     public const string PluginName = "Sprocket Wheeled Vehicles";
-    public const string PluginVersion = "0.4.2";
+    public const string PluginVersion = "0.4.3";
 
     internal static ManualLogSource ModLog { get; private set; } = null!;
     internal static ConfigEntry<bool> Enabled { get; private set; } = null!;

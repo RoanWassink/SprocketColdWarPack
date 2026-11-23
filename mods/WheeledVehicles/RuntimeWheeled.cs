@@ -445,6 +445,7 @@ internal static class RuntimeWheeled
         foreach (var vs in VehiclesByModule.Values)
             vs.DestroyVisualRigs();
         AudioHooks.ClearAll();
+        VisualHooks.ClearTrackedState();
         BoundTracks.Clear();
         VehiclesByModule.Clear();
         VehiclesByPowertrain.Clear();

@@ -4,7 +4,7 @@ Wheeled Vehicles turns any Sprocket chassis into a real wheeled vehicle with per
 
 ![Air-tyre wheels and suspension under the hull](../../docs/img/wheeled-vehicles-tyres.jpg)
 
-- Version: 0.4.2
+- Version: 0.4.3
 - Plugin GUID: `sprocket.wheeledvehicles`
 - Needs: no other mod
 - Game version tested: 0.2.56.2
