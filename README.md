@@ -22,6 +22,8 @@ Armour plates, side skirts, and applique panels take real, visible battle damage
 
 ![Front hull armour torn open by blast damage, exposing the driver inside](docs/img/plate-destruction-hull-breach.jpg)
 
+![Jagged blast breach in the hull roof beneath a dented turret cheek](docs/img/plate-destruction-turret-hull-breach.jpg)
+
 ![Blast holes punched through an armour plate with glowing hot rims and fire](docs/img/plate-destruction-plate-holes.jpg)
 
 ### Armour and ammunition: Expanded Ballistics

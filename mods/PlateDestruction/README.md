@@ -16,6 +16,8 @@ Plate Destruction lets armour plates and applique panels take visible and struct
 - **Per-side mirrored damage.** Mirrored plates (such as left and right side skirts) break independently on the side that was hit, and the broken side is excluded from armour calculations.
 - **Inter-plate occlusion and surface-normal blast direction.** Intact outer plates shield plates behind them, and contact blasts push inward along the surface normal.
 
+![Jagged blast breach in the hull roof beneath a dented turret cheek](../../docs/img/plate-destruction-turret-hull-breach.jpg)
+
 ![Blast holes punched through an armour plate with glowing hot rims and fire](../../docs/img/plate-destruction-plate-holes.jpg)
 
 ![Deep blast dents and penetration craters on a sloped hull plate](../../docs/img/plate-destruction-hull-dents.jpg)
