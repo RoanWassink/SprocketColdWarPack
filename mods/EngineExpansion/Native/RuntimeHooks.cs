@@ -99,15 +99,24 @@ internal static class RuntimeHooks
             bool active=false;
             var commit=new AssemblyCommit(snapshot.Plan.Selection,0,active);
             var points=snapshot.Plan.Sample(active).Points;
-            var next=new NativeArray<float2>(points.Length,Allocator.Persistent,NativeArrayOptions.UninitializedMemory);
+            var table=new List<float2>(points.Length);
+            double radScale=snapshot.Plan.MaxRPM*Math.PI/30;
+            for(int i=0;i<points.Length;i++)
+            {
+                float x=(float)(points[i].X*radScale),y=(float)points[i].Y;
+                if(!float.IsFinite(x)||!float.IsFinite(y))continue;
+                if(table.Count>0&&x<=table[^1].x)continue;
+                table.Add(new float2(x,y));
+            }
+            var next=new NativeArray<float2>(table.Count,Allocator.Persistent,NativeArrayOptions.UninitializedMemory);
             var job=__instance.physicsJob;
             bool committed=false;
             var previous=job.torqueCurveLookupTable;
             try
             {
-                for(int i=0;i<points.Length;i++)next[i]=new float2((float)(points[i].X*snapshot.Plan.MaxRPM*Math.PI/30),(float)points[i].Y);
+                for(int i=0;i<table.Count;i++)next[i]=table[i];
                 job.torqueCurveLookupTable=next;
-                job.maxTorque=(float)points.Max(p=>p.Y);
+                job.maxTorque=table.Max(p=>p.y);
                 __instance.physicsJob=job; // IL2CPP value-wrapper writeback, never mutate an uncommitted copy.
                 committed=true;
             }

@@ -34,6 +34,11 @@ internal static class ElectronicsIcons
             Add(BoxSightObj.Guid,BoxSightObj.Id,"box-sight-icon.png");
             Add(IrSearchlight.Guid,IrSearchlight.Id,"ir-searchlight-icon.png");
             Add(ConsoleLinks.Guid,ConsoleLinks.Id,"fcs-console-icon.png");
+            Add(ConsoleLinks.DisplayFcsGuid,ConsoleLinks.DisplayFcsId,"fcs-display-icon.png");
+            Add(ConsoleLinks.DriverGuid,ConsoleLinks.DriverId,"driver-console-icon.png");
+            Add(ConsoleLinks.CommanderGuid,ConsoleLinks.CommanderId,"commander-console-icon.png");
+            Add(ConsoleLinks.CommanderSightGuid,ConsoleLinks.CommanderSightId,"commander-sight-icon.png");
+            Add(Runtime.OesOpGuid,Runtime.OesOpId,"oes-op-sight-icon.png");
             Add(Runtime.LensGuid,"thermalSightLens","optical-glass-icon.png");
             Add("379c5275-72ad-4a2d-9e8c-ce183164ea70","clearWindowPane","clear-window-icon.png");
             Add("d6bc56a1-a1f9-4314-aed4-9a953031f8db","tintedWindowPane","tinted-window-icon.png");

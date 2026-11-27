@@ -19,7 +19,7 @@ using NativeScope = Sprocket.Vehicles.Weapons.Scope;
 
 namespace SprocketThermalSight;
 
-[BepInPlugin("sprocket.thermalsight", "Sprocket Thermal Sight", "0.5.4")]
+[BepInPlugin("sprocket.thermalsight", "Sprocket Thermal Sight", "0.5.6")]
 [BepInDependency(Keybinds.PluginGuid, ">=0.1.6 <0.2.0")]
 public sealed class Plugin : BasePlugin
 {
@@ -43,7 +43,7 @@ public sealed class Plugin : BasePlugin
             harmony.PatchAll(typeof(ConsoleLinks));
             harmony.PatchAll(typeof(ConsolePersistence));
             AddComponent<ThermalDriver>();
-            Log.LogInfo("Thermal sight v0.5.4 loaded; nine standardised sensor profiles, legacy part aliases, white-hot/black-hot switch, repaired active IR (soft exposure, per-pixel beam, fine grain) and per-type night-sight HUD supported.");
+            Log.LogInfo("Thermal sight v0.5.6 loaded; remote FCS laying/traverse drives, Driver/Commander consoles, Commander Panoramic Sight, OES-OP targeting sight, 2S38 OES-OP HUD and full-screen thermal displays supported.");
         }
         catch (Exception ex) { Runtime.Shutdown(); Runtime.ReleaseBindings(); harmony?.UnpatchSelf(); Log.LogError("Thermal disabled: " + ex); return; }
         try
@@ -117,7 +117,7 @@ internal static class Runtime
     private static ModKeybind? toggleBinding, reloadBinding, polarityBinding;
     private static bool legacyKeysImported;
     private static ConfigEntry<bool> enabled = null!;
-    private static ConfigEntry<bool>? detailedLogging;
+    private static ConfigEntry<bool>? detailedLogging, removeThermalVignette;
     internal static bool DetailedLogging => detailedLogging?.Value ?? true;
     private static Dictionary<string, ThermalProfile> models = new(StringComparer.Ordinal);
     // 0.5.4: legacy part GUID / profile id -> modern profile, read from the catalogue's alias table.
@@ -129,9 +129,11 @@ internal static class Runtime
     internal const string LensId = "thermalSightLens";
     internal const string LensGuid = "c5319088-49d1-46b4-9112-07a9b4e040fe";
     internal const string ConfigurableGuid = "c9f96b83-cd58-47d1-999b-83c5e71a981f";
+    internal const string OesOpId = "oesOpSight";
+    internal const string OesOpGuid = "f4c82a19-7d3e-4b61-9a85-3e1c6f0d8b42";
     private static readonly HashSet<string> legacyIds = new(StringComparer.Ordinal) { "thermalSightModel1", "thermalSightModel2", "thermalSightModel3", "thermalSightMk3WhiteHot", "thermalSightMk3BlackHot" };
     internal static IReadOnlyList<ThermalProfile> Profiles => models.Values.ToArray();
-    internal static bool IsThermal(VehicleComponent component) => component != null && component.TryCast<GunnerSight>() != null && (component.ComponentID == ConfigurableId || component.ComponentID == VerticalId || legacyIds.Contains(component.ComponentID));
+    internal static bool IsThermal(VehicleComponent component) => component != null && component.TryCast<GunnerSight>() != null && (component.ComponentID == ConfigurableId || component.ComponentID == VerticalId || component.ComponentID == OesOpId || legacyIds.Contains(component.ComponentID));
     internal static bool IsLegacyGuid(string guid) => ThermalAlias.LegacyPartGuids.Contains(guid);
     private static string catalogPath = "";
     private static bool active, inputAllowed, stopped;
@@ -187,6 +189,7 @@ internal static class Runtime
     {
         detailedLogging = config.Bind("Diagnostics", "DetailedLogging", true, "Log sensor layouts and detailed development diagnostics.");
         enabled = config.Bind("General", "Enabled", true, "Enable thermal only on recognized thermal sight parts.");
+        removeThermalVignette = config.Bind("Hud", "RemoveThermalVignette", true, "Remove the native round black optical tube mask on electronic thermal displays (Gen 1..Gen 3 HD, 2S38 OES-OP). Active IR and Image Intensifier tubes keep their round eyepiece.");
         toggle = config.Bind("Keys", "Toggle", Key.N, "Legacy import only; edit Thermal / Toggle in Settings / keybinds.");
         reload = config.Bind("Keys", "ReloadProfiles", Key.F8, "Legacy import only; edit Thermal / Reload profiles in Settings / keybinds. Invalid profiles keep the last accepted catalog.");
         polarityKey = config.Bind("Keys", "Polarity", Key.None, "Legacy import only; edit Thermal / Polarity in Settings / keybinds. White-hot/black-hot switch of the active thermal sight (session only).");
@@ -230,9 +233,10 @@ internal static class Runtime
         // VehicleObject.GUID identifies a placed object and is NOT the asset GUID.
         if (!IsThermal(component)) return false;
         var requested = ProfileStateHooks.Selection(component);
-        if (requested == null && (component.ComponentID == ConfigurableId || component.ComponentID == VerticalId))
+        if (requested == null && (component.ComponentID == ConfigurableId || component.ComponentID == VerticalId || component.ComponentID == OesOpId))
         {
-            var available = ProfileSelectionPolicy.Default(models.Values, defaultProfileId, profile => ThermalEraAccess.Allowed(component, profile));
+            string preferred = component.ComponentID == OesOpId && models.ContainsKey("ti2s38OesOp") ? "ti2s38OesOp" : defaultProfileId;
+            var available = ProfileSelectionPolicy.Default(models.Values, preferred, profile => ThermalEraAccess.Allowed(component, profile));
             // Keep a profile for electronics accounting even when no sensor is usable.
             p = available ?? models[defaultProfileId];
             return true;
@@ -249,7 +253,7 @@ internal static class Runtime
         return models.TryGetValue(defaultProfileId, out p!);
     }
 
-    internal static bool OwnsPartGuid(string guid) => string.Equals(guid, ConfigurableGuid, StringComparison.OrdinalIgnoreCase) || string.Equals(guid, VerticalGuid, StringComparison.OrdinalIgnoreCase) || IsLegacyGuid(guid);
+    internal static bool OwnsPartGuid(string guid) => string.Equals(guid, ConfigurableGuid, StringComparison.OrdinalIgnoreCase) || string.Equals(guid, VerticalGuid, StringComparison.OrdinalIgnoreCase) || string.Equals(guid, OesOpGuid, StringComparison.OrdinalIgnoreCase) || IsLegacyGuid(guid);
     internal static void PlayerInput(PlayerController controller, GameTime time, Camera view)
     {
         if (stopped) return;
@@ -460,10 +464,21 @@ internal static class Runtime
         sensor.Capture(ctx, targets, heatMaterial!, heatPass);
         captureAt = Time.unscaledTime + 1 / selected.RefreshHz;
     }
-    internal static void ReplaceScopeSource(CommandBuffer cmd, HDCamera hdCamera, ref RTHandle source)
+    internal static bool ReplaceScopeSource(CommandBuffer cmd, HDCamera hdCamera, ref RTHandle source, RTHandle destination)
     {
-        if (!ThermalEraAccess.Allowed(activeSight, selected)) { Deactivate(); return; }
-        if (active && inputAllowed && sensor?.HasImage == true && camera != null && hdCamera.camera.GetInstanceID() == camera.GetInstanceID()) source = sensor.ScopeImage(cmd, hdCamera, source);
+        if (!ThermalEraAccess.Allowed(activeSight, selected)) { Deactivate(); return true; }
+        if (active && inputAllowed && sensor?.HasImage == true && camera != null && hdCamera.camera.GetInstanceID() == camera.GetInstanceID())
+        {
+            // Electronic thermal monitors (Gen 1..Gen 3 HD, 2S38 OES-OP) are full rectangular displays, not optical glass tubes.
+            // Blit directly to destination and skip NativeScope.Render's black circular vignette & stock reticle.
+            if ((removeThermalVignette?.Value ?? true) && selected != null && selected.SensorType == "thermal" && destination?.rt != null)
+            {
+                sensor.ScopeImage(cmd, hdCamera, destination);
+                return false;
+            }
+            source = sensor.ScopeImage(cmd, hdCamera, source);
+        }
+        return true;
     }
     private static float hintUntil;
     private static void NoSearchlight()
@@ -515,7 +530,8 @@ internal static class Hooks
     [HarmonyPostfix, HarmonyPatch(typeof(DrawRenderersCustomPass), nameof(DrawRenderersCustomPass.Execute), new[] { typeof(CustomPassContext) })]
     private static void Sensor(DrawRenderersCustomPass __instance, CustomPassContext __0) { try { Runtime.Render(__instance, __0); } catch (Exception ex) { Runtime.Fail(ex); } }
     [HarmonyPrefix, HarmonyPatch(typeof(NativeScope), nameof(NativeScope.Render))]
-    private static void ScopeImage(CommandBuffer __0, HDCamera __1, ref RTHandle __2) { try { Runtime.ReplaceScopeSource(__0, __1, ref __2); } catch (Exception ex) { Runtime.Fail(ex); } }
+    private static bool ScopeImage(CommandBuffer __0, HDCamera __1, ref RTHandle __2, RTHandle __3)
+    { try { return Runtime.ReplaceScopeSource(__0, __1, ref __2, __3); } catch (Exception ex) { Runtime.Fail(ex); return true; } }
     [HarmonyPostfix, HarmonyPatch(typeof(VehicleComponent), nameof(VehicleComponent.GetMass))]
     private static void Mass(VehicleComponent __instance, MassType __0, ref float __result)
     { if ((__0 & MassType.Mechanisms) != 0 && Runtime.FindProfile(__instance, out var p)) __result += p.ExtraMassKg; }

@@ -413,7 +413,7 @@ internal static class Feat02286HeTests
                 var note=events.First(e=>e.Kind=="materialNote").Text;
                 Check(block.Result==word,$"{name}: hit panel result {block.Result}");
                 Check(block.Detail.Contains(HeReportText.Token(events)!,StringComparison.Ordinal)&&block.DamageShort.Contains('[')&&block.DamageExpanded.Contains("[",StringComparison.Ordinal),$"{name}: hit panel detail '{block.Detail}', damage '{block.DamageShort}'");
-                Check(view.Layers.Length==1&&view.Layers[0].Reaction.Contains(note,StringComparison.Ordinal)&&view.SummaryLine.Contains("[",StringComparison.Ordinal),$"{name}: report row reaction '{view.Layers[0].Reaction}', summary '{view.SummaryLine}'");
+                Check(view.Layers.Length==1&&view.Layers[0].Reaction.Contains(note,StringComparison.Ordinal)&&(view.SummaryLine.Contains("Interior shock",StringComparison.Ordinal)||view.SummaryLine.Contains("Interior:",StringComparison.Ordinal))&&!view.SummaryLine.Contains("[",StringComparison.Ordinal),$"{name}: report row reaction '{view.Layers[0].Reaction}', summary '{view.SummaryLine}'");
                 Check(html.Contains(System.Net.WebUtility.HtmlEncode(note),StringComparison.Ordinal)||html.Contains(note,StringComparison.Ordinal),$"{name}: the HTML report carries the line");
                 var texts=new List<string>{block.Result,block.Detail,block.Values,block.DamageShort,block.DamageExpanded,nl.Header,nl.Detail,forensic.Outcome,forensic.Explanation,view.SummaryLine,view.Head,note};
                 texts.AddRange(block.Breakdown);texts.AddRange(forensic.Findings);texts.AddRange(forensic.Advice);

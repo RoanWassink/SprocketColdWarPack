@@ -8,6 +8,8 @@ namespace SprocketExpandedBallistics;
 /// impact stays in the summary line. <paramref name="Reaction"/> is empty for plain steel.
 /// </summary>
 internal sealed record CombatLayerRow(string Index,string Name,string Material,string Thickness,string Angle,string BeforeAfter,string Reaction,string Note,string Colour);
+internal sealed record BlastKpiItem(string Label,string Value,string Sub,string Accent);
+internal sealed record BlastPlateRow(string Index,string Plate,string Material,string Thickness,string Angle,string Capacity,string Result,string Colour);
 /// <summary>One impact in the Kit combat report: the hit-panel block (colour, result) plus its layer table.</summary>
 internal sealed class CombatImpactView
 {
@@ -25,6 +27,9 @@ internal sealed class CombatImpactView
     internal string[] SummaryLines=Array.Empty<string>();
     internal string BlastHeadline="";
     internal string[] BlastLines=Array.Empty<string>();
+    internal BlastReportData? Blast;
+    internal BlastKpiItem[] BlastKpis=Array.Empty<BlastKpiItem>();
+    internal BlastPlateRow[] BlastRows=Array.Empty<BlastPlateRow>();
     internal CombatLayerRow[] Layers=Array.Empty<CombatLayerRow>();
     internal string[] Diagnostics=Array.Empty<string>();
 }
@@ -40,6 +45,8 @@ internal static class CombatReportView
     internal const int Shown=10,LineColumns=118,MaxLines=8;
     /// <summary>Layer table: # | Plate | Material | Thickness | Angle | Before → after | Reaction. All widths are fixed (no flexible column), so header and rows always line up.</summary>
     internal static readonly string[] Columns={"#","Plate","Material","Thickness","Obliquity","Pen. in → out mm","Reaction"};
+    /// <summary>Pure HE/HESH blast table: # | Plate | Material | Thickness | Obliquity | Breach capacity | Result.</summary>
+    internal static readonly string[] BlastColumns={"#","Plate","Material","Thickness","Obliquity","Capacity","Result"};
     /// <summary>0.22.41: the fixed texts of the Kit report panel, here so the language test reads exactly what the panel shows.</summary>
     internal const string PanelTitle="Combat report",PanelSubtitle="Expanded Ballistics · last 10 impacts",SectionTitle="Impacts",
         HelpText="Newest first. Colour and result as on the hit panel. Click an impact to show or hide its layers: plate, material, normal thickness, obliquity, penetration at entry and exit, and any material response.",
@@ -197,16 +204,25 @@ internal static class CombatReportView
             var line=CombatReportPresentation.Escape(damage.Line(shot.CrewTotal));
             var target=CombatReportPresentation.Escape(CombatHitSummaryModel.Fit(shot.Target??"",48));var destroyed=CombatDamageSummary.IsDestroyed(shot);
             var blastLines=BuildBlastLines(shot.Events);
-            list.Add(new CombatImpactView
+            var view=new CombatImpactView
             {
                 Key=shot.Number.ToString(CultureInfo.InvariantCulture),Block=block,Layers=rows.ToArray(),Forensic=CombatForensics.Build(shot),
                 Diagnostics=shot.Events.Where(CombatReportNoise.IsEndedPlate).Select(e=>CombatReportPresentation.Escape(CombatReportLanguage.Diagnostic(e.Text))).ToArray(),
-                BlastLines=blastLines,BlastHeadline=BuildBlastHeadline(shot.Events,blastLines),
+                BlastLines=blastLines,
                 Target=target,Destroyed=destroyed,Head=HeadText(block,target,destroyed),
-                SummaryLine=line,SummaryLines=line.Length==0?Array.Empty<string>():Lines(line,LineColumns),
-                Summary=(shot.Direction=="Incoming"?"From: "+CombatReportPresentation.Escape(CombatReportTruth.Text(shot.Shooter,"unknown"))+" · ":"")+$"{CombatReportPresentation.Escape(shot.Direction)} · {N(shot.SpeedMps,"0")} m/s · {rows.Count} layer{(rows.Count==1?"":"s")}"
-                    +(shot.OmittedEvents>0?$" · {shot.OmittedEvents} diagnostics omitted (full list in the saved report)":"")
-            });
+                SummaryLine=line,SummaryLines=line.Length==0?Array.Empty<string>():Lines(line,LineColumns)
+            };
+            var blast=view.Forensic?.Blast;
+            view.Blast=blast;
+            view.BlastHeadline=BuildBlastHeadline(blast,blastLines);
+            view.BlastKpis=blast is {IsPureBlastDetonation:true}?BuildBlastKpis(blast,shot):Array.Empty<BlastKpiItem>();
+            view.BlastRows=blast is {IsPureBlastDetonation:true}?BuildBlastRows(blast,rows):Array.Empty<BlastPlateRow>();
+            string contextTail=blast is {IsPureBlastDetonation:true}
+                ?blast.Breached?"blast breach":"exterior blast"
+                :$"{rows.Count} layer{(rows.Count==1?"":"s")}";
+            view.Summary=(shot.Direction=="Incoming"?"From: "+CombatReportPresentation.Escape(CombatReportTruth.Text(shot.Shooter,"unknown"))+" · ":"")+$"{CombatReportPresentation.Escape(shot.Direction)} · {N(shot.SpeedMps,"0")} m/s · {contextTail}"
+                +(shot.OmittedEvents>0?$" · {shot.OmittedEvents} diagnostics omitted (full list in the saved report)":"");
+            list.Add(view);
         }
         return list;
     }
@@ -223,18 +239,114 @@ internal static class CombatReportView
             if(e.Kind=="blastEra")list.Add(CombatReportPresentation.Escape(CombatReportLanguage.BlastLine(e.Text)));
         return list.ToArray();
     }
-    private static string BuildBlastHeadline(IReadOnlyList<CombatReportEvent> events,string[] blastLines)
+    private static string BuildBlastHeadline(BlastReportData? blast,string[] blastLines)
     {
+        if(blast is {IsPureBlastDetonation:true})
+        {
+            var parts=new List<string>();
+            if(blast.CalibreMm is >0)parts.Add(string.Create(CultureInfo.InvariantCulture,$"{blast.CalibreMm:0.#} mm {blast.Kind}"));
+            if(blast.BreachCapacityMm is >0)parts.Add(string.Create(CultureInfo.InvariantCulture,$"{blast.BreachCapacityMm:0.#} mm RHA capacity"));
+            if(blast.Breached)
+            {
+                var hole=blast.HoleDiameterM is >0?string.Create(CultureInfo.InvariantCulture,$" (Ø {blast.HoleDiameterM:0.00} m hole)"):"";
+                parts.Add($"{blast.PrimaryPlateName} ({N(blast.PrimaryThicknessMm)} mm) breached{hole}");
+            }
+            else if(blast.PrimaryThicknessMm is >0)
+            {
+                parts.Add($"{blast.PrimaryPlateName} ({N(blast.PrimaryThicknessMm)} mm) resisted (dent only)");
+            }
+            if(blast.TotalEraStripped>0)parts.Add($"{blast.TotalEraStripped} ERA stripped");
+            return CombatReportPresentation.Escape(string.Join(" · ",parts));
+        }
         if(blastLines.Length==0)return "";
-        var summary=events.FirstOrDefault(e=>e.Kind=="blastSummary");
-        var breached=events.FirstOrDefault(e=>e.Kind=="blastPlate"&&e.Text.Contains("BREACHED",StringComparison.Ordinal));
-        var resisted=events.FirstOrDefault(e=>e.Kind=="blastPlate"&&!e.Text.Contains("BREACHED",StringComparison.Ordinal));
-        var era=events.FirstOrDefault(e=>e.Kind=="blastEra");
-        var parts=new List<string>();
-        if(summary!=null)parts.Add(CombatReportLanguage.BlastLine(summary.Text));
-        if(breached!=null)parts.Add(CombatReportLanguage.BlastLine(breached.Text));
-        else if(resisted!=null)parts.Add(CombatReportLanguage.BlastLine(resisted.Text));
-        if(era!=null)parts.Add(CombatReportLanguage.BlastLine(era.Text));
-        return CombatReportPresentation.Escape(string.Join(" · ",parts));
+        return CombatReportPresentation.Escape(string.Join(" · ",blastLines.Take(2)));
+    }
+    internal static BlastKpiItem[] BuildBlastKpis(BlastReportData blast,CombatReportShot? shot=null)
+    {
+        var items=new List<BlastKpiItem>(4);
+        string chargeVal=blast.CalibreMm is >0?string.Create(CultureInfo.InvariantCulture,$"{blast.CalibreMm:0.#} mm {blast.Kind}"):blast.Kind+" charge";
+        var chargeSubParts=new List<string>();
+        if(blast.Power is >0)chargeSubParts.Add(string.Create(CultureInfo.InvariantCulture,$"Power {blast.Power:0.#}"));
+        if(shot?.SpeedMps is >0)chargeSubParts.Add(string.Create(CultureInfo.InvariantCulture,$"{shot.SpeedMps:0} m/s"));
+        items.Add(new("Charge",chargeVal,string.Join(" · ",chargeSubParts),"#f3cf86"));
+
+        string capVal=blast.BreachCapacityMm is >0?string.Create(CultureInfo.InvariantCulture,$"{blast.BreachCapacityMm:0.#} mm RHA"):"—";
+        string capSub=blast.PrimaryThicknessMm is >0
+            ?string.Create(CultureInfo.InvariantCulture,$"vs {blast.PrimaryThicknessMm:0.#} mm plate")+(blast.PrimaryObliquityDeg is {} ang?string.Create(CultureInfo.InvariantCulture,$" ({ang:0}°)"):"")
+            :"";
+        items.Add(new("Breach capacity",capVal,capSub,"#79d8e8"));
+
+        string respVal=blast.Breached
+            ?(blast.HoleDiameterM is >0?string.Create(CultureInfo.InvariantCulture,$"Breached · Ø {blast.HoleDiameterM:0.00} m"):"Breached")
+            :"Resisted · dent only";
+        string respSub=blast.PrimaryPlateName+(blast.PrimaryIsSolidBlock&&!blast.PrimaryPlateName.Contains("Solid",StringComparison.OrdinalIgnoreCase)?" (solid composite)":"");
+        items.Add(new("Armour response",respVal,respSub,blast.Breached?"#ff9c6e":"#8fd99c"));
+
+        string secVal,secSub,secAccent;
+        if(blast.Breached)
+        {
+            secVal="Overpressure";
+            secSub=blast.TotalEraStripped>0
+                ?string.Create(CultureInfo.InvariantCulture,$"Compartment breached · {blast.TotalEraStripped} ERA stripped")
+                :"Blast entered compartment";
+            secAccent="#ff7a66";
+        }
+        else if(blast.TotalEraStripped>0)
+        {
+            secVal=string.Create(CultureInfo.InvariantCulture,$"{blast.TotalEraStripped} ERA stripped");
+            secSub=blast.EraStripRadiusM is >0
+                ?string.Create(CultureInfo.InvariantCulture,$"Within {blast.EraStripRadiusM:0.00} m")+(blast.ShockPercent is >0?string.Create(CultureInfo.InvariantCulture,$" · {blast.ShockPercent:0.#} % shock"):"")
+                :(blast.ShockPercent is >0?string.Create(CultureInfo.InvariantCulture,$"{blast.ShockPercent:0.#} % interior shock"):"Compartment sealed");
+            secAccent="#f39c52";
+        }
+        else if(blast.ShockPercent is >0)
+        {
+            secVal=string.Create(CultureInfo.InvariantCulture,$"{blast.ShockPercent:0.#} % shock");
+            secSub="Attenuated interior wave · sealed";
+            secAccent="#f3cf86";
+        }
+        else
+        {
+            secVal="Compartment sealed";
+            secSub="Exterior detonation only";
+            secAccent="#8fd99c";
+        }
+        items.Add(new("Secondary effect",secVal,secSub,secAccent));
+        return items.ToArray();
+    }
+    private static BlastPlateRow[] BuildBlastRows(BlastReportData blast,List<CombatLayerRow> measuredRows)
+    {
+        var list=new List<BlastPlateRow>();
+        var firstLayer=measuredRows.FirstOrDefault();
+        if(blast.Plates.Count>0)
+        {
+            for(int i=0;i<blast.Plates.Count;i++)
+            {
+                var p=blast.Plates[i];
+                bool isFirst=i==0;
+                string plateName=isFirst&&blast.PrimaryPlateName.Length>0?blast.PrimaryPlateName:$"Plate #{p.PlateVuid}";
+                if(p.IsSolidBlock&&!plateName.Contains("Solid",StringComparison.OrdinalIgnoreCase))plateName+="\n(solid composite)";
+                string material=isFirst&&blast.PrimaryMaterial.Length>0?blast.PrimaryMaterial:(p.IsSolidBlock?"Solid composite armour":"Rolled Homogeneous Armour");
+                string thick=N(p.ThicknessMm)+" mm";
+                string angle=isFirst&&blast.PrimaryObliquityDeg is {} ang?N(ang,"0")+"°":"—";
+                string cap=N(p.CapacityMm)+" mm RHA";
+                string result=p.Breached
+                    ?string.Create(CultureInfo.InvariantCulture,$"Breached · blast hole Ø {p.HoleDiameterM:0.00} m")
+                    :("Resisted · surface dent only"+(isFirst&&blast.ShockPercent is >0?string.Create(CultureInfo.InvariantCulture,$" · {blast.ShockPercent:0.#} % shock"):""));
+                list.Add(new((list.Count+1).ToString("00",CultureInfo.InvariantCulture),Clean(plateName,Fit(1)),Clean(material,Fit(2)),thick,angle,cap,result,p.Breached?"#ff9c6e":"#8fd99c"));
+            }
+        }
+        else if(firstLayer!=null)
+        {
+            string cap=blast.BreachCapacityMm is >0?N(blast.BreachCapacityMm)+" mm RHA":"—";
+            string res=blast.ShockPercent is >0?string.Create(CultureInfo.InvariantCulture,$"Resisted · {blast.ShockPercent:0.#} % interior shock"):"Resisted";
+            list.Add(new("01",firstLayer.Name,firstLayer.Material,firstLayer.Thickness,firstLayer.Angle,cap,res,"#8fd99c"));
+        }
+        if(blast.TotalEraStripped>0)
+        {
+            string rad=blast.EraStripRadiusM is >0?string.Create(CultureInfo.InvariantCulture,$"within {blast.EraStripRadiusM:0.00} m"):"";
+            list.Add(new("ERA","Exterior ERA","Explosive Reactive Armour","—","—","Blast radius",$"Stripped {blast.TotalEraStripped} ERA element{(blast.TotalEraStripped==1?"":"s")}{(rad.Length>0?" "+rad:"")}","#f39c52"));
+        }
+        return list.ToArray();
     }
 }

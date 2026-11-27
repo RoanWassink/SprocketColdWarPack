@@ -1,0 +1,10 @@
+file: commander-sight.obj
+sha256: 2B3A98869A8D288813D168BD0F2DA17081E8F4941537CD2971DE65B39C34C097
+positions: 2164
+vertices_expanded: 12948
+triangles_total: 4316
+triangles_housing: 4180
+triangles_glass: 136
+bounds_x: [-0.1460, 0.1460] (0.2920 m)
+bounds_y: [0.0000, 0.3340] (0.3340 m)
+bounds_z: [-0.1320, 0.1250] (0.2570 m)

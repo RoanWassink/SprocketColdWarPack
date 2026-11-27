@@ -1,5 +1,18 @@
 # Expanded Ballistics
 
+## 0.22.112 (Redesigned HE / HESH Combat Report, Forensic Blast Diagram & Cause-Grouped Damage)
+
+- Cause-grouped damage summary (`CombatDamageSummary.cs`):
+  - Groups HE/HESH cause tags (`[breach overpressure]`, `[interior]`, `[shock X %]`, `[exterior]`) once per cause (`Interior shock (1.3 %): Crew 3/3 wounded · engine, fuel tank damaged | Exterior: main gun damaged`) instead of repeating bracketed tags after every module and inside anonymous crew parentheses.
+  - Untagged shots (AP/APFSDS/APHE/HEAT) remain byte-for-byte unchanged.
+- Dedicated HE / HESH Combat Report (`CombatReport.cs`, `HitPanelModel.cs`, `CombatReportView.cs`, `CombatReportPanel.cs`, `CombatReportHtml.cs`):
+  - Replaced duplicate orange `Blast assessment` bullet boxes and AP-only columns (`Pen. in → out mm`) / 3-bar AP waterfalls on pure HE/HESH detonations with a clean 4-tile **Blast KPI strip** (*Charge*, *Breach capacity*, *Armour response*, *Secondary effect*) and a compact **Armour response** table (including stripped ERA rows).
+  - Collapsed in-game cards show a single concise blast summary line that hides automatically on expand to eliminate repetition.
+- Dedicated HE / HESH Forensic Report (`CombatForensics.cs`, `CombatForensicDrawing.cs`, `CombatForensicPanel.cs`, `CombatForensicHtml.cs`):
+  - Replaced AP arrest prose, the yellow AP arrow, heat-map toggle, and `100 % / 0 %` absorption bars with an explosive detonation conclusion, a dedicated **HE Blast Cross-Section** (detonation burst, exterior blast arcs, breached gap with `Ø` callout + overpressure cone OR intact plate with surface crater + attenuated shockwave, stripped ERA visual, and affected crew/module icons), and a **Blast capacity vs. armour thickness** comparison bar with margin/excess readout.
+  - Eliminated all duplicate findings between the header, KPI strip, findings list, and damage summary.
+- 0 new Harmony hooks (stays at 48 `[HarmonyPatch` annotations).
+
 ## 0.22.111 (Plate Destruction 1.0.2 blast back-channel & dedicated HE / HESH Combat Report and Forensic presentation)
 
 - Back-channel reporting on `public static class BallisticsEffectApi` (`RuntimeShellEffects.cs`, `RuntimeDamageFeed.cs`, `CombatReport.cs`):

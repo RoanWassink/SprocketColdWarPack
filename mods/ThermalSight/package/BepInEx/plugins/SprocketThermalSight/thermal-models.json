@@ -229,6 +229,31 @@
       "cooled": true,
       "extraMassKg": 38,
       "extraAssemblyCost": 6000
+    },
+    {
+      "componentId": "ti2s38OesOp",
+      "displayName": "2S38 OES-OP (Gen 3 HD)",
+      "sensorType": "thermal",
+      "availableFrom": "2018.01.01",
+      "width": 1280,
+      "height": 1024,
+      "refreshHz": 60,
+      "noise": 0.003,
+      "blur": 0.08,
+      "sharpen": 0.35,
+      "contrast": 2.0,
+      "brightness": 0.03,
+      "gamma": 1.0,
+      "grayLevels": 256,
+      "smoothPixels": true,
+      "backgroundLevel": 0.28,
+      "backgroundDetail": 0.16,
+      "backgroundGamma": 1.0,
+      "vehicleHeat": 0.8,
+      "palette": "whiteHot",
+      "cooled": true,
+      "extraMassKg": 40,
+      "extraAssemblyCost": 6500
     }
   ],
   "aliases": [

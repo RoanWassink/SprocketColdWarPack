@@ -9,7 +9,7 @@ internal static class ProfileChecks
 {
     private static readonly string[] Modern =
     {
-        "irActiveL1", "iiGen1", "iiGen2", "tiGen1", "tiGen1Late", "tiGen2", "tiGen3", "tiGen3Uncooled", "tiGen3HD"
+        "irActiveL1", "iiGen1", "iiGen2", "tiGen1", "tiGen1Late", "tiGen2", "tiGen3", "tiGen3Uncooled", "tiGen3HD", "ti2s38OesOp"
     };
     private static readonly string[] ThermalLine = { "tiGen1", "tiGen1Late", "tiGen2", "tiGen3", "tiGen3Uncooled", "tiGen3HD" };
     private static readonly string[] IntensifierLine = { "iiGen1", "iiGen2" };
@@ -32,8 +32,8 @@ internal static class ProfileChecks
         check(doc.RootElement.GetProperty("version").GetInt32() == 3, "catalogue is version 3");
         check(catalog.DefaultProfileId == "tiGen1", "defaultProfileId is tiGen1 as in 0.5.3");
         var ids = doc.RootElement.GetProperty("models").EnumerateArray().Select(m => m.GetProperty("componentId").GetString()!).ToArray();
-        check(ids.SequenceEqual(Modern), "exactly the nine modern profiles, legacy parts removed");
-        check(catalog.Models.Count == 9 && catalog.Aliases.Count == 5, "nine profiles and five legacy aliases");
+        check(ids.SequenceEqual(Modern), "exactly the ten modern profiles (including 2S38 OES-OP), legacy parts removed");
+        check(catalog.Models.Count == 10 && catalog.Aliases.Count == 5, "ten profiles and five legacy aliases");
         foreach (var model in doc.RootElement.GetProperty("models").EnumerateArray())
         {
             string id = model.GetProperty("componentId").GetString()!;

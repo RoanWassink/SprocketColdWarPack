@@ -292,10 +292,10 @@ internal static class Feat022104ApheDetonationTests
             && spallRuntime.Contains("apheExtraBurst", StringComparison.Ordinal),
             "6 RuntimeSpall wires per-shell ApheRules.Effective + Air-space APHE detonation + terminal Killed marker");
 
-        Check(Read("Plugin.cs").Contains("\"0.22.111\"", StringComparison.Ordinal)
-            && Read("SprocketExpandedBallistics.csproj").Contains("<Version>0.22.111</Version>", StringComparison.Ordinal)
-            && Read("RELEASE-NOTES.md").Contains("## 0.22.111", StringComparison.Ordinal),
-            "6 Plugin.cs, csproj, and RELEASE-NOTES.md carry version 0.22.111");
+        Check(Read("Plugin.cs").Contains("\"0.22.112\"", StringComparison.Ordinal)
+            && Read("SprocketExpandedBallistics.csproj").Contains("<Version>0.22.112</Version>", StringComparison.Ordinal)
+            && Read("RELEASE-NOTES.md").Contains("## 0.22.112", StringComparison.Ordinal),
+            "6 Plugin.cs, csproj, and RELEASE-NOTES.md carry version 0.22.112");
 
         int hooks = Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
             .Where(f => { var r = f.Replace('\\', '/'); return !r.Contains("/tests/") && !r.Contains("/bin/") && !r.Contains("/obj/"); })

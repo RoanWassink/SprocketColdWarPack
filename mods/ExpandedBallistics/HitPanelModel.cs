@@ -87,6 +87,18 @@ internal static class HitBlockBuilder
         if(shown==StoppedSpall&&HeReportText.OutsideBlast(shot.Events))shown=StoppedBlast; // 0.22.86 HE
         bool blastBreach=HeReportText.HasBlastBreach(shot.Events);
         if(blastBreach){shown=Breached;colour=BreachColour;}
+        var blastData=CombatBlastReport.Extract(shot,envelopePerforated:shown==Penetrated);
+        if(blastData is {IsPureBlastDetonation:true})
+        {
+            if(blastData.Breached&&blastData.HoleDiameterM is >0)
+                values=blastData.CalibreMm is >0
+                    ?string.Create(CultureInfo.InvariantCulture,$"{blastData.CalibreMm:0.#} mm · Ø {blastData.HoleDiameterM:0.00} m")
+                    :string.Create(CultureInfo.InvariantCulture,$"{N(blastData.BreachCapacityMm)} mm cap. · Ø {blastData.HoleDiameterM:0.00} m");
+            else if(blastData.CalibreMm is >0&&blastData.BreachCapacityMm is >0)
+                values=string.Create(CultureInfo.InvariantCulture,$"{blastData.CalibreMm:0.#} mm · {blastData.BreachCapacityMm:0.#} mm cap.");
+            else if(blastData.BreachCapacityMm is >0)
+                values=string.Create(CultureInfo.InvariantCulture,$"{blastData.BreachCapacityMm:0.#} mm cap.");
+        }
         var tokens=Tokens(shot.Events,main);
         if(HeReportText.Token(shot.Events) is {} heToken)tokens.Add(heToken); // 0.22.86 HE
         if(HeReportText.BlastToken(shot.Events) is {} blastToken)tokens.Add(blastToken);
@@ -104,7 +116,7 @@ internal static class HitBlockBuilder
             DamageExpanded=damage.Count==0?"":"→ "+Clean(string.Join(", ",damage.Take(2)),70)+(damage.Count>2?$" +{damage.Count-2}":"")
         };
         block.Breakdown=Breakdown(shot,armour,tandem,before,damage);
-        block.Waterfall=PenetrationWaterfall.Build(shot,views);
+        block.Waterfall=blastData is {IsPureBlastDetonation:true}?null:PenetrationWaterfall.Build(shot,views);
         return block;
     }
     internal static string Direction(string? direction)=>direction switch{"Outgoing"=>"OUT","Incoming"=>"IN","Own vehicle self-hit"=>"SELF","Other vehicles"=>"OTHER",_=>""};

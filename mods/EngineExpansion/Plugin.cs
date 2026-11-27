@@ -5,7 +5,7 @@ using HarmonyLib;
 using System.Security.Cryptography;
 namespace SprocketEngineExpansion;
 
-[BepInPlugin(Guid, "Sprocket Engine Expansion", "0.7.3")]
+[BepInPlugin(Guid, "Sprocket Engine Expansion", "0.7.4")]
 public sealed class Plugin : BasePlugin
 {
     public const string Guid="sprocket.engineexpansion";
@@ -74,7 +74,7 @@ public sealed class Plugin : BasePlugin
         Native.EngineAudio.AuxVolume=(float)audioVol.Value;
         Install("engine-character",typeof(Native.EngineCharacterHooks));
         Install("engine-audio",typeof(Native.EngineAudio));
-        Log.LogInfo($"Engine Expansion 0.7.3 loaded. Powerpack from {Core.EngineDates.PowerpackDate:yyyy-MM-dd}. CollisionFilter={(Native.PowerpackCollision.Active?Native.PowerpackCollision.DriveshaftMode.ToString():"off")}. EngineCharacter={(Native.EngineCharacterHooks.Enabled?"on":"off")}. Turbo functionality is disabled; existing saved parts and metadata are retained.");
+        Log.LogInfo($"Engine Expansion 0.7.4 loaded. Powerpack from {Core.EngineDates.PowerpackDate:yyyy-MM-dd}. CollisionFilter={(Native.PowerpackCollision.Active?Native.PowerpackCollision.DriveshaftMode.ToString():"off")}. EngineCharacter={(Native.EngineCharacterHooks.Enabled?"on":"off")}. Turbo functionality is disabled; existing saved parts and metadata are retained.");
     }
     private Func<double> Checked(BepInEx.Configuration.ConfigEntry<double> entry,double fallback)
     {

@@ -87,10 +87,10 @@ internal static class Feat022100FloppyPartsHandoffTests
         var plugin=Read("Plugin.cs");
         Check(!plugin.Contains("sprocket.floppyparts",StringComparison.Ordinal),
             "3 Plugin.cs does not add a BepInDependency on sprocket.floppyparts");
-        Check(plugin.Contains("\"0.22.111\"",StringComparison.Ordinal)
-            &&Read("SprocketExpandedBallistics.csproj").Contains("<Version>0.22.111</Version>",StringComparison.Ordinal)
-            &&Read("RELEASE-NOTES.md").Contains("## 0.22.111",StringComparison.Ordinal),
-            "3 Plugin.cs, csproj, and RELEASE-NOTES.md carry version 0.22.111");
+        Check(plugin.Contains("\"0.22.112\"",StringComparison.Ordinal)
+            &&Read("SprocketExpandedBallistics.csproj").Contains("<Version>0.22.112</Version>",StringComparison.Ordinal)
+            &&Read("RELEASE-NOTES.md").Contains("## 0.22.112",StringComparison.Ordinal),
+            "3 Plugin.cs, csproj, and RELEASE-NOTES.md carry version 0.22.112");
 
         int hooks=Directory.EnumerateFiles(root,"*.cs",SearchOption.AllDirectories)
             .Where(f=>{var r=f.Replace('\\','/');return !r.Contains("/tests/")&&!r.Contains("/bin/")&&!r.Contains("/obj/");})

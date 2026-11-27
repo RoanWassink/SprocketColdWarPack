@@ -34,8 +34,10 @@ internal static class Plans
         // Linear tangents match the native piecewise-linear job sampler.
         for(int i=0;i<keys.Length;i++)
         {
-            float incoming=i>0?(keys[i].value-keys[i-1].value)/(keys[i].time-keys[i-1].time):0;
-            float outgoing=i+1<keys.Length?(keys[i+1].value-keys[i].value)/(keys[i+1].time-keys[i].time):0;
+            float dxIn=i>0?keys[i].time-keys[i-1].time:0;
+            float dxOut=i+1<keys.Length?keys[i+1].time-keys[i].time:0;
+            float incoming=dxIn>1e-6f?(keys[i].value-keys[i-1].value)/dxIn:0;
+            float outgoing=dxOut>1e-6f?(keys[i+1].value-keys[i].value)/dxOut:0;
             keys[i]=new Keyframe(keys[i].time,keys[i].value,incoming,outgoing);
         }
         return new AnimationCurve(keys);

@@ -71,11 +71,34 @@ internal sealed class CombatReportHistory
 }
 internal readonly record struct ParsedBlastPlate(int PlateVuid,bool IsSolidBlock,double ThicknessMm,bool Breached,double HoleDiameterM,double CapacityMm);
 internal readonly record struct ParsedBlastEra(int Count,double RadiusM);
+internal readonly record struct ParsedBlastSummary(string Kind,double CalibreMm,double Power,double BreachCapacityMm);
+internal sealed record BlastReportData(
+    bool IsBlastShot,
+    bool IsPureBlastDetonation,
+    string Kind,
+    double? CalibreMm,
+    double? Power,
+    double? BreachCapacityMm,
+    double? ShockPercent,
+    bool Breached,
+    IReadOnlyList<ParsedBlastPlate> Plates,
+    IReadOnlyList<ParsedBlastEra> StrippedEra,
+    string PrimaryPlateName,
+    string PrimaryMaterial,
+    string PrimaryMaterialColour,
+    double? PrimaryThicknessMm,
+    double? PrimaryObliquityDeg,
+    bool PrimaryIsSolidBlock,
+    double? HoleDiameterM,
+    int TotalEraStripped,
+    double? EraStripRadiusM);
 internal static class CombatBlastReport
 {
     private static readonly CultureInfo C=CultureInfo.InvariantCulture;
+    private static readonly Regex SummaryRegex=new(@"^(HE|HESH)\s+blast:\s*([\d.]+)\s*mm\s*·\s*power\s*([\d.]+)\s*·\s*RHA\s+breach\s+(?:budget|capacity)\s*([\d.]+)\s*mm$",RegexOptions.IgnoreCase|RegexOptions.CultureInvariant);
     private static readonly Regex PlateRegex=new(@"^Plate #(\d+)( \[Solid block\])? \(([\d.]+) mm\): (?:BREACHED — blast hole Ø ([\d.]+) m|resisted blast — dent only) \(capacity ([\d.]+) mm\)$",RegexOptions.CultureInvariant);
     private static readonly Regex EraRegex=new(@"^Blast stripped (\d+) ERA blocks? within ([\d.]+) m$",RegexOptions.CultureInvariant);
+    private static readonly Regex ShockRegex=new(@"shock(?: of)?\s+([\d.]+)\s*%",RegexOptions.IgnoreCase|RegexOptions.CultureInvariant);
     private static double Safe(double value)=>double.IsFinite(value)&&value>=0?value:0;
 
     internal static string SummaryText(string kind,double calibreMm,double power,double breachMm)
@@ -172,6 +195,116 @@ internal static class CombatBlastReport
         if(!m.Success)return false;
         parsed=new(int.Parse(m.Groups[1].Value,C),double.Parse(m.Groups[2].Value,C));
         return true;
+    }
+
+    internal static bool TryParseSummary(CombatReportEvent? e,out ParsedBlastSummary parsed)
+    {
+        parsed=default;
+        if(e?.Kind!="blastSummary"||string.IsNullOrEmpty(e.Text))return false;
+        var m=SummaryRegex.Match(e.Text.Trim());
+        if(!m.Success)return false;
+        parsed=new(
+            m.Groups[1].Value.ToUpperInvariant(),
+            double.Parse(m.Groups[2].Value,C),
+            double.Parse(m.Groups[3].Value,C),
+            double.Parse(m.Groups[4].Value,C));
+        return true;
+    }
+
+    internal static BlastReportData? Extract(CombatReportShot shot,IReadOnlyList<ForensicLayer>? layers=null,bool envelopePerforated=false)
+    {
+        var events=shot.Events??Array.Empty<CombatReportEvent>();
+        ParsedBlastSummary? summary=null;
+        var plates=new List<ParsedBlastPlate>();
+        var eras=new List<ParsedBlastEra>();
+        double? shockPct=null;
+        foreach(var e in events)
+        {
+            if(e==null)continue;
+            if(summary==null&&TryParseSummary(e,out var s))summary=s;
+            else if(TryParsePlate(e,out var p))plates.Add(p);
+            else if(TryParseEra(e,out var er))eras.Add(er);
+            if(shockPct==null&&e.Kind is "materialNote" or "interaction"&&!string.IsNullOrEmpty(e.Text))
+            {
+                var sm=ShockRegex.Match(e.Text);
+                if(sm.Success&&double.TryParse(sm.Groups[1].Value,NumberStyles.Float,C,out var sp))shockPct=sp;
+            }
+        }
+        bool hasBlastEvents=summary!=null||plates.Count>0||eras.Count>0;
+        bool outsideBlast=HeReportText.OutsideBlast(events);
+        if(!hasBlastEvents&&!outsideBlast)return null;
+
+        bool isHesh=summary?.Kind=="HESH"||shot.Profile.Contains("HESH",StringComparison.OrdinalIgnoreCase);
+        string kind=isHesh?"HESH":"HE";
+        bool breached=plates.Any(p=>p.Breached);
+        var primaryParsed=plates.FirstOrDefault(p=>p.Breached);
+        if(primaryParsed.PlateVuid==0&&plates.Count>0)primaryParsed=plates[0];
+
+        // Resolve primary armour plate geometry from measured layers when available.
+        CombatLayerPart? primaryPart=null;
+        string primaryColour="#8095a6";
+        if(layers is {Count:>0})
+        {
+            foreach(var l in layers)
+            {
+                if(l.GapMm!=null)continue;
+                var match=primaryParsed.PlateVuid>0
+                    ?l.Parts.FirstOrDefault(pt=>pt.Armour&&pt.Entity==primaryParsed.PlateVuid)
+                    :null;
+                match??=l.Parts.FirstOrDefault(pt=>pt.Armour);
+                if(match!=null){primaryPart=match;primaryColour=l.Colour;break;}
+            }
+        }
+        else
+        {
+            foreach(var e in events)
+            {
+                if(e?.Kind!="layerStart"||e.Layer==null||e.Layer.AirGapMm!=null)continue;
+                var match=primaryParsed.PlateVuid>0
+                    ?e.Layer.Parts.FirstOrDefault(pt=>pt.Armour&&pt.Entity==primaryParsed.PlateVuid)
+                    :null;
+                match??=e.Layer.Parts.FirstOrDefault(pt=>pt.Armour);
+                if(match!=null){primaryPart=match;primaryColour=CombatForensics.MaterialColour(match.MaterialId);break;}
+            }
+        }
+
+        int armourLayerCount=layers!=null
+            ?layers.Count(l=>l.GapMm==null&&!l.Internal)
+            :events.Count(e=>e?.Kind=="layerStart"&&e.Layer!=null&&e.Layer.AirGapMm==null&&e.Layer.Parts.Any(p=>p.Armour));
+        bool pureBlast=hasBlastEvents&&!envelopePerforated&&armourLayerCount<=1;
+
+        string plateName=primaryPart!=null
+            ?CombatReportView.PlateName(primaryPart.Name,primaryPart.Entity)
+            :primaryParsed.PlateVuid>0?$"Plate #{primaryParsed.PlateVuid}":"Armour plate";
+        bool isSolid=primaryParsed.IsSolidBlock||plateName.Contains("[Solid block]",StringComparison.OrdinalIgnoreCase);
+        string material=primaryPart!=null?CombatForensics.PlateMaterial(primaryPart):(isSolid?"Solid composite armour":"Rolled Homogeneous Armour");
+        double? thick=primaryParsed.ThicknessMm>0?primaryParsed.ThicknessMm:primaryPart?.ThicknessMm;
+        double? angle=primaryPart?.AngleDegrees;
+        double? capacity=summary?.BreachCapacityMm??(primaryParsed.CapacityMm>0?primaryParsed.CapacityMm:shot.InitialPenetrationMm);
+        double? holeDiam=breached&&primaryParsed.HoleDiameterM>0?primaryParsed.HoleDiameterM:null;
+        int totalEra=eras.Sum(x=>x.Count);
+        double? eraRadius=eras.Count>0?eras.Max(x=>x.RadiusM):null;
+
+        return new BlastReportData(
+            IsBlastShot:true,
+            IsPureBlastDetonation:pureBlast,
+            Kind:kind,
+            CalibreMm:summary?.CalibreMm,
+            Power:summary?.Power,
+            BreachCapacityMm:capacity,
+            ShockPercent:shockPct,
+            Breached:breached,
+            Plates:plates,
+            StrippedEra:eras,
+            PrimaryPlateName:plateName,
+            PrimaryMaterial:material,
+            PrimaryMaterialColour:primaryColour,
+            PrimaryThicknessMm:thick,
+            PrimaryObliquityDeg:angle,
+            PrimaryIsSolidBlock:isSolid,
+            HoleDiameterM:holeDiam,
+            TotalEraStripped:totalEra,
+            EraStripRadiusM:eraRadius);
     }
 }
 internal static class CombatReportTruth

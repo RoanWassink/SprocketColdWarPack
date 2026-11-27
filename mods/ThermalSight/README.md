@@ -2,7 +2,7 @@
 
 Thermal Sight adds night vision to the gunner's sights in Sprocket. The sensors follow the history of the Cold War, from the infrared lamp of the 1950s to modern thermal imaging, and a laser rangefinder helps you aim at distant targets.
 
-- Version: 0.5.4
+- Version: 0.5.6
 - Needs: Sprocket Keybinds (version 0.1.6 or newer, below 0.2.0)
 - Works better with: Sprocket Expanded Ballistics, which tells the rangefinder and the display which round is loaded
 - Game version tested: 0.2.56.2

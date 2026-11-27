@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.4 - 2026-11-27 (Fix NaN RPM / AssertionException flood on Diesel & Turbine engines)
+
+- Fixed a critical `float32` knot collision in `torqueCurveLookupTable` (`Core/Profiles.cs`, `Native/RuntimeHooks.cs`, `Native/Plans.cs`) that caused `RPM = NaN`, `generatedTorque = NaN`, undriveable tanks, and tens of thousands of `UnityEngine.Assertions.AssertionException` errors in `EngineAudioController.UpdateAudio` / `LinearBlender.GetValue` (e.g. `Object 219 (1)` with `NativeMaxRPM = 4670`, `Diesel MaxRPM = 3736`, `IdleRPM = 934`).
+- Cause: native `float32` table X-values (such as `0.2f * 4670 / 3736 = 0.2500000037...`) differed from the `512`-step grid (`128 / 512.0 = 0.25`) in `double` precision so `.Distinct()` kept both, but both rounded to the exact same `float32` rad/s value (`97.80825f`, right at `IdleRPM`), causing `0 / 0 = NaN` interpolation inside native `EnginePhysicsJob`.
+- `EnginePlan.Sample` now merges near-duplicate knots (`minGap = 1e-5`), `RuntimeHooks.Set` enforces strict `float32` monotonicity (`x > prev.x`) before populating `NativeArray<float2>`, and `Plans.DisplayCurve` guards against zero-width tangent denominators.
+
 ## 0.7.3 - 2026-11-20 (Side-by-side longitudinal Twin Powerpack & unlimited driveshaft angle)
 
 - Updated Twin Powerpack placement (`Core/PowerpackRules.cs`, `Native/PowerpackLayout.cs`): dual transmissions now mount **alongside** the engine (one on each flank, parallel in the longitudinal direction with driveshaft outputs at the rear) instead of transversely back-to-back behind the engine. Rear faces align flush with the engine rear, inner flanks tuck into the engine sides (`MonoblockOverlap`), and `RestoredTwinPositions` cleanly shifts both gearboxes behind the engine output when Powerpack is unticked.

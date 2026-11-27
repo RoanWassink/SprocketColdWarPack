@@ -6,9 +6,9 @@ namespace SprocketExpandedBallistics;
 /// <summary>The same immutable drawing feeds the Kit Painter, HTML SVG and headless raster tests.</summary>
 internal static class CombatForensicDrawing
 {
-    internal const float Width=1060;
-    internal const string TopLabel="STRIKE FACE  →  SHOT LINE  →  BEHIND ARMOUR",NoLayers="No armour layer data";
-    internal static float Height(ForensicModel m)=>CombatForensicGeometry.Height;
+    internal const float Width=1060,BlastHeight=340;
+    internal const string TopLabel="STRIKE FACE  →  SHOT LINE  →  BEHIND ARMOUR",BlastTopLabel="EXTERIOR  →  DETONATION  →  INTERIOR",NoLayers="No armour layer data";
+    internal static float Height(ForensicModel m)=>m.IsPureBlast?BlastHeight:CombatForensicGeometry.Height;
     /// <summary>Kit hatch angle (degrees, screen y down) of stripes parallel to a plate face at obliquity <paramref name="obliquity"/>, turned by a layer tilt.</summary>
     internal static float FaceHatch(double obliquity,double tilt)=>(float)(90+obliquity+tilt);
     private static string StopLabel(ForensicLayer l)
@@ -19,6 +19,7 @@ internal static class CombatForensicDrawing
     }
     internal static void Draw(ISectionSink d,ForensicModel m,bool heat,bool clip=true)
     {
+        if(m.IsPureBlast&&m.Blast!=null){DrawBlast(d,m,m.Blast);return;}
         var g=CombatForensicGeometry.Build(m,clip);float h=Height(m),y=g.ShotY;
         d.ViewBox(Width,h);d.Poly(new float[]{0,0,Width,0,Width,h,0,h},"#13191f",null,0);
         d.BeginClip(Width,h);
@@ -148,6 +149,202 @@ internal static class CombatForensicDrawing
         d.Line(bx,by,bx+bar,by,"#e7edf2",2);d.Line(bx,by-5,bx,by+5,"#e7edf2",1);d.Line(bx+bar,by-5,bx+bar,by+5,"#e7edf2",1);
         d.Text(bx+bar/2,by-13,g.ScaleBarMm+" mm","#e7edf2",SectionAnchor.MiddleCenter,"#13191fed");
         if(m.Layers.Count==0)d.Text(70,y,NoLayers,"#b8ad94",SectionAnchor.MiddleLeft,null);
+    }
+    /// <summary>0.22.112: dedicated HE/HESH explosive detonation cross-section (shared by UI Kit Painter and HTML SVG).</summary>
+    private static void DrawBlast(ISectionSink d,ForensicModel m,BlastReportData blast)
+    {
+        float h=BlastHeight,y=172,top=44,bottom=292;
+        d.ViewBox(Width,h);
+        d.Poly(Box(0,0,Width,h),"#13191f",null,0);
+        d.BeginClip(Width,h);
+
+        double deg=Math.Clamp(blast.PrimaryObliquityDeg??0,0,50);
+        float tan=(float)Math.Tan(deg*Math.PI/180.0);
+        double thickMm=blast.PrimaryThicknessMm??20.0;
+        float bandPx=Math.Clamp(22f+(float)(thickMm*0.42),24f,84f);
+        float frontX=390f,backX=frontX+bandPx;
+
+        // Subtle interior shading behind the plate so exterior vs interior is immediately clear.
+        float interiorTopX=backX+(y-top)*tan,interiorBotX=backX+(y-bottom)*tan;
+        d.Poly(new[]{interiorTopX,top,Width,top,Width,bottom,interiorBotX,bottom},"#171f27",null,0);
+
+        float[] Slab(float x0,float x1,float yt,float yb)
+        {
+            float st=(y-yt)*tan,sb=(y-yb)*tan;
+            return new[]{x0+st,yt,x1+st,yt,x1+sb,yb,x0+sb,yb};
+        }
+        void Arc(float cx,float cy,float r,double startDeg,double endDeg,string colour,float widthPx,int steps=20)
+        {
+            for(int i=0;i<steps;i++)
+            {
+                double a0=(startDeg+(endDeg-startDeg)*i/steps)*Math.PI/180.0;
+                double a1=(startDeg+(endDeg-startDeg)*(i+1)/steps)*Math.PI/180.0;
+                d.Line(cx+(float)(r*Math.Cos(a0)),cy+(float)(r*Math.Sin(a0)),cx+(float)(r*Math.Cos(a1)),cy+(float)(r*Math.Sin(a1)),colour,widthPx);
+            }
+        }
+        float[] Star(float cx,float cy,float outerR,float innerR,int rays)
+        {
+            var pts=new float[rays*4];
+            for(int i=0;i<rays*2;i++)
+            {
+                double a=i*Math.PI/rays-Math.PI/2;
+                float r=i%2==0?outerR:innerR;
+                pts[2*i]=cx+(float)(r*Math.Cos(a));
+                pts[2*i+1]=cy+(float)(r*Math.Sin(a));
+            }
+            return pts;
+        }
+
+        string plateColour=blast.PrimaryMaterialColour.Length>0?blast.PrimaryMaterialColour:"#8095a6";
+        float gapHalf=blast.Breached?Math.Clamp((float)((blast.HoleDiameterM??0.35)*90.0),26f,54f):0f;
+
+        // 1. Armour slab (split around breach hole when breached, continuous with surface crater when resisted).
+        if(blast.Breached)
+        {
+            var upper=Slab(frontX,backX,top,y-gapHalf);
+            var lower=Slab(frontX,backX,y+gapHalf,bottom);
+            d.Poly(upper,plateColour+"cc","#d0d8df",1);
+            d.Poly(lower,plateColour+"cc","#d0d8df",1);
+            // Highlight ruptured breach edges.
+            float sUp=gapHalf*tan,sDn=-gapHalf*tan;
+            d.Line(frontX+sUp,y-gapHalf,backX+sUp,y-gapHalf,"#ff8d72",2.5f);
+            d.Line(frontX+sDn,y+gapHalf,backX+sDn,y+gapHalf,"#ff8d72",2.5f);
+            // Overpressure blast cone projecting into the interior compartment.
+            float coneX=710f,coneSpread=Math.Min(108f,gapHalf+56f);
+            d.Poly(new[]{backX+sUp,y-gapHalf,coneX,y-coneSpread,coneX,y+coneSpread,backX+sDn,y+gapHalf},"#ff7a6620",null,0);
+            d.Line(backX+sUp,y-gapHalf,coneX,y-coneSpread,"#ff8d7277",1.2f);
+            d.Line(backX+sDn,y+gapHalf,coneX,y+coneSpread,"#ff8d7277",1.2f);
+            Arc(backX+4,y,48,-46,46,"#ff8d72",2.2f);
+            Arc(backX+4,y,92,-42,42,"#ff8d72aa",1.6f);
+            Arc(backX+4,y,140,-38,38,"#ff8d7255",1.2f);
+            // Vertical breach diameter dimension.
+            float dimX=(frontX+backX)/2f;
+            d.Line(dimX,y-gapHalf+3,dimX,y+gapHalf-3,"#ffac91",1.4f);
+            d.Line(dimX-5,y-gapHalf+3,dimX+5,y-gapHalf+3,"#ffac91",1.2f);
+            d.Line(dimX-5,y+gapHalf-3,dimX+5,y+gapHalf-3,"#ffac91",1.2f);
+            string holeLabel=blast.HoleDiameterM is >0?string.Create(CultureInfo.InvariantCulture,$"Ø {blast.HoleDiameterM:0.00} m breach"):"Breached";
+            d.Text(dimX,y,holeLabel,"#ffac91",SectionAnchor.MiddleCenter,"#13191ff2");
+            d.Text(backX+118,y-76,"Compartment overpressure","#ffac91",SectionAnchor.MiddleCenter,"#13191fed");
+        }
+        else
+        {
+            d.Poly(Slab(frontX,backX,top,bottom),plateColour+"cc","#d0d8df",1);
+            // Surface dent / crater on strike face.
+            float dentDepth=Math.Min(bandPx*0.32f,10f);
+            d.Poly(new[]{frontX+16*tan,y-16,frontX+dentDepth,y,frontX-16*tan,y+16,frontX-4,y+16,frontX-4,y-16},"#13191f",null,0);
+            d.Line(frontX+16*tan,y-16,frontX+dentDepth,y,"#f39c52",2f);
+            d.Line(frontX+dentDepth,y,frontX-16*tan,y+16,"#f39c52",2f);
+            if(blast.ShockPercent is >0)
+            {
+                Arc(backX+4,y,42,-44,44,"#f3cf8699",1.8f);
+                Arc(backX+4,y,82,-40,40,"#f3cf8655",1.3f);
+                Arc(backX+4,y,122,-36,36,"#f3cf8633",1.0f);
+                d.Text(backX+116,y-58,string.Create(CultureInfo.InvariantCulture,$"Attenuated shock · {blast.ShockPercent:0.#} %"),"#f3cf86",SectionAnchor.MiddleCenter,"#13191fed");
+            }
+            else
+            {
+                d.Text(backX+116,y,"Compartment sealed","#a7e5b1",SectionAnchor.MiddleCenter,"#13191fed");
+            }
+            d.Text(backX+116,y+58,"Resisted · surface dent only","#8fd99c",SectionAnchor.MiddleCenter,"#13191fed");
+        }
+
+        // 2. Incoming dashed shell path & exterior detonation burst.
+        float detX=frontX-4;
+        for(float sx=34;sx<detX-24;sx+=14)d.Line(sx,y,Math.Min(detX-24,sx+8),y,"#c9a86a88",1.6f);
+        d.Arrow(detX-34,y,detX-10,y,"#f1c471",2.2f,8);
+        Arc(detX,y,38,118,242,"#f39c52",2.2f);
+        Arc(detX,y,74,124,236,"#f39c52aa",1.6f);
+        Arc(detX,y,112,130,230,"#f39c5255",1.2f);
+        d.Poly(Star(detX,y,20,9,10),"#f39c52","#ff7a66",1);
+        d.Poly(Star(detX,y,11,5,10),"#fff1c4",null,0);
+
+        string chargeLabel=blast.CalibreMm is >0
+            ?string.Create(CultureInfo.InvariantCulture,$"{blast.CalibreMm:0.#} mm {blast.Kind}")+(blast.BreachCapacityMm is >0?string.Create(CultureInfo.InvariantCulture,$" · {blast.BreachCapacityMm:0.#} mm cap."):"")
+            :blast.Kind+(blast.BreachCapacityMm is >0?string.Create(CultureInfo.InvariantCulture,$" · {blast.BreachCapacityMm:0.#} mm cap."):"");
+        d.Text(156,y-48,chargeLabel,"#f3cf86",SectionAnchor.MiddleCenter,"#13191fed");
+
+        // 3. Stripped ERA tiles visual indicator along upper exterior face when ERA was stripped.
+        if(blast.TotalEraStripped>0)
+        {
+            // Slanted ghost tile hugging the upper strike face + detached brick blown outward.
+            d.Poly(Slab(frontX-16,frontX-3,top+14,top+50),"#f39c5222","#f39c52",1.3f);
+            float detachedTopX=frontX-54+(y-(top+58))*tan;
+            d.Poly(new[]{detachedTopX,top+58,detachedTopX+15,top+52,detachedTopX+22,top+82,detachedTopX+7,top+88},"#e07a4f44","#f39c52",1.2f);
+            string eraLabel=blast.EraStripRadiusM is >0
+                ?string.Create(CultureInfo.InvariantCulture,$"{blast.TotalEraStripped} ERA stripped · {blast.EraStripRadiusM:0.00} m")
+                :$"{blast.TotalEraStripped} ERA stripped";
+            d.Text(178,top+34,eraLabel,"#f5d6a0",SectionAnchor.MiddleCenter,"#13191fed");
+        }
+
+        // 4. Plate caption & obliquity label.
+        float plateTopMidX=(frontX+backX)/2f+(y-top)*tan;
+        string plateTitle=blast.PrimaryThicknessMm is >0
+            ?$"{blast.PrimaryPlateName} · {CombatForensics.N(blast.PrimaryThicknessMm)} mm"
+            :blast.PrimaryPlateName;
+        float titleHalf=plateTitle.Length*3.15f+6;
+        d.Text(Math.Clamp(plateTopMidX,titleHalf+12,Width-titleHalf-12),top-14,plateTitle,"#e7edf2",SectionAnchor.MiddleCenter,"#13191fed");
+        if(blast.PrimaryObliquityDeg is >=5)
+        {
+            float botX=frontX+(y-bottom)*tan;
+            d.Text(Math.Clamp(botX-28,60,Width-60),bottom+14,$"θ = {CombatForensics.N(blast.PrimaryObliquityDeg)}°","#b9e9f2",SectionAnchor.MiddleCenter,"#13191fed");
+        }
+
+        // 5. Right-side affected interior crew & module icons (reusing existing crisp flat icons).
+        var icons=BlastDamageIcons(m.DamageSummary);
+        if(icons.Count>0)
+        {
+            float panelLeft=732f,panelRight=1036f,panelMid=(panelLeft+panelRight)/2f;
+            d.Text(panelMid,top+16,"AFFECTED CREW & MODULES","#b8ad94",SectionAnchor.MiddleCenter,null);
+            int cols=icons.Count<=3?icons.Count:3;
+            int rows=(icons.Count+cols-1)/cols;
+            float colStep=96f,rowStep=74f;
+            float startY=y-(rows-1)*rowStep/2f+8f;
+            for(int i=0;i<icons.Count;i++)
+            {
+                int row=i/cols,col=i%cols;
+                int inRow=Math.Min(cols,icons.Count-row*cols);
+                float cx=panelMid+(col-(inRow-1)/2f)*colStep;
+                float cy=startY+row*rowStep;
+                var item=icons[i];
+                Icon(d,item.Kind,cx,cy-6,item.Colour);
+                d.Text(cx,cy+18,item.Label,item.Colour,SectionAnchor.MiddleCenter,"#13191fed");
+            }
+        }
+
+        d.EndClip();
+        if(icons.Count>0)BlastLegend(d,h-17);
+        d.Text(16,17,BlastTopLabel,"#c1c6ca",SectionAnchor.MiddleLeft,"#13191fed");
+    }
+    private static List<(string Kind,string Label,string Colour)> BlastDamageIcons(CombatDamageSummary? d)
+    {
+        var list=new List<(string Kind,string Label,string Colour)>();
+        if(d==null||!d.Any)return list;
+        if(d.CrewKilled>0)list.Add(("crew",$"Crew {d.CrewKilled} killed",ColourSevere));
+        else if(d.CrewWounded>0)list.Add(("crew",$"Crew {d.CrewWounded} wounded",ColourDamaged));
+        static string KindOf(string part)
+        {
+            var s=part.ToLowerInvariant();
+            if(s.Contains("ammo"))return "ammunition";
+            if(s.Contains("fuel"))return "fuel";
+            if(s.Contains("engine")||s.Contains("motor"))return "engine";
+            if(s.Contains("trans")||s.Contains("gear"))return "transmission";
+            if(s.Contains("gun")||s.Contains("cannon")||s.Contains("breech"))return "gun";
+            return "other";
+        }
+        static string ShortLabel(string part)=>part.Length>15?part[..14]+"…":CombatForensics.Capital(part);
+        foreach(var p in d.PartsDestroyed){if(list.Count>=6)break;list.Add((KindOf(p),ShortLabel(p),ColourSevere));}
+        foreach(var p in d.PartsDamaged){if(list.Count>=6)break;list.Add((KindOf(p),ShortLabel(p),ColourDamaged));}
+        return list;
+    }
+    private static void BlastLegend(ISectionSink d,float y)
+    {
+        float x=16;
+        foreach(var (text,colour) in new[]{(LegendSevere,ColourSevere),(LegendDamaged,ColourDamaged)})
+        {
+            d.Poly(Box(x,y-5,x+10,y+5),colour,null,0);
+            d.Text(x+14,y,text,"#c1c6ca",SectionAnchor.MiddleLeft,null);
+            x+=14+text.Length*6.3f+22;
+        }
     }
     internal const float IconBox=26,IconPitch=30;
     internal const string ColourSevere="#ff7a66",ColourDamaged="#f2b84b",ColourNone="#a6b0ba";

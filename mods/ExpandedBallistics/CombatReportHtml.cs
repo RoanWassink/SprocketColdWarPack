@@ -1,8 +1,9 @@
 using System.Net;
 namespace SprocketExpandedBallistics;
 /// <summary>
-/// The saved HTML report (0.22.7): the same order and wording as the Kit panel (<see cref="CombatReportView"/>): header line,
-/// one damage summary, one context line, then the layer table with the same columns; every layer keeps its full event list under Details.
+/// The saved HTML report (0.22.7 / 0.22.112): matches the Kit panel (<see cref="CombatReportView"/>) — header line,
+/// clean cause-grouped damage summary, context line, then either the dedicated HE/HESH Blast KPI grid + armour-response
+/// table or the standard ballistic layer table. Raw measurement events stay in the Technical log.
 /// </summary>
 internal static class CombatReportHtml
 {
@@ -31,15 +32,35 @@ internal static class CombatReportHtml
             }
             return string.Join("\n",lines);
         }
-        string BlastBox(CombatImpactView impact)
+        string BlastKpis(CombatImpactView impact)
         {
-            if(impact.BlastLines.Length==0)return "";
-            var sb=new System.Text.StringBuilder("<div class='blast'><h4>Blast assessment</h4><ul>");
-            foreach(var line in impact.BlastLines)sb.Append("<li>"+E(line)+"</li>");
-            return sb.Append("</ul></div>").ToString();
+            if(impact.BlastKpis.Length==0)return "";
+            var sb=new System.Text.StringBuilder("<div class='blast-kpis'>");
+            foreach(var k in impact.BlastKpis)
+            {
+                sb.Append($"<div class='blast-kpi' style='border-top-color:{k.Accent}'><div class='kpi-l'>{E(k.Label)}</div><div class='kpi-v' style='color:{k.Accent}'>{E(k.Value)}</div>");
+                if(k.Sub.Length>0)sb.Append($"<div class='kpi-s'>{E(k.Sub)}</div>");
+                sb.Append("</div>");
+            }
+            return sb.Append("</div>").ToString();
+        }
+        string BlastTable(CombatImpactView impact)
+        {
+            var sb=new System.Text.StringBuilder("<table><thead><tr>");
+            for(int i=0;i<CombatReportView.BlastColumns.Length;i++)sb.Append("<th"+(CombatReportView.RightAligned[i]?" class='r'":"")+" style='width:"+CombatReportView.Widths[i].ToString("0",System.Globalization.CultureInfo.InvariantCulture)+"px'>"+E(CombatReportView.BlastColumns[i])+"</th>");
+            sb.Append("</tr></thead><tbody>");
+            foreach(var br in impact.BlastRows)
+            {
+                var cells=new[]{br.Index,br.Plate,br.Material,br.Thickness,br.Angle,br.Capacity,br.Result};
+                sb.Append("<tr>");
+                for(int i=0;i<cells.Length;i++)sb.Append("<td"+(CombatReportView.RightAligned[i]?" class='r'":"")+(i==0?" style='color:"+br.Colour+"'":"")+">"+E(cells[i]).Replace("\n","<br/>")+"</td>");
+                sb.Append("</tr>");
+            }
+            return sb.Append("</tbody></table>").ToString();
         }
         string Table(CombatImpactView impact)
         {
+            if(impact.Blast is {IsPureBlastDetonation:true})return BlastKpis(impact)+BlastTable(impact);
             var sb=new System.Text.StringBuilder("<table><thead><tr>");
             for(int i=0;i<CombatReportView.Columns.Length;i++)sb.Append("<th"+(CombatReportView.RightAligned[i]?" class='r'":"")+" style='width:"+CombatReportView.Widths[i].ToString("0",System.Globalization.CultureInfo.InvariantCulture)+"px'>"+E(CombatReportView.Columns[i])+"</th>");
             sb.Append("</tr></thead><tbody>");
@@ -58,7 +79,6 @@ internal static class CombatReportHtml
             "<section><h2 id='impact-"+E(impact.Key)+"' style='border-color:"+impact.Block.Colour+"'>"+E(impact.Head.Replace(" · "+CombatReportView.DestroyedText,""))+(impact.Destroyed?" · <strong class='kill'>"+CombatReportView.DestroyedText+"</strong>":"")+"</h2>"
             +(impact.SummaryLine.Length>0?"<p class='damage'>"+E(impact.SummaryLine)+"</p>":"")
             +"<p class='context'>"+E(impact.Summary)+"</p>"
-            +BlastBox(impact)
             +Table(impact)
             +(impact.Forensic is {} forensic?CombatForensicHtml.Render(forensic,"forensic-"+impact.Key):"")
             +(impact.Block.Waterfall is {Steps.Count:>0} wf?"<p class='context'>"+E(SequencePrefix+PenetrationWaterfall.Text(wf))+"</p><div class='wfbox'>"+PenetrationWaterfall.Svg(wf)+"</div>":"")
@@ -67,6 +87,6 @@ internal static class CombatReportHtml
         string nav=impacts.Count>=3
             ?"<nav class='toc'>"+string.Join("",impacts.Select(i=>$"<a href='#impact-{E(i.Key)}' style='border-left-color:{i.Block.Colour}'><strong>{E(i.Block.NumberText)}</strong> {E(i.Block.Result)}{(i.Target.Length>0?" · "+E(i.Target):"")}</a>"))+"</nav>"
             :"";
-        return "<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'/><title>"+Title+"</title><style>body{max-width:1100px;margin:2em auto;padding:0 1em;font:16px system-ui;background:#171a1d;color:#e7edf2}section{margin:1.6em 0;background:#232930;border-radius:8px;padding:.2em 1em 1em}h2{font-size:1.05em;margin:.8em 0 .4em;padding-left:.7em;border-left:4px solid}p{margin:.25em 0}.damage{color:#ffcbb3}.context{color:#b8ad94;font-size:.9em}.kill{color:#e5533d}.blast{margin:.5em 0;padding:.45em .8em;border-left:3px solid #f39c52;background:#1d2228;border-radius:4px}.blast h4{margin:0 0 .25em;font-size:.85em;text-transform:uppercase;letter-spacing:.04em;color:#f3cf86}.blast ul{margin:0;padding-left:1.2em;font-size:.9em}.blast li{margin:.15em 0}.toc{display:flex;flex-wrap:wrap;gap:6px;margin:.8em 0 1.2em}.toc a{color:#e7edf2;text-decoration:none;background:#232930;border-left:3px solid;border-radius:4px;padding:4px 9px;font-size:.85em}.toc a:hover{background:#2d353e}table{border-collapse:collapse;width:100%;table-layout:fixed;margin:.6em 0;font-size:.9em}th,td{padding:.25em .5em;text-align:left;overflow-wrap:anywhere}th{color:#b8ad94;font-weight:normal;border-bottom:1px solid #3b434b}.r{text-align:right}tr.note td{color:#ffcbb3;padding-top:0}details{color:#bbc5ce}summary{cursor:pointer}.wfbox{overflow-x:auto;margin:.3em 0 .6em}svg.wf{max-width:100%;height:auto;font-family:system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px system-ui;line-height:1.6}"+CombatForensicHtml.Css+"</style></head><body><h1>"+Title+"</h1><p>"+E(Intro)+"</p>"+nav+string.Join("",sections)+"</body></html>";
+        return "<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'/><title>"+Title+"</title><style>body{max-width:1100px;margin:2em auto;padding:0 1em;font:16px system-ui;background:#171a1d;color:#e7edf2}section{margin:1.6em 0;background:#232930;border-radius:8px;padding:.2em 1em 1em}h2{font-size:1.05em;margin:.8em 0 .4em;padding-left:.7em;border-left:4px solid}p{margin:.25em 0}.damage{color:#ffcbb3}.context{color:#b8ad94;font-size:.9em}.kill{color:#e5533d}.blast-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:.75em 0}.blast-kpi{background:#191f25;border-top:2px solid #f39c52;border-radius:5px;padding:8px 11px}.kpi-l{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#9aa6b2}.kpi-v{font-size:15px;font-weight:600;margin-top:2px}.kpi-s{font-size:12px;color:#b8ad94;margin-top:2px}.toc{display:flex;flex-wrap:wrap;gap:6px;margin:.8em 0 1.2em}.toc a{color:#e7edf2;text-decoration:none;background:#232930;border-left:3px solid;border-radius:4px;padding:4px 9px;font-size:.85em}.toc a:hover{background:#2d353e}table{border-collapse:collapse;width:100%;table-layout:fixed;margin:.6em 0;font-size:.9em}th,td{padding:.25em .5em;text-align:left;overflow-wrap:anywhere}th{color:#b8ad94;font-weight:normal;border-bottom:1px solid #3b434b}.r{text-align:right}tr.note td{color:#ffcbb3;padding-top:0}details{color:#bbc5ce}summary{cursor:pointer}.wfbox{overflow-x:auto;margin:.3em 0 .6em}svg.wf{max-width:100%;height:auto;font-family:system-ui}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px system-ui;line-height:1.6}@media(max-width:720px){.blast-kpis{grid-template-columns:1fr 1fr}}"+CombatForensicHtml.Css+"</style></head><body><h1>"+Title+"</h1><p>"+E(Intro)+"</p>"+nav+string.Join("",sections)+"</body></html>";
     }
 }

@@ -94,17 +94,38 @@ internal static class CombatReportPanel
         head.Chip(b.Result,UiKit.Colour(b.Colour)).Width(CombatReportView.ResultChipWidth);
         if(impact.Destroyed)head.Chip(CombatReportView.DestroyedText,UiKit.Colour("#e5533d")).Width(CombatReportView.DestroyedChipWidth).Tooltip(CombatReportView.DestroyedTooltip);
         head.Label(()=>expanded.Contains(key)?CombatReportView.HideLayers:CombatReportView.ShowLayers,TextStyle.Faint).Width(84).AlignRight();
-        // One summary line of the damage (crew and parts, grouped by status); it wraps instead of being cut off.
+        // One summary line of the damage (crew and parts, grouped by status or blast cause); it wraps instead of being cut off.
         foreach(var line in impact.SummaryLines)st.Label(line,TextStyle.Small).Colour("#ffcbb3").Wrap();
-        if(impact.BlastHeadline.Length>0)st.Label(impact.BlastHeadline,TextStyle.Small).Colour(b.Result==HitBlockBuilder.Breached?"#ffac91":"#f3cf86").Wrap();
+        if(impact.BlastHeadline.Length>0)
+            st.Label(impact.BlastHeadline,TextStyle.Small).Colour(b.Result==HitBlockBuilder.Breached?"#ffac91":"#f3cf86").Wrap().VisibleWhen(()=>!expanded.Contains(key));
         if(b.Shooter.Length>0)st.Label(CombatReportPresentation.Escape(b.Shooter),TextStyle.Small).Wrap();
-        var table=st.Stack(2);
+        var table=st.Stack(4);
         table.VisibleWhen(()=>expanded.Contains(key));
         table.Label(impact.Summary,TextStyle.Small).Colour("#b8ad94");
-        if(impact.BlastLines.Length>0)
+        if(impact.Blast is {IsPureBlastDetonation:true})
         {
-            table.Label("BLAST ASSESSMENT",TextStyle.Section);
-            foreach(var bl in impact.BlastLines)table.Label(bl,TextStyle.Small).Colour(bl.Contains("BREACHED",StringComparison.Ordinal)?"#ffac91":"#f3cf86").Wrap();
+            if(impact.BlastKpis.Length>0)
+            {
+                var kpiRow=table.Row(8);
+                foreach(var kpi in impact.BlastKpis)
+                {
+                    var tile=kpiRow.Card().Stripe(()=>kpi.Accent).Flex().Stack(1);
+                    tile.Label(kpi.Label.ToUpperInvariant(),TextStyle.Faint);
+                    tile.Label(kpi.Value,TextStyle.Value).Colour(kpi.Accent);
+                    if(kpi.Sub.Length>0)tile.Label(kpi.Sub,TextStyle.Small).Colour("#b8ad94").Wrap();
+                }
+            }
+            var bHead=table.Row(6);
+            for(int i=0;i<CombatReportView.BlastColumns.Length;i++)Cell(bHead,CombatReportView.BlastColumns[i],i,TextStyle.Small).Colour("#b8ad94");
+            foreach(var br in impact.BlastRows)
+            {
+                var r=table.Row(6);
+                Cell(r,br.Index,0,TextStyle.Value).Colour(br.Colour);
+                NameCell(r,br.Plate);Cell(r,br.Material,2,TextStyle.Small);Cell(r,br.Thickness,3,TextStyle.Small);Cell(r,br.Angle,4,TextStyle.Small);
+                Cell(r,br.Capacity,5,TextStyle.Value);ReactionCell(r,br.Result);
+            }
+            foreach(var diagnostic in impact.Diagnostics)table.Label(diagnostic,TextStyle.Small).Wrap();
+            return;
         }
         var header=table.Row(6);
         for(int i=0;i<Columns.Length;i++)Cell(header,Columns[i],i,TextStyle.Small).Colour("#b8ad94");

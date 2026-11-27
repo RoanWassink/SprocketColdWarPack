@@ -3,7 +3,7 @@ using System.Globalization;
 namespace SprocketThermalSight;
 
 // 0.5.0: pure HUD helpers (no Unity types), shared by NightHud and the tests.
-public enum HudStyle { None, ActiveIr, Intensifier, Gen1, Gen1Late, Gen2, Gen3, Gen3Uncooled, Gen3Hd }
+public enum HudStyle { None, ActiveIr, Intensifier, Gen1, Gen1Late, Gen2, Gen3, Gen3Uncooled, Gen3Hd, OesOp2s38 }
 
 public enum RangeStatus { None, Ok, NoReturn, TooClose, Cancelled }
 
@@ -124,6 +124,7 @@ public static class HudMath
             case "tiGen3": return HudStyle.Gen3;
             case "tiGen3Uncooled": return HudStyle.Gen3Uncooled;
             case "tiGen3HD": return HudStyle.Gen3Hd;
+            case "ti2s38OesOp": return HudStyle.OesOp2s38;
         }
         return sensorType switch
         {

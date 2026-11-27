@@ -96,7 +96,7 @@ internal static class CamoChecks
         }
         var packageParts=Directory.GetFiles(Path.Combine(root,"package/Sprocket_Data/StreamingAssets/Parts"),"*.json")
             .Select(f=>JsonDocument.Parse(File.ReadAllText(f)).RootElement.GetProperty("name").GetString()!).ToHashSet();
-        check(packageParts.SetEquals(auditedParts.Where(p=>p.StartsWith("thermalSight")||p is "irSearchlight" or "laserBoxSight")),"audit covers every package part");
+        check(packageParts.SetEquals(auditedParts.Where(p=>p.StartsWith("thermalSight")||p is "irSearchlight" or "laserBoxSight" or "driverConsole" or "fcsDisplayConsole" or "commanderConsole" or "commanderPanoramicSight" or "oesOpSight")),"audit covers every package part");
         check(auditedAssets.SetEquals(Directory.GetFiles(assets,"*.obj").Select(Path.GetFileName)!),"audit covers every package OBJ");
         var start=new ProcessStartInfo("py"){WorkingDirectory=root,UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true};
         start.ArgumentList.Add("-I");start.ArgumentList.Add(Path.Combine(root,"uv_tools/add_uv.py"));start.ArgumentList.Add("--check");

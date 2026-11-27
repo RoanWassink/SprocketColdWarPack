@@ -778,6 +778,22 @@ Check(CasingFit.TryFromCorners(engineBox.Corners(),gearboxBox.Corners(),out var 
         float wrapAccel=Math.Abs((clip[1]-clip[0])-(clip[0]-clip[^1]));
         Check(wrapJump<0.25f&&wrapAccel<0.10f,$"{label} loop wraps seamlessly across end-to-start boundary (jump={wrapJump:0.####}, accel={wrapAccel:0.####})");
     }
+    // 0.7.4 regression: float32 native table X-values (e.g. 0.2f * 4670 / 3736 vs 128/512) must never
+    // produce duplicate float32 rad/s knots in EnginePlan.Sample that cause 0/0 = NaN in EnginePhysicsJob.
+    var f32Native=new Curve(new[]{0f,0.1f,0.2f,0.3f,0.4f,0.5f,0.6f,0.7f,0.8f,0.9f,1f}.Select(x=>new Point(x,300+700*Math.Sin(x*2.2))).ToArray());
+    foreach(double nm in new[]{2000d,3000d,3600d,4000d,4500d,4670d,5000d,6000d})
+    foreach(var kind in new[]{EngineKind.Diesel,EngineKind.GasTurbine})
+    {
+        var plan=new EnginePlan(new(kind),f32Native,nm,nm*0.2);
+        var pts=plan.Sample(false).Points;
+        double radScale=plan.MaxRPM*Math.PI/30.0;
+        for(int i=1;i<pts.Length;i++)
+        {
+            float x0=(float)(pts[i-1].X*radScale),x1=(float)(pts[i].X*radScale);
+            Check(x1>x0,$"Sampled float32 rad/s knots stay strictly increasing for {kind} nativeMax={nm} at i={i} ({x0} vs {x1})");
+            Check((float)pts[i].X>(float)pts[i-1].X,$"Sampled float32 normalized knots stay strictly increasing for {kind} nativeMax={nm} at i={i}");
+        }
+    }
 }
 if(args.Length>=2&&args[0]=="--casing-preview")WriteCasingPreview(args[1],testRoot);
 Console.WriteLine($"PASS {checks} no-turbo/profile/drivetrain/legacy-save/powerpack/obstruction/space/MTU/casing/monoblock/character checks");

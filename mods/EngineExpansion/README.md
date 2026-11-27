@@ -2,7 +2,7 @@
 
 Engine Expansion adds diesel and gas turbine engines, each with its own availability date, and a gearbox that takes up half the space. It also adds a Powerpack option that fits engine and gearbox together as one block, with models in the style of MTU and Renk.
 
-Version 0.7.3. It needs no other mod.
+Version 0.7.4. It needs no other mod.
 
 ## What it adds
 

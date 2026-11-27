@@ -1,0 +1,12 @@
+file: oes-op-sight.obj
+sha256: 08FA4CD54ED4A7A35A19D5F8D94A4032F25DC24AB0ABCCEBAFAE84FEDE241801
+positions: 5456
+vertices_expanded: 33042
+triangles_total: 11014
+triangles_housing: 10929
+triangles_glass: 85
+signed_volume: +0.026948
+inverted_normals: 0
+bounds_x: [-0.2171, 0.2172] (0.4344 m)
+bounds_y: [0.0004, 0.5196] (0.5192 m)
+bounds_z: [-0.1569, 0.1570] (0.3139 m)

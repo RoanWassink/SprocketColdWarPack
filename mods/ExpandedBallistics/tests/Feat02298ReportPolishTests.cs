@@ -268,10 +268,10 @@ internal static class Feat02298ReportPolishTests
                     .Sum(f=>File.ReadLines(f).Count(l=>l.Contains("[HarmonyPatch",StringComparison.Ordinal)));
                 Check(hooks==48,$"6 Non-test [HarmonyPatch line count stays 48 (actual={hooks})");
 
-                Check(Read("Plugin.cs").Contains("\"0.22.111\"",StringComparison.Ordinal)
-                    &&Read("SprocketExpandedBallistics.csproj").Contains("<Version>0.22.111</Version>",StringComparison.Ordinal)
-                    &&Read("RELEASE-NOTES.md").Contains("## 0.22.111",StringComparison.Ordinal),
-                    "6 Plugin.cs, csproj, and RELEASE-NOTES.md carry version 0.22.111");
+                Check(Read("Plugin.cs").Contains("\"0.22.112\"",StringComparison.Ordinal)
+                    &&Read("SprocketExpandedBallistics.csproj").Contains("<Version>0.22.112</Version>",StringComparison.Ordinal)
+                    &&Read("RELEASE-NOTES.md").Contains("## 0.22.112",StringComparison.Ordinal),
+                    "6 Plugin.cs, csproj, and RELEASE-NOTES.md carry version 0.22.112");
             }
 
             // ================= 7. Live saved session smoke test (read-only) =================

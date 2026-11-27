@@ -66,14 +66,19 @@ internal sealed record ForensicModel(int Number,string Outcome,string Colour,str
     IReadOnlyList<ForensicLayer> Layers,double? Initial,double? Residual,double? ResidualPercent,
     double? UnattributedMm,IReadOnlyList<string> Findings,IReadOnlyList<string> Advice,string Damage,int HiddenZeroSpans=0,
     IReadOnlyList<ForensicArray>? Arrays=null,ForensicEnvelope? Envelope=null,bool Arrested=false,
-    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<string>? BlastSummary=null)
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<string>? BlastSummary=null,
+    [property:System.Text.Json.Serialization.JsonIgnore] BlastReportData? Blast=null,
+    [property:System.Text.Json.Serialization.JsonIgnore] CombatDamageSummary? DamageSummary=null)
 {
     // 0.22.41 (user 08-11): at most one sober line under the drawing and one under the bars; only measured statements.
     internal const string Footnote="Share of initial penetration absorbed per layer; heat-map 0 % (blue) to 100 % (red).";
     internal const string GeometryNote="Cross-section to scale along the shot line; each plate band is its normal thickness at the measured obliquity; framed icons mark the internal modules on the shot line.";
+    internal const string BlastGeometryNote="Explosive detonation cross-section at the measured strike angle; blast arcs show overpressure on the exterior face and behind-armour propagation.";
+    internal const string BlastBarsTitle="Blast capacity vs. armour thickness";
     internal const string Title="Forensic investigation",ModeLabel="Material / Absorption (heat-map)",ListTitle="Penetration absorbed per layer",
         BlastTitle="HE / HESH blast assessment",FindingsTitle="Findings",AdviceTitle="Advice",ResidualLabel="Residual penetration behind the last layer",NoDamage="no crew casualties or module damage";
     internal bool HasResidualRow=>Residual!=null&&ResidualPercent!=null;
+    internal bool IsPureBlast=>Blast is {IsPureBlastDetonation:true};
     internal string BetweenLabel=>UnattributedMm is {} u&&u<0?"Increase between layers":"Reduction between layers";
     internal IReadOnlyList<ForensicArray> ArrayRuns=>Arrays??System.Array.Empty<ForensicArray>();
     internal ForensicEnvelope Protection=>Envelope??ForensicEnvelope.None;
@@ -291,20 +296,22 @@ internal static class CombatForensics
         var arrays=Arrange(layers);
         if(stopLayer!=null)stopLayer=layers[stopLayer.Number-1];
         if(ricochetLayer!=null)ricochetLayer=layers[ricochetLayer.Number-1];
+        var blast=CombatBlastReport.Extract(shot,layers,perforated);
+        var damageSummary=CombatDamageSummary.From(shot.Events);
         var blastSummaryEvents=shot.Events.Where(e=>e.Kind=="blastSummary").ToArray();
         var blastPlateEvents=shot.Events.Where(e=>e.Kind=="blastPlate").ToArray();
         var blastEraEvents=shot.Events.Where(e=>e.Kind=="blastEra").ToArray();
         bool hasBlastEvents=blastSummaryEvents.Length>0||blastPlateEvents.Length>0||blastEraEvents.Length>0;
-        var parsedPlates=blastPlateEvents.Select(e=>CombatBlastReport.TryParsePlate(e,out var p)?(ParsedBlastPlate?)p:null).Where(p=>p!=null).Select(p=>p!.Value).ToArray();
+        var parsedPlates=blast?.Plates??Array.Empty<ParsedBlastPlate>();
         var breachedPlates=parsedPlates.Where(p=>p.Breached).ToArray();
         var resistedPlates=parsedPlates.Where(p=>!p.Breached).ToArray();
-        var parsedEras=blastEraEvents.Select(e=>CombatBlastReport.TryParseEra(e,out var er)?(ParsedBlastEra?)er:null).Where(er=>er!=null).Select(er=>er!.Value).ToArray();
+        var parsedEras=blast?.StrippedEra??Array.Empty<ParsedBlastEra>();
         bool hasBlastBreach=breachedPlates.Length>0||HeReportText.HasBlastBreach(shot.Events);
         var breachDamageEvents=shot.Events.Where(e=>e.Kind=="interaction"&&e.Text.Contains("[breach overpressure]",StringComparison.Ordinal)).ToArray();
-        var exteriorOrShockEvents=shot.Events.Where(e=>e.Kind=="interaction"&&(e.Text.Contains("[exterior]",StringComparison.Ordinal)||e.Text.Contains("[shock ",StringComparison.Ordinal))).ToArray();
-        bool isHesh=shot.Profile.Contains("HESH",StringComparison.OrdinalIgnoreCase)||blastSummaryEvents.Any(e=>e.Text.StartsWith("HESH ",StringComparison.OrdinalIgnoreCase));
+        bool isHesh=blast?.Kind=="HESH"||shot.Profile.Contains("HESH",StringComparison.OrdinalIgnoreCase);
         string blastKindLabel=isHesh?"HESH":"HE";
-        string outcome=hasBlastBreach?HitBlockBuilder.Breached:perforated&&!bare?HitBlockBuilder.Penetrated:stopped?(block.Result==HitBlockBuilder.StoppedSpall?block.Result:"STOPPED"):ricochet?"RICOCHET":block.Result;
+        bool pureBlast=blast is {IsPureBlastDetonation:true};
+        string outcome=hasBlastBreach?HitBlockBuilder.Breached:perforated&&!bare?HitBlockBuilder.Penetrated:stopped?(block.Result is HitBlockBuilder.StoppedSpall or HitBlockBuilder.StoppedBlast?block.Result:"STOPPED"):ricochet?"RICOCHET":block.Result;
         if(measured.Starts==0)residual=null;
         double? restPct=initial is >0&&residual!=null&&!ricochet?100*residual/initial:null;
         var mainLayers=layers.Where(l=>l.Stage!="Precursor").ToArray();
@@ -320,19 +327,25 @@ internal static class CombatForensics
                 string plateDesc=$"Plate #{p.PlateVuid}"+(p.IsSolidBlock?" (solid composite)":"")+$" ({N(p.ThicknessMm)} mm)";
                 string more=breachedPlates.Length>1?$" and {breachedPlates.Length-1} other plate{(breachedPlates.Length==2?"":"s")}":"";
                 string overpressure=breachDamageEvents.Length>0?" and projected overpressure into the compartment":"";
-                explanation=string.Create(CultureInfo.InvariantCulture,$"{blastKindLabel} blast breached {plateDesc}{more} with a Ø {p.HoleDiameterM:0.00} m blast hole (capacity {N(p.CapacityMm)} mm RHA){overpressure}.");
+                explanation=string.Create(CultureInfo.InvariantCulture,$"{blastKindLabel} detonation breached {plateDesc}{more} with a Ø {p.HoleDiameterM:0.00} m blast hole (capacity {N(p.CapacityMm)} mm RHA){overpressure}.");
             }
-            else explanation=$"{blastKindLabel} blast breached the armour plate and projected overpressure into the compartment.";
+            else explanation=$"{blastKindLabel} detonation breached the armour plate and projected overpressure into the compartment.";
+        }
+        else if(pureBlast)
+        {
+            string plateDesc=blast!.PrimaryThicknessMm is >0
+                ?$"{blast.PrimaryPlateName}{(blast.PrimaryIsSolidBlock&&!blast.PrimaryPlateName.Contains("Solid",StringComparison.OrdinalIgnoreCase)?" (solid composite)":"")} ({N(blast.PrimaryThicknessMm)} mm {blast.PrimaryMaterial})"
+                :blast.PrimaryPlateName;
+            var capText=blast.BreachCapacityMm is >0?$"capacity {N(blast.BreachCapacityMm)} mm RHA, ":"";
+            var extra=new List<string>();
+            if(blast.TotalEraStripped>0)extra.Add(string.Create(CultureInfo.InvariantCulture,$"stripped {blast.TotalEraStripped} ERA element{(blast.TotalEraStripped==1?"":"s")} within {blast.EraStripRadiusM??0:0.00} m"));
+            if(blast.ShockPercent is >0)extra.Add(string.Create(CultureInfo.InvariantCulture,$"{blast.ShockPercent:0.#} % attenuated shock transmitted inside"));
+            string tail=extra.Count>0?"; "+string.Join("; ",extra):"";
+            explanation=$"{blastKindLabel} detonation on {plateDesc}: armour resisted blast ({capText}surface dent only){tail}.";
         }
         else if(layers.Count==0&&hasBlastEvents)
         {
-            if(resistedPlates.Length>0)
-            {
-                var r=resistedPlates[0];
-                string plateDesc=$"Plate #{r.PlateVuid}"+(r.IsSolidBlock?" (solid composite)":"")+$" ({N(r.ThicknessMm)} mm)";
-                explanation=$"{blastKindLabel} blast detonated against {plateDesc}: resisted blast (surface dent only; capacity {N(r.CapacityMm)} mm RHA).";
-            }
-            else explanation=$"{blastKindLabel} blast detonated against the vehicle without breaching the armour.";
+            explanation=$"{blastKindLabel} detonation against the vehicle without breaching the armour.";
         }
         else if(layers.Count==0)explanation="No armour layer data for this impact.";
         else if(perforated)
@@ -352,82 +365,86 @@ internal static class CombatForensics
         else if(outcome==HitBlockBuilder.Penetrated&&residual is {} res)explanation=$"Perforation: residual penetration {N(res)} mm RHA-eq behind the armour{Pct(res)}.";
         else{var last=mainLayers.LastOrDefault()??layers[^1];explanation=$"Last measured layer: {Ref(last)}"+(last.Before is {} entry?$", entry penetration {N(entry)} mm RHA-eq":"")+".";}
         var findings=new List<string>{explanation};var advice=new List<string>();
-        var blastFindings=new List<string>();
-        if(hasBlastEvents)
+        var damage=damageSummary.HasCauseGroups
+            ?(damageSummary.Line(shot.CrewTotal) is {Length:>0} grouped?grouped+".":ForensicModel.NoDamage+".")
+            :Effects(damageSummary,shot.CrewTotal);
+
+        if(pureBlast&&blast!=null)
         {
-            foreach(var e in blastSummaryEvents)
+            if(blast.CalibreMm is >0)
+                findings.Add(string.Create(CultureInfo.InvariantCulture,$"Charge: {blast.CalibreMm:0.#} mm {blastKindLabel}")+(blast.Power is >0?string.Create(CultureInfo.InvariantCulture,$" (explosive power {blast.Power:0.#})"):"")+(blast.BreachCapacityMm is >0?string.Create(CultureInfo.InvariantCulture,$", RHA breach capacity {blast.BreachCapacityMm:0.#} mm"):"")+".");
+            for(int pi=1;pi<breachedPlates.Length;pi++)
             {
-                var line=CombatReportLanguage.BlastLine(e.Text);
-                if(!line.EndsWith('.'))line+=".";
-                blastFindings.Add(line);
+                var p=breachedPlates[pi];
+                findings.Add(string.Create(CultureInfo.InvariantCulture,$"Secondary breach: Plate #{p.PlateVuid} ({(p.IsSolidBlock?"solid composite, ":"")}{N(p.ThicknessMm)} mm) — hole Ø {p.HoleDiameterM:0.00} m."));
             }
-            foreach(var p in breachedPlates)
+            for(int pi=1;pi<resistedPlates.Length;pi++)
             {
-                var solid=p.IsSolidBlock?"solid composite, ":"";
-                blastFindings.Add(string.Create(CultureInfo.InvariantCulture,$"Plate breach: Plate #{p.PlateVuid} ({solid}{N(p.ThicknessMm)} mm) breached by blast — hole Ø {p.HoleDiameterM:0.00} m (capacity {N(p.CapacityMm)} mm RHA)."));
+                var p=resistedPlates[pi];
+                findings.Add($"Secondary plate: Plate #{p.PlateVuid} ({(p.IsSolidBlock?"solid composite, ":"")}{N(p.ThicknessMm)} mm) resisted blast (dent only).");
             }
-            foreach(var p in resistedPlates)
-            {
-                var solid=p.IsSolidBlock?"solid composite, ":"";
-                blastFindings.Add($"Plate resistance: Plate #{p.PlateVuid} ({solid}{N(p.ThicknessMm)} mm) resisted the blast — surface dent only (capacity {N(p.CapacityMm)} mm RHA).");
-            }
-            foreach(var er in parsedEras)
-                blastFindings.Add(string.Create(CultureInfo.InvariantCulture,$"Blast stripped {er.Count} ERA element{(er.Count==1?"":"s")} within {er.RadiusM:0.00} m of the detonation."));
+            if(hasBlastBreach&&blast.TotalEraStripped>0)
+                findings.Add(string.Create(CultureInfo.InvariantCulture,$"Blast stripped {blast.TotalEraStripped} ERA element{(blast.TotalEraStripped==1?"":"s")} within {blast.EraStripRadiusM??0:0.00} m of the detonation."));
             if(hasBlastBreach&&(stopped||ricochet))
-                blastFindings.Add("Although the kinetic casing was arrested or deflected by plate thickness or obliquity, the explosive charge exceeded the local plate thickness and ruptured the plate directly.");
-            if(breachDamageEvents.Length>0)
-                blastFindings.Add("Compartment breach overpressure: "+Effects(CombatDamageSummary.From(breachDamageEvents),shot.CrewTotal));
-            else if(exteriorOrShockEvents.Length>0)
-                blastFindings.Add("Exterior blast and attenuated shock: "+Effects(CombatDamageSummary.From(exteriorOrShockEvents),shot.CrewTotal));
-            findings.AddRange(blastFindings);
+                findings.Add("Although the kinetic casing was arrested or deflected by plate thickness or obliquity, the explosive charge exceeded the local plate thickness and ruptured the plate directly.");
+            if(blast.PrimaryObliquityDeg is >=17.8&&blast.PrimaryThicknessMm is >0)
+            {
+                double los=blast.PrimaryThicknessMm.Value/Math.Cos(blast.PrimaryObliquityDeg.Value*Math.PI/180.0);
+                findings.Add($"Obliquity: {N(blast.PrimaryObliquityDeg)}° increases line-of-sight thickness to {N(los)} mm (normal {N(blast.PrimaryThicknessMm)} mm); explosive rupture depends on normal plate thickness rather than strike angle.");
+            }
+            findings.Add("Effects: "+damage);
+            if(shot.CrewTotal!=null&&shot.CrewAlive!=null)findings.Add($"Crew alive after impact: {shot.CrewAlive} of {shot.CrewTotal}.");
+            if(shot.OmittedEvents>0)findings.Add($"The technical log omits {shot.OmittedEvents} events beyond its size limit.");
         }
-        if(perforated)
+        else
         {
-            // 0.22.43: the envelope ahead of the first internal module, and every internal module reached, in order, with its entry value.
-            if(envelope.ArmourLayers.Count>0)findings.Add($"Protective envelope ahead of the {envelope.Compartment}: {LayerList(envelope.ArmourLayers)}, reducing the penetration"+
-                (initial is >0?$" from {N(initial)}":"")+$" to {N(envelope.EntryMm)} mm RHA-eq.");
-            findings.Add($"Internal modules on the shot line, in order: "+string.Join("; ",envelope.Modules.Select(x=>$"layer {x.Layer} {x.Name}"+(x.With.Length>0?$" together with {x.With}":"")+
-                (x.EntryMm is {} e?$", entry {N(e)} mm RHA-eq":"")))+".");
+            if(perforated)
+            {
+                // 0.22.43: the envelope ahead of the first internal module, and every internal module reached, in order, with its entry value.
+                if(envelope.ArmourLayers.Count>0)findings.Add($"Protective envelope ahead of the {envelope.Compartment}: {LayerList(envelope.ArmourLayers)}, reducing the penetration"+
+                    (initial is >0?$" from {N(initial)}":"")+$" to {N(envelope.EntryMm)} mm RHA-eq.");
+                findings.Add($"Internal modules on the shot line, in order: "+string.Join("; ",envelope.Modules.Select(x=>$"layer {x.Layer} {x.Name}"+(x.With.Length>0?$" together with {x.With}":"")+
+                    (x.EntryMm is {} e?$", entry {N(e)} mm RHA-eq":"")))+".");
+            }
+            var largest=mainLayers.Where(l=>l.AbsorbedMm>0).OrderByDescending(l=>l.AbsorbedMm).FirstOrDefault();
+            if(largest!=null)findings.Add($"Largest reduction: {Ref(largest)}, {N(largest.AbsorbedMm)} mm RHA-eq{Pct(largest.AbsorbedMm)}.");
+            foreach(var l in layers.Where(l=>EraText(l).Length>0))
+                findings.Add($"Layer {l.Number}: {EraText(l)}"+(l.Era=="ERA activated"&&l.EraMm is >0?$"; ERA reduction {N(l.EraMm)} mm RHA-eq":"")+".");
+            // Obliquity is stated where it lengthens the path by at least 5 % (1 / cos θ ≥ 1.05, θ ≥ 17.8°).
+            var angled=layers.Where(l=>l.GapMm==null).SelectMany(l=>l.Parts.Where(p=>p.Armour&&p.AngleDegrees>0&&Path(p) is {} los&&los>=1.05*p.ThicknessMm).Select(p=>(l.Number,p))).ToArray();
+            if(angled.Length>0)
+            {
+                var item=angled.OrderByDescending(x=>Path(x.Item2)-x.Item2.ThicknessMm).First();var p=item.Item2;
+                findings.Add($"Obliquity: layer {item.Item1} at {N(p.AngleDegrees)}° gives a line-of-sight thickness of {N(Path(p))} mm for a normal thickness of {N(p.ThicknessMm)} mm.");
+                advice.Add($"Obliquity is effective at layer {item.Item1}: {N(p.AngleDegrees)}° multiplies the normal thickness by {(1/Math.Cos(p.AngleDegrees!.Value*Math.PI/180)).ToString("0.00",CultureInfo.InvariantCulture)} (1 / cos θ).");
+            }
+            foreach(var a in arrays)
+                findings.Add((a.Layers.Count==1?$"Layer {a.First} is a composite array":$"{Capital(LayerList(a.Layers))} form one composite array")+
+                    $" of {a.Plates.Count} plates, front to back: {string.Join(", ",a.Plates.Select(p=>p.Material))}; "+
+                    (a.Layers.Count==1?"its reduction is stated for the plates together.":"each layer states the reduction of its plates together."));
+            // 0.22.91: a layered module: its constituents, the measured reduction and the sum of its confirmed intervals (the division over the constituents is derived).
+            foreach(var l in layers.Where(l=>l.ModuleLayers is {Count:>0}))findings.Add(ModuleFinding(l));
+            foreach(var l in layers.Where(l=>l.Sublayers is {Count:>0}&&l.ModuleLayers==null))
+                findings.Add(l.Solid?$"Layer {l.Number} ({l.Name}): solid block, {N(l.PathMm)} mm along the shot line from the entry of its front skin to the exit of its back skin; {l.Sublayers!.Count} constituent layers of the composer preset over that length, in the proportion of the preset (air as air).": // 0.22.81
+                    $"Layer {l.Number} ({l.Name}): {l.Sublayers!.Count} constituent layers of the composer preset, scaled to the {N(l.Parts.First(p=>p.Armour).ThicknessMm)} mm normal thickness of the plate.");
+            foreach(var a in arrays)foreach(var p in a.Plates.Where(p=>p.Sublayers is {Count:>0}))
+            {
+                // The layers whose rows list these constituents (a plate without a measured thickness in a layer lists none there).
+                var holding=layers.Where(l=>l.ArrayFirst==a.First&&l.Plates!.Any(x=>x.Part.Entity==p.Part.Entity&&x.Sublayers is {Count:>0})).Select(l=>l.Number).ToArray();
+                findings.Add($"{Capital(LayerList(holding))}, {p.Material}: {p.Sublayers!.Count} constituent layers of the composer preset, scaled to the {N(p.Part.ThicknessMm)} mm normal thickness of the plate.");
+            }
+            if(unattributed is {} u&&Math.Abs(u)>.01)findings.Add(u>0?$"Reduction between layers: {N(u)} mm RHA-eq.":$"Increase between layers: {N(-u)} mm RHA-eq.");
+            findings.Add("Behind-armour effects: "+damage);
+            if(shot.CrewTotal!=null&&shot.CrewAlive!=null)findings.Add($"Crew alive after impact: {shot.CrewAlive} of {shot.CrewTotal}.");
+            if(layers.Any(l=>l.Stage=="Precursor"))findings.Add("Precursor-charge layers are listed separately and excluded from the main-charge shares.");
+            if(shot.OmittedEvents>0)findings.Add($"The technical log omits {shot.OmittedEvents} events beyond its size limit.");
         }
-        var largest=mainLayers.Where(l=>l.AbsorbedMm>0).OrderByDescending(l=>l.AbsorbedMm).FirstOrDefault();
-        if(largest!=null)findings.Add($"Largest reduction: {Ref(largest)}, {N(largest.AbsorbedMm)} mm RHA-eq{Pct(largest.AbsorbedMm)}.");
-        foreach(var l in layers.Where(l=>EraText(l).Length>0))
-            findings.Add($"Layer {l.Number}: {EraText(l)}"+(l.Era=="ERA activated"&&l.EraMm is >0?$"; ERA reduction {N(l.EraMm)} mm RHA-eq":"")+".");
-        // Obliquity is stated where it lengthens the path by at least 5 % (1 / cos θ ≥ 1.05, θ ≥ 17.8°).
-        var angled=layers.Where(l=>l.GapMm==null).SelectMany(l=>l.Parts.Where(p=>p.Armour&&p.AngleDegrees>0&&Path(p) is {} los&&los>=1.05*p.ThicknessMm).Select(p=>(l.Number,p))).ToArray();
-        if(angled.Length>0)
-        {
-            var item=angled.OrderByDescending(x=>Path(x.Item2)-x.Item2.ThicknessMm).First();var p=item.Item2;
-            findings.Add($"Obliquity: layer {item.Item1} at {N(p.AngleDegrees)}° gives a line-of-sight thickness of {N(Path(p))} mm for a normal thickness of {N(p.ThicknessMm)} mm.");
-            advice.Add($"Obliquity is effective at layer {item.Item1}: {N(p.AngleDegrees)}° multiplies the normal thickness by {(1/Math.Cos(p.AngleDegrees!.Value*Math.PI/180)).ToString("0.00",CultureInfo.InvariantCulture)} (1 / cos θ).");
-        }
-        foreach(var a in arrays)
-            findings.Add((a.Layers.Count==1?$"Layer {a.First} is a composite array":$"{Capital(LayerList(a.Layers))} form one composite array")+
-                $" of {a.Plates.Count} plates, front to back: {string.Join(", ",a.Plates.Select(p=>p.Material))}; "+
-                (a.Layers.Count==1?"its reduction is stated for the plates together.":"each layer states the reduction of its plates together."));
-        // 0.22.91: a layered module: its constituents, the measured reduction and the sum of its confirmed intervals (the division over the constituents is derived).
-        foreach(var l in layers.Where(l=>l.ModuleLayers is {Count:>0}))findings.Add(ModuleFinding(l));
-        foreach(var l in layers.Where(l=>l.Sublayers is {Count:>0}&&l.ModuleLayers==null))
-            findings.Add(l.Solid?$"Layer {l.Number} ({l.Name}): solid block, {N(l.PathMm)} mm along the shot line from the entry of its front skin to the exit of its back skin; {l.Sublayers!.Count} constituent layers of the composer preset over that length, in the proportion of the preset (air as air).": // 0.22.81
-                $"Layer {l.Number} ({l.Name}): {l.Sublayers!.Count} constituent layers of the composer preset, scaled to the {N(l.Parts.First(p=>p.Armour).ThicknessMm)} mm normal thickness of the plate.");
-        foreach(var a in arrays)foreach(var p in a.Plates.Where(p=>p.Sublayers is {Count:>0}))
-        {
-            // The layers whose rows list these constituents (a plate without a measured thickness in a layer lists none there).
-            var holding=layers.Where(l=>l.ArrayFirst==a.First&&l.Plates!.Any(x=>x.Part.Entity==p.Part.Entity&&x.Sublayers is {Count:>0})).Select(l=>l.Number).ToArray();
-            findings.Add($"{Capital(LayerList(holding))}, {p.Material}: {p.Sublayers!.Count} constituent layers of the composer preset, scaled to the {N(p.Part.ThicknessMm)} mm normal thickness of the plate.");
-        }
-        if(unattributed is {} u&&Math.Abs(u)>.01)findings.Add(u>0?$"Reduction between layers: {N(u)} mm RHA-eq.":$"Increase between layers: {N(-u)} mm RHA-eq.");
-        var damage=Effects(CombatDamageSummary.From(shot.Events),shot.CrewTotal);
-        findings.Add("Behind-armour effects: "+damage);
-        if(shot.CrewTotal!=null&&shot.CrewAlive!=null)findings.Add($"Crew alive after impact: {shot.CrewAlive} of {shot.CrewTotal}.");
-        if(layers.Any(l=>l.Stage=="Precursor"))findings.Add("Precursor-charge layers are listed separately and excluded from the main-charge shares.");
-        if(shot.OmittedEvents>0)findings.Add($"The technical log omits {shot.OmittedEvents} events beyond its size limit.");
         // 0.22.43: the protection that was needed is the residual on entry into the envelope's compartment; never "no additional protection" when
         // internal modules were hit (by the projectile, or by spall behind an arrest).
         bool hurt=HitResultRule.InternalDamage(shot.Events)||CombatDamageSummary.IsDestroyed(shot);
         if(hasBlastBreach)
         {
-            double? cap=breachedPlates.Length>0?breachedPlates[0].CapacityMm:blastSummaryEvents.FirstOrDefault()?.BeforeMm;
+            double? cap=breachedPlates.Length>0?breachedPlates[0].CapacityMm:blast?.BreachCapacityMm;
             advice.Insert(0,cap is >0
                 ?$"Preventing blast rupture at this plate requires local armour thicker than the charge's {N(cap)} mm RHA breach capacity; thin roof and side plates remain vulnerable to high-explosive overpressure regardless of strike angle."
                 :"Preventing blast rupture requires local armour thicker than the charge's RHA breach capacity; thin roof and side plates remain vulnerable to high-explosive overpressure regardless of strike angle.");
@@ -435,8 +452,8 @@ internal static class CombatForensics
         else if(hasBlastEvents&&resistedPlates.Length>0)
         {
             var r=resistedPlates[0];
-            if(parsedEras.Length>0)
-                advice.Insert(0,$"The thick {(r.IsSolidBlock?"solid composite ":"")}armour ({N(r.ThicknessMm)} mm) resisted blast rupture (surface dent only), keeping the fighting compartment sealed; exposed ERA elements and external fittings within the blast radius remain vulnerable to stripping and shock.");
+            if(parsedEras.Count>0)
+                advice.Insert(0,$"The {(r.IsSolidBlock?"solid composite ":"")}armour ({N(r.ThicknessMm)} mm) resisted blast rupture (surface dent only), keeping the compartment sealed; exposed ERA elements and external fittings within the blast radius remain vulnerable to stripping and shock.");
             else
                 advice.Insert(0,$"The {(r.IsSolidBlock?"solid composite ":"")}plate ({N(r.ThicknessMm)} mm) exceeded the charge's {N(r.CapacityMm)} mm RHA breach capacity and resisted blast rupture (surface dent only), keeping the compartment sealed.");
         }
@@ -450,9 +467,11 @@ internal static class CombatForensics
         var spent=layers.Where(l=>l.Era=="ERA already spent").ToArray();
         if(spent.Length>0)advice.Add($"The ERA element at {LayerList(spent)} had been initiated by an earlier impact; this projectile met the remaining layers only.");
         string speed=shot.SpeedMps is {} mps?$", {N(mps)} m/s":"";
-        string context=$"Impact {shot.Number}: {shot.Profile}{speed} → {shot.Target??"target vehicle"}."+(layers.Count>0?" Layers: "+string.Join(" → ",layers.Select(l=>$"{l.Number} {Short(l)}")):"");
+        string context=pureBlast&&blast!=null
+            ?$"Impact {shot.Number}: {(blast.CalibreMm is >0?$"{N(blast.CalibreMm)} mm ":"")}{blastKindLabel}{speed} → {shot.Target??"target vehicle"} · {blast.PrimaryPlateName}"+(blast.PrimaryThicknessMm is >0?$" ({N(blast.PrimaryThicknessMm)} mm {blast.PrimaryMaterial}"+(blast.PrimaryObliquityDeg is {} ang?$" at {N(ang)}°":"")+")":"")
+            :$"Impact {shot.Number}: {shot.Profile}{speed} → {shot.Target??"target vehicle"}."+(layers.Count>0?" Layers: "+string.Join(" → ",layers.Select(l=>$"{l.Number} {Short(l)}")):"");
         return new(shot.Number,outcome,hasBlastBreach?HitBlockBuilder.BreachColour:stopped&&!perforated?"#e07a4f":block.Colour,explanation,context,layers,initial,residual,restPct,unattributed,findings,advice,damage,hidden,arrays,
-            envelope,stopped,blastFindings.Count>0?blastFindings:null);
+            envelope,stopped,null,blast,damageSummary);
     }
     /// <summary>
     /// 0.22.72 (presentation only): what the report recorded for the internal modules of one layer, from the "interaction" events of the shot ("Crew member Gunner killed",

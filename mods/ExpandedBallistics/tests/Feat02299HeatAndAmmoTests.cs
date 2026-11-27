@@ -78,9 +78,9 @@ internal static class Feat02299HeatAndAmmoTests
         // 6. Source/allocation/version/hook-count checks
         var root=FindRoot();
         string Read(string rel)=>File.ReadAllText(Path.Combine(root,rel));
-        Check(Read("Plugin.cs").Contains("\"0.22.111\"",StringComparison.Ordinal)
-            &&Read("SprocketExpandedBallistics.csproj").Contains("<Version>0.22.111</Version>",StringComparison.Ordinal)
-            &&Read("RELEASE-NOTES.md").Contains("## 0.22.111",StringComparison.Ordinal),"version 0.22.111 in Plugin.cs, csproj, RELEASE-NOTES");
+        Check(Read("Plugin.cs").Contains("\"0.22.112\"",StringComparison.Ordinal)
+            &&Read("SprocketExpandedBallistics.csproj").Contains("<Version>0.22.112</Version>",StringComparison.Ordinal)
+            &&Read("RELEASE-NOTES.md").Contains("## 0.22.112",StringComparison.Ordinal),"version 0.22.112 in Plugin.cs, csproj, RELEASE-NOTES");
         var spallSrc=Read("RuntimeSpall.cs");
         Check(spallSrc.Contains("record struct LayerScope",StringComparison.Ordinal)
             &&spallSrc.Contains("record struct BurstState",StringComparison.Ordinal)
@@ -288,7 +288,7 @@ internal static class Feat02299HeatAndAmmoTests
             Check(bounded.Shots.Count==0&&!bounded.TryFindShotIndexForBlast(1020,out _),
                 "History.Begin() clears shots and blastSeqToShotNumber mappings");
 
-            // 8c. CombatDamageSummary parsing [breach overpressure] for CrewSeat and all mapped native component types
+            // 8c. CombatDamageSummary cause-grouping [breach overpressure], [shock], [exterior] without bracket spam
             var moduleMapEvents=new[]{
                 CombatBlastReport.BreachDamageEvent(11,"CrewSeat",false),
                 CombatBlastReport.BreachDamageEvent(12,"CrewSeat",true),
@@ -301,24 +301,40 @@ internal static class Feat02299HeatAndAmmoTests
                 CombatBlastReport.BreachDamageEvent(19,"TransmissionBlock",true),
             };
             var dmgSum=CombatDamageSummary.From(moduleMapEvents);
-            Check(dmgSum.CrewKilled==1&&dmgSum.CrewWounded==1
-                &&dmgSum.CrewLine(4)=="Crew 1/4 killed ([breach overpressure]), 1 wounded ([breach overpressure])"
-                &&dmgSum.PartsDestroyed.SequenceEqual(new[]{"laying drive [breach overpressure]","motor [breach overpressure]","ammunition stowage [breach overpressure]","engine [breach overpressure]"})
-                &&dmgSum.PartsDamaged.SequenceEqual(new[]{"main gun [breach overpressure]","fuel tank [breach overpressure]","transmission [breach overpressure]"}),
-                "CombatDamageSummary parses [breach overpressure] crew and all mapped native component types cleanly");
+            Check(dmgSum.CrewKilled==1&&dmgSum.CrewWounded==1&&dmgSum.HasCauseGroups
+                &&dmgSum.CrewLine(4)=="Crew 1/4 killed, 1 wounded"
+                &&dmgSum.Line(4).StartsWith("Breach overpressure: Crew 1/4 killed, 1 wounded · ",StringComparison.Ordinal)
+                &&!dmgSum.Line(4).Contains('[')
+                &&dmgSum.PartsDestroyed.SequenceEqual(new[]{"laying drive","motor","ammunition stowage","engine"})
+                &&dmgSum.PartsDamaged.SequenceEqual(new[]{"main gun","fuel tank","transmission"}),
+                "CombatDamageSummary groups [breach overpressure] crew and all mapped native component types cleanly without bracket spam");
 
-            // 8d. Three full end-to-end HE scenarios (Report View, Hit Panel, Forensic, HTML XML & jargon check)
+            var shockAndExterior=new[]{
+                new CombatReportEvent("interaction","","Crew member #448 [shock 1.3 %] wounded",RelatedEntity:448),
+                new CombatReportEvent("interaction","","Crew member #451 [shock 1.3 %] wounded",RelatedEntity:451),
+                new CombatReportEvent("interaction","","Crew member #260 [shock 1.3 %] wounded",RelatedEntity:260),
+                new CombatReportEvent("interaction","","engine [shock 1.3 %] damaged",RelatedEntity:10),
+                new CombatReportEvent("interaction","","fuel tank [shock 1.3 %] damaged",RelatedEntity:277),
+                new CombatReportEvent("interaction","","main gun [exterior] damaged",RelatedEntity:432)
+            };
+            var shockLine=CombatDamageSummary.From(shockAndExterior).Line(3);
+            Check(shockLine=="Interior shock (1.3 %): Crew 3/3 wounded · engine, fuel tank damaged | Exterior: main gun damaged",
+                $"CombatDamageSummary groups shock & exterior cleanly without repeating tags (actual: {shockLine})");
+
+            // 8d. Three full end-to-end HE scenarios (Report View, Hit Panel, Forensic, Blast SVG, HTML XML & jargon check)
             // Scenario 1: Glacis breach (from committed1 above)
             var view1=CombatReportView.Build(new[]{committed1})[0];
             var fx1=CombatForensics.Build(committed1);
             Check(view1.Block.Result==HitBlockBuilder.Breached&&!view1.Destroyed
-                &&view1.BlastLines.Length==2&&view1.BlastLines[0].Contains("RHA breach capacity",StringComparison.Ordinal)
-                &&view1.BlastLines[1].Contains("Plate #311 (28.7 mm): BREACHED",StringComparison.Ordinal)
-                &&view1.SummaryLine.Contains("[breach overpressure]",StringComparison.Ordinal)
-                &&fx1.Outcome==HitBlockBuilder.Breached&&fx1.Explanation.Contains("Plate #311",StringComparison.Ordinal)&&fx1.Explanation.Contains("0.42 m",StringComparison.Ordinal)
-                &&fx1.Findings[0]==fx1.Explanation&&fx1.BlastSummary is {Count:>=3}
+                &&view1.Block.Waterfall==null&&view1.Block.Values.Contains("0.42 m",StringComparison.Ordinal)
+                &&view1.Blast is {IsPureBlastDetonation:true,Breached:true}
+                &&view1.BlastKpis.Length==4&&view1.BlastRows.Length==1
+                &&view1.SummaryLine.StartsWith("Breach overpressure: Crew 1/4 killed",StringComparison.Ordinal)&&!view1.SummaryLine.Contains('[')
+                &&fx1.Outcome==HitBlockBuilder.Breached&&fx1.IsPureBlast
+                &&fx1.Explanation.Contains("Plate #311",StringComparison.Ordinal)&&fx1.Explanation.Contains("0.42 m",StringComparison.Ordinal)
+                &&fx1.Findings[0]==fx1.Explanation&&fx1.BlastSummary==null
                 &&fx1.Advice[0].Contains("46.2 mm",StringComparison.Ordinal),
-                "Scenario 1 (glacis breach): BREACHED header, BlastLines, breach overpressure summary, Forensic breach explanation & advice");
+                "Scenario 1 (glacis breach): BREACHED header, 4 KPI tiles, blast table, no AP waterfall, clean overpressure summary & Forensic");
 
             // Scenario 2: Turret cheek [Solid block] dent-only + stripped ERA
             var cheekLayer=new CombatLayerInfo("c:0:0:1",new[]{new CombatLayerPart(350,"Composite armour plate [Solid block]","ebCassette_t80u","T-80U cellular cast armour",120,30,true)},false);
@@ -334,14 +350,15 @@ internal static class Feat02299HeatAndAmmoTests
             var view2=CombatReportView.Build(new[]{cheekShot})[0];
             var fx2=CombatForensics.Build(cheekShot);
             Check(view2.Block.Result==HitBlockBuilder.StoppedBlast&&!view2.Destroyed
-                &&view2.BlastLines.Length==3
-                &&view2.BlastLines.Any(l=>l.Contains("[Solid block]",StringComparison.Ordinal)&&l.Contains("dent only",StringComparison.Ordinal))
-                &&view2.BlastLines.Any(l=>l.Contains("stripped 3 ERA",StringComparison.OrdinalIgnoreCase))
-                &&fx2.Outcome=="STOPPED"&&fx2.BlastSummary is {Count:>=3}
-                &&fx2.Findings.Any(f=>f.Contains("solid composite",StringComparison.Ordinal)&&f.Contains("surface dent only",StringComparison.Ordinal))
-                &&fx2.Findings.Any(f=>f.Contains("stripped 3 ERA elements",StringComparison.Ordinal))
+                &&view2.Block.Waterfall==null&&view2.BlastKpis.Length==4&&view2.BlastRows.Length==2
+                &&view2.BlastRows.Any(r=>r.Result.Contains("dent only",StringComparison.Ordinal))
+                &&view2.BlastRows.Any(r=>r.Index=="ERA"&&r.Result.Contains("3 ERA elements",StringComparison.Ordinal))
+                &&fx2.Outcome==HitBlockBuilder.StoppedBlast&&fx2.IsPureBlast
+                &&!fx2.Explanation.Contains("arrested",StringComparison.OrdinalIgnoreCase)
+                &&fx2.Explanation.Contains("surface dent only",StringComparison.Ordinal)
+                &&fx2.Explanation.Contains("3 ERA elements",StringComparison.Ordinal)
                 &&fx2.Advice[0].Contains("resisted blast rupture",StringComparison.Ordinal)&&fx2.Advice[0].Contains("ERA elements",StringComparison.Ordinal),
-                "Scenario 2 (turret cheek [Solid block] dent-only + stripped ERA): STOPPED · blast damage, dent + ERA lines, Forensic solid composite resistance & ERA advice");
+                "Scenario 2 (turret cheek [Solid block] dent-only + stripped ERA): clean KPIs, blast+ERA rows, explosive Forensic explanation & ERA advice");
 
             // Scenario 3: Turret roof breach with crew killed despite native oblique stop
             var roofLayer=new CombatLayerInfo("r:0:0:1",new[]{new CombatLayerPart(412,"Plate #412","rha","Rolled homogeneous armour",25.0,72.0,true)},false);
@@ -357,22 +374,38 @@ internal static class Feat02299HeatAndAmmoTests
             var view3=CombatReportView.Build(new[]{roofShot})[0];
             var fx3=CombatForensics.Build(roofShot);
             Check(view3.Block.Result==HitBlockBuilder.Breached&&view3.Destroyed&&view3.Head.Contains(CombatReportView.DestroyedText,StringComparison.Ordinal)
-                &&view3.SummaryLine=="Crew 3/3 killed ([breach overpressure])"
-                &&fx3.Outcome==HitBlockBuilder.Breached
+                &&view3.SummaryLine=="Breach overpressure: Crew 3/3 killed"
+                &&fx3.Outcome==HitBlockBuilder.Breached&&fx3.IsPureBlast
                 &&fx3.Explanation.Contains("Plate #412",StringComparison.Ordinal)&&fx3.Explanation.Contains("0.48 m",StringComparison.Ordinal)
                 &&!fx3.Explanation.Contains("arrested",StringComparison.OrdinalIgnoreCase)
                 &&fx3.Findings.Any(f=>f.Contains("exceeded the local plate thickness",StringComparison.Ordinal))
-                &&fx3.Findings.Any(f=>f.Contains("Compartment breach overpressure",StringComparison.Ordinal))
+                &&fx3.Findings.Count(f=>f.Contains("Crew 3/3 killed",StringComparison.Ordinal))==1
                 &&fx3.Advice[0].Contains("thin roof and side plates",StringComparison.Ordinal),
-                "Scenario 3 (turret roof breach with crew killed despite native oblique stop): BREACHED + TANK DESTROYED + Forensic roof breach explanation");
+                "Scenario 3 (turret roof breach with crew killed despite native oblique stop): BREACHED + TANK DESTROYED + zero duplicate findings");
 
-            // HTML export validity & zero jargon/uncertainty in Forensic prose across all 3 scenarios
+            // HTML export validity, dedicated HE blast SVG + KPI grid (no AP waterfall, no heat-map toggle, no duplicate blast boxes) & zero jargon/uncertainty
             var htmlHist=new CombatReportHistory();
             htmlHist.Restore(new[]{committed1,cheekShot,roofShot},0);
             var html=CombatReportHtml.Render(htmlHist);
+            if(Environment.GetEnvironmentVariable("EB_PREVIEW_HTML") is {Length:>0} previewOut)File.WriteAllText(previewOut,html);
+            if(Environment.GetEnvironmentVariable("EB_PREVIEW_LIVE_IN") is {Length:>0} liveIn&&Environment.GetEnvironmentVariable("EB_PREVIEW_LIVE_OUT") is {Length:>0} liveOut&&File.Exists(liveIn))
+            {
+                using var jdoc=System.Text.Json.JsonDocument.Parse(File.ReadAllText(liveIn));
+                var liveShots=System.Text.Json.JsonSerializer.Deserialize<CombatReportShot[]>(jdoc.RootElement.GetProperty("shots").GetRawText(),new System.Text.Json.JsonSerializerOptions{PropertyNameCaseInsensitive=true})!;
+                var liveHist=new CombatReportHistory();liveHist.Restore(liveShots,jdoc.RootElement.GetProperty("omittedShots").GetInt32());
+                File.WriteAllText(liveOut,CombatReportHtml.Render(liveHist));
+            }
             var xdoc=System.Xml.Linq.XDocument.Parse(html);
-            Check(html.Contains("<div class='blast'>",StringComparison.Ordinal)&&html.Contains("<div class='fx-blast'>",StringComparison.Ordinal)&&xdoc.Root!=null,
-                "CombatReportHtml & CombatForensicHtml render valid XML with dedicated blast assessment blocks");
+            Check(html.Contains("<div class='blast-kpis'>",StringComparison.Ordinal)
+                &&html.Contains("<div class='fx-blast-diagram'>",StringComparison.Ordinal)
+                &&html.Contains("EXTERIOR",StringComparison.Ordinal)
+                &&html.Contains("Blast capacity vs. armour thickness",StringComparison.Ordinal)
+                &&!html.Contains("<div class='blast'>",StringComparison.Ordinal)
+                &&!html.Contains("<div class='fx-blast'>",StringComparison.Ordinal)
+                &&!html.Contains("svg class='wf'",StringComparison.Ordinal)
+                &&!html.Contains("class='fx-mode'",StringComparison.Ordinal)
+                &&xdoc.Root!=null,
+                "CombatReportHtml & CombatForensicHtml render clean KPI grid, HE blast SVG & capacity comparison with valid XML and zero AP/box clutter");
             Check(CombatReportView.ResultChipWidth>=CombatReportView.ChipWidth(HitBlockBuilder.Breached)
                 &&CombatReportView.ResultChipWidth>=CombatReportView.ChipWidth(HitBlockBuilder.StoppedBlast),
                 "ResultChipWidth fits BREACHED and STOPPED · blast damage without truncation");
@@ -380,7 +413,7 @@ internal static class Feat02299HeatAndAmmoTests
             var exempt=new[]{"Target glacis","T-80BVM","Target roof","Own tank","HE","Plate #311","Plate #350","Plate #412","Rolled homogeneous armour","T-80U cellular cast armour","Composite armour plate [Solid block]","[Solid block]"};
             foreach(var fx in new[]{fx1,fx2,fx3})
             {
-                var fxTexts=new[]{fx.Outcome,fx.Explanation,fx.Context}.Concat(fx.Findings).Concat(fx.Advice).Concat(fx.BlastSummary??Array.Empty<string>());
+                var fxTexts=new[]{fx.Outcome,fx.Explanation,fx.Context}.Concat(fx.Findings).Concat(fx.Advice);
                 var jargon=fxTexts.SelectMany(t=>CombatReportLanguage.JargonIn(t,exempt).Select(j=>j+" in: "+t)).ToArray();
                 var unc=fxTexts.SelectMany(t=>CombatReportLanguage.UncertaintyIn(t,exempt).Select(u=>u+" in: "+t)).ToArray();
                 Check(jargon.Length==0&&unc.Length==0,$"Forensic HE scenario #{fx.Number} has 0 jargon and 0 uncertainty"+(jargon.Length+unc.Length>0?": "+string.Join(" | ",jargon.Concat(unc).Take(4)):""));

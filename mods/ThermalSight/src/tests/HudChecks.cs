@@ -52,7 +52,7 @@ internal static class HudChecks
         // Style per profile.
         check(HudMath.StyleFor("irActiveL1", "activeIR", 320) == HudStyle.ActiveIr && HudMath.StyleFor("iiGen2", "imageIntensifier", 480) == HudStyle.Intensifier, "IR/II styles");
         check(HudMath.StyleFor("tiGen1", "thermal", 240) == HudStyle.Gen1 && HudMath.StyleFor("tiGen1Late", "thermal", 400) == HudStyle.Gen1Late && HudMath.StyleFor("tiGen2", "thermal", 640) == HudStyle.Gen2, "Gen 1/2 styles");
-        check(HudMath.StyleFor("tiGen3", "thermal", 640) == HudStyle.Gen3 && HudMath.StyleFor("tiGen3Uncooled", "thermal", 640) == HudStyle.Gen3Uncooled && HudMath.StyleFor("tiGen3HD", "thermal", 1280) == HudStyle.Gen3Hd, "Gen 3 styles");
+        check(HudMath.StyleFor("tiGen3", "thermal", 640) == HudStyle.Gen3 && HudMath.StyleFor("tiGen3Uncooled", "thermal", 640) == HudStyle.Gen3Uncooled && HudMath.StyleFor("tiGen3HD", "thermal", 1280) == HudStyle.Gen3Hd && HudMath.StyleFor("ti2s38OesOp", "thermal", 1280) == HudStyle.OesOp2s38, "Gen 3 and 2S38 OES-OP styles");
         check(HudMath.Polarity("blackHot") == "BH" && HudMath.Polarity("whiteHot") == "WH", "polarity");
         // Cooldown timer.
         var t = new CooldownTimer();
@@ -64,16 +64,17 @@ internal static class HudChecks
         t.Start(0, 0); check(!t.Active(0), "zero seconds = instant");
         t.Start(0, 20); t.Reset(); check(!t.Active(1), "reset on switch-off");
         // New profiles and their date gate.
-        check(catalog.Models.Count == 9, "0.5.4: nine standardised profiles");
-        var g2 = catalog.Resolve("tiGen2"); var g3 = catalog.Resolve("tiGen3"); var g3u = catalog.Resolve("tiGen3Uncooled"); var g3hd = catalog.Resolve("tiGen3HD");
+        check(catalog.Models.Count == 10, "0.5.5: ten standardised profiles (including 2S38 OES-OP)");
+        var g2 = catalog.Resolve("tiGen2"); var g3 = catalog.Resolve("tiGen3"); var g3u = catalog.Resolve("tiGen3Uncooled"); var g3hd = catalog.Resolve("tiGen3HD"); var oes = catalog.Resolve("ti2s38OesOp");
+        check(oes.DisplayName == "2S38 OES-OP (Gen 3 HD)" && oes.AvailableFrom == "2018.01.01" && oes.Width == 1280 && oes.Height == 1024 && oes.RefreshHz == 60 && oes.Cooled && oes.Sharpen > 0, "2S38 OES-OP profile");
         check(g3.DisplayName == "Thermal Gen 3" && g3.AvailableFrom == "2004.01.01" && g3.Width == 640 && g3.Height == 480 && g3.RefreshHz == 50 && Near(g3.Noise, .006f) && Near(g3.Blur, .15f) && g3.Palette == "whiteHot" && g3.Cooled, "Gen 3 profile");
         check(g3u.DisplayName == "Thermal Gen 3 (uncooled)" && g3u.AvailableFrom == "2010.01.01" && g3u.RefreshHz == 30 && Near(g3u.Noise, .018f) && Near(g3u.Blur, .3f) && g3u.Palette == "whiteHot" && !g3u.Cooled, "uncooled profile (0.5.4: white-hot default, polarity is a switch)");
         check(g3hd.DisplayName == "Thermal Gen 3 HD" && g3hd.AvailableFrom == "2015.01.01" && g3hd.Width == 1280 && g3hd.Height == 1024 && g3hd.RefreshHz == 60 && Near(g3hd.Noise, .003f) && Near(g3hd.Blur, .1f) && g3hd.Cooled && g3hd.Sharpen > 0, "HD profile");
         check(g3.ExtraMassKg >= g2.ExtraMassKg && g3.ExtraAssemblyCost > g2.ExtraAssemblyCost && g3hd.ExtraAssemblyCost > g3.ExtraAssemblyCost && g3hd.ExtraMassKg >= g3.ExtraMassKg, "cooled line ascending from Gen 2");
         check(g3u.ExtraMassKg < g3.ExtraMassKg && g3u.ExtraAssemblyCost < g3.ExtraAssemblyCost, "uncooled lighter and cheaper than Gen 3");
-        check(!catalog.Models.Where(m => m.ComponentId is not ("tiGen3" or "tiGen3HD")).Any(m => m.Cooled) && catalog.Models.All(m => m.ComponentId is "tiGen3" or "tiGen3HD" || m.Sharpen == 0), "only the cooled profiles use cooling and sharpen");
+        check(!catalog.Models.Where(m => m.ComponentId is not ("tiGen3" or "tiGen3HD" or "ti2s38OesOp")).Any(m => m.Cooled) && catalog.Models.All(m => m.ComponentId is "tiGen3" or "tiGen3HD" or "ti2s38OesOp" || m.Sharpen == 0), "only the cooled profiles use cooling and sharpen");
         var eras = new[] { new DateTime(1900, 1, 1), new DateTime(1945, 9, 3), new DateTime(1992, 1, 1) };
-        foreach (var (p, date) in new[] { (g3, new DateTime(2004, 1, 1)), (g3u, new DateTime(2010, 1, 1)), (g3hd, new DateTime(2015, 1, 1)) })
+        foreach (var (p, date) in new[] { (g3, new DateTime(2004, 1, 1)), (g3u, new DateTime(2010, 1, 1)), (g3hd, new DateTime(2015, 1, 1)), (oes, new DateTime(2018, 1, 1)) })
         {
             check(!ThermalEraPolicy.Allows(date.AddDays(-1), eras, new DateTime(1945, 9, 3), p.AvailableDate), "date gate closed the day before " + p.ComponentId);
             check(ThermalEraPolicy.Allows(date, eras, new DateTime(1945, 9, 3), p.AvailableDate), "date gate open on " + p.ComponentId);
@@ -81,6 +82,7 @@ internal static class HudChecks
         ThermalProfile? Pick(int year) => ProfileSelectionPolicy.Default(catalog.Models, catalog.DefaultProfileId, m => m.AvailableDate.Year <= year);
         check(Pick(2020)?.ComponentId == "tiGen1", "configured default unchanged by new profiles");
         check(ProfileSelectionPolicy.Default(catalog.Models.Where(m => m.ComponentId != "tiGen1"), "tiGen1", m => m.AvailableDate.Year <= 2016)?.ComponentId == "tiGen3HD", "newest-fallback reaches HD");
+        check(ProfileSelectionPolicy.Default(catalog.Models.Where(m => m.ComponentId != "tiGen1"), "tiGen1", m => m.AvailableDate.Year <= 2018)?.ComponentId == "ti2s38OesOp", "newest-fallback reaches 2S38 OES-OP in 2018");
         // Resolution bounds: HD is allowed, larger is still refused.
         var big = new ThermalProfile { ComponentId = "big", DisplayName = "big", Width = 1280, Height = 1024 };
         big.Validate();

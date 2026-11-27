@@ -6,5 +6,5 @@ public static class StartupSafety
     public static bool SafeMode(string hash)=>!string.Equals(hash,AuditedHash,StringComparison.OrdinalIgnoreCase)&&!string.Equals(hash,AuditedUpdateHash,StringComparison.OrdinalIgnoreCase);
     // An unknown binary has no proven native addresses or lengths: install zero patches.
     public static bool InstallHooks(string hash)=>!SafeMode(hash);
-    public const string Warning="Engine Expansion 0.7.3 safe mode: GameAssembly SHA256 differs from the audited builds (or could not be read). No hooks installed; EE profiles, powerpack, model, collision filter, engine character, compactness and editor controls are disabled. Saving a tank in this mode CAN REMOVE EE engine settings and legacy turbo metadata; native layout flags remain. Use an audited game build to preserve EE settings.";
+    public const string Warning="Engine Expansion 0.7.4 safe mode: GameAssembly SHA256 differs from the audited builds (or could not be read). No hooks installed; EE profiles, powerpack, model, collision filter, engine character, compactness and editor controls are disabled. Saving a tank in this mode CAN REMOVE EE engine settings and legacy turbo metadata; native layout flags remain. Use an audited game build to preserve EE settings.";
 }

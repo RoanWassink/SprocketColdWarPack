@@ -1,0 +1,88 @@
+{
+  "v": "0.3",
+  "guid": "9b72e4c1-5a8d-4f3e-b209-1d6c8a4e7f53",
+  "name": "commanderPanoramicSight",
+  "tags": [
+    "cupola",
+    "commander",
+    "sightsElectronics"
+  ],
+  "components": [
+    {
+      "fileID": "commanderPanoramicSight",
+      "type": "cupola",
+      "info": {
+        "v": "0.0",
+        "cameraTrackPosition": [
+          0,
+          0.34,
+          0
+        ],
+        "objectiveLensPosition": [
+          0,
+          0.186,
+          0.105
+        ],
+        "eyepiecePosition": [
+          0,
+          0.186,
+          0
+        ]
+      }
+    },
+    {
+      "fileID": "commanderPanoramicSightModel",
+      "type": "model",
+      "info": {
+        "v": "0.4",
+        "associatedComponentFileID": "commanderPanoramicSight",
+        "meshGuid": "60f759b164460a140bf65902dd96dd5c",
+        "materialGuids": [
+          "91dfa45c1494952458353d309cfa9aa9"
+        ],
+        "scaling": true,
+        "flipping": true,
+        "selectable": true,
+        "placementSurface": false,
+        "durableMaterialID": null
+      }
+    }
+  ],
+  "transform": {
+    "mirroring": true,
+    "duplication": true,
+    "pickup": true,
+    "snapToCentre": true,
+    "autoRotate": false,
+    "airPlacement": true,
+    "translation": true,
+    "rotation": true,
+    "scaling": true,
+    "dynamic": true,
+    "placementMode": "upright",
+    "scale": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "maxScale": [
+      2.0,
+      2.0,
+      2.0
+    ],
+    "minScale": [
+      0.5,
+      0.5,
+      0.5
+    ],
+    "objects": []
+  },
+  "order": 75,
+  "date": "1945.09.03",
+  "iconOffset": [
+    0,
+    0
+  ],
+  "iconRotation": [],
+  "iconScale": 1
+}

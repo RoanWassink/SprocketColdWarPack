@@ -62,9 +62,19 @@ public sealed class EnginePlan
     public Curve Sample(bool assemblyValid,int subdivisions=512)
     {
         if(subdivisions<32||subdivisions>4096)throw new ArgumentOutOfRangeException(nameof(subdivisions));
-        var xs=Enumerable.Range(0,subdivisions+1).Select(i=>i/(double)subdivisions)
+        var raw=Enumerable.Range(0,subdivisions+1).Select(i=>i/(double)subdivisions)
             .Concat(Native.Points.Select(p=>p.X*NativeMaxRPM/MaxRPM)).Concat(Profile.Shape?.Points.Select(p=>p.X)??Array.Empty<double>())
-            .Append(Math.Min(1,IdleRPM/MaxRPM+.05)).Append(IdleRPM/MaxRPM).Where(x=>x>=0&&x<=1).Distinct().OrderBy(x=>x);
+            .Append(Math.Min(1,IdleRPM/MaxRPM+.05)).Append(IdleRPM/MaxRPM).Where(x=>x>=0&&x<=1).OrderBy(x=>x);
+        // Merge near-duplicate knots so float32 conversion (e.g. 0.2f * 4670 / 3736 vs 0.25) never produces
+        // zero-width segments (x1 == x0) that divide by zero to NaN inside native EnginePhysicsJob.
+        const double minGap=1e-5;
+        var xs=new List<double>(subdivisions+32);
+        foreach(double x in raw)
+        {
+            if(xs.Count==0)xs.Add(x);
+            else if(x-xs[^1]>=minGap)xs.Add(x);
+            else if(x>=1.0)xs[^1]=1.0;
+        }
         return new(xs.Select(x=>new Point(x,Torque(x*MaxRPM,assemblyValid))));
     }
 }

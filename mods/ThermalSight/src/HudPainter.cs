@@ -74,7 +74,7 @@ public static class HudPainter
     {
         "greenHot" => d.Style == HudStyle.ActiveIr ? new HudColor(.47f, 1f, .59f, .9f) : new HudColor(.59f, 1f, .67f, .95f),
         "blackHot" => new HudColor(0f, 0f, 0f, .92f),
-        _ => d.Style == HudStyle.Gen3Hd ? new HudColor(.92f, .96f, .98f, .95f) : new HudColor(1f, 1f, 1f, .95f),
+        _ => d.Style is HudStyle.Gen3Hd or HudStyle.OesOp2s38 ? new HudColor(.92f, .96f, .98f, .95f) : new HudColor(1f, 1f, 1f, .95f),
     };
 
     public static void Paint(HudRaster raster, HudData d, bool reticle)
@@ -93,8 +93,9 @@ public static class HudPainter
             case HudStyle.Gen3: Gen3(d, reticle); break;
             case HudStyle.Gen3Uncooled: Gen3Uncooled(d, reticle); break;
             case HudStyle.Gen3Hd: Gen3Hd(d, reticle); break;
+            case HudStyle.OesOp2s38: OesOp2s38(d, reticle); break;
         }
-        if (d.Cooling > 0 && d.Style != HudStyle.Gen3 && d.Style != HudStyle.Gen3Hd)
+        if (d.Cooling > 0 && d.Style != HudStyle.Gen3 && d.Style != HudStyle.Gen3Hd && d.Style != HudStyle.OesOp2s38)
             Text("COOLING " + CooldownTimer.Format(d.Cooling), 40, 70, 12, Amber, HudAnchor.Left, true);
     }
 
@@ -246,6 +247,76 @@ public static class HudPainter
         Circle(590, 410, 22, 1.2f);
         if (d.Turret is { } t) { var (x, y) = Polar(590, 410, 22, t); Line(590, 410, x, y, 1.2f); }
         Text("EL " + HudMath.FormatSigned(d.Elevation), 612, 450, 11, ink, HudAnchor.Right);
+    }
+
+    // 0.5.5: 2S38 Derivatsiya-PVO OES-OP digital electro-optical fire-control HUD and crosshair.
+    private static void OesOp2s38(HudData d, bool reticle)
+    {
+        if (d.Palette != "blackHot") Fill(150, 10, 340, 34, new HudColor(0, 0, 0, .4f));
+        Tape(d.Heading, 10, 16, 2, 34, 30, 25, 20, 10, 1f);
+        Line(Cx - 5, 42, Cx, 36, 1.4f); Line(Cx, 36, Cx + 5, 42, 1.4f);
+        // Subtle corner framing brackets of the digital OES-OP monitor.
+        foreach (var (x, y, sx, sy) in new[] { (24f, 52f, 1, 1), (616f, 52f, -1, 1), (24f, 456f, 1, -1), (616f, 456f, -1, -1) })
+        { Line(x, y + sy * 18, x, y, 1.2f); Line(x, y, x + sx * 18, y, 1.2f); }
+        if (reticle)
+        {
+            // Central precision dot + open-center fine crosshairs + AA/ground lead ring.
+            Fill(Cx - 1, Cy - 1, 2, 2, ink);
+            Circle(Cx, Cy, 28, 1.1f);
+            Line(Cx - 108, Cy, Cx - 10, Cy, 1.2f); Line(Cx + 10, Cy, Cx + 108, Cy, 1.2f);
+            Line(Cx, Cy - 64, Cx, Cy - 10, 1.2f); Line(Cx, Cy + 10, Cx, Cy + 86, 1.2f);
+            // Horizontal lead mil ticks (outside the ring, symmetric for moving ground/air targets).
+            for (int i = 2; i <= 5; i++)
+            {
+                float dx = i * 18f, th = i % 2 == 0 ? 5f : 3f;
+                Line(Cx - dx, Cy - th, Cx - dx, Cy + th, 1.1f);
+                Line(Cx + dx, Cy - th, Cx + dx, Cy + th, 1.1f);
+            }
+            // Vertical ballistic drop ticks below the ring.
+            for (int i = 1; i <= 3; i++)
+            {
+                float dy = 28f + i * 16f, hw = 10f - i * 2f;
+                Line(Cx - hw, Cy + dy, Cx + hw, Cy + dy, 1.1f);
+            }
+        }
+        if (d.TargetCentred)
+        {
+            const float bw = 36, bh = 22;
+            foreach (var (x, y, sx, sy) in new[] { (Cx - bw, Cy - bh, 1, 1), (Cx + bw, Cy - bh, -1, 1), (Cx - bw, Cy + bh, 1, -1), (Cx + bw, Cy + bh, -1, -1) })
+            { Line(x, y + sy * 9, x, y, 1.6f, Amber); Line(x, y, x + sx * 9, y, 1.6f, Amber); }
+            Text("TRK", Cx + bw + 6, Cy - bh + 8, 10, Amber, HudAnchor.Left, true);
+        }
+        // Top-left electro-optical status block.
+        Text("OES-OP  " + HudMath.Polarity(d.Palette), 32, 74, 11, ink, HudAnchor.Left, true);
+        Text("ZOOM " + Zoom(d) + (d.Narrow is { } n ? (n ? "  NFOV" : "  WFOV") : ""), 32, 92, 11, ink, HudAnchor.Left);
+        if (d.Loaded == true) Text("RDY", 32, 110, 11, ink, HudAnchor.Left, true);
+        if (d.Cooling > 0) Text("COOLING " + CooldownTimer.Format(d.Cooling), 32, 128, 12, Amber, HudAnchor.Left, true);
+        // Right vertical elevation scale + turret azimuth dial.
+        ElevationScale(d, 606, 130, 310, 6, 8, true);
+        Outline(584 - 11, 392 - 18, 22, 36, 1.3f);
+        if (d.Turret is { } t)
+        {
+            Circle(584, 392, 7, 1.3f);
+            var (x1, y1) = Polar(584, 392, 7, t); var (x2, y2) = Polar(584, 392, 26, t);
+            Line(x1, y1, x2, y2, 1.4f);
+        }
+        Text("EL " + HudMath.FormatSigned(d.Elevation), 608, 444, 11, ink, HudAnchor.Right);
+        // Bottom-left dark-backed ammo table (APFSDS / HE-VT / APHE readable over hot and cold imagery).
+        int ammoRows = Math.Max(1, d.Rounds.Count);
+        float ammoTop = Math.Max(150, 442 - ammoRows * 22);
+        Fill(26, ammoTop - 22, 238, 442 - ammoTop + 22, new HudColor(0, 0, 0, .82f));
+        var ammoInk = new HudColor(1, 1, 1, 1);
+        if (d.Rounds.Count == 0) Text(d.Ammo != null ? Short(d.Ammo, 18) : "----", 34, ammoTop, 13, ammoInk, HudAnchor.Left, true);
+        for (int i = 0; i < d.Rounds.Count; i++)
+        {
+            var (code, count, chambered) = d.Rounds[i];
+            Text(Short(code, 20), 34, ammoTop + i * 22, 13, ammoInk, HudAnchor.Left, chambered);
+            Text(count.ToString(), 256, ammoTop + i * 22, 13, ammoInk, HudAnchor.Right, chambered);
+        }
+        // Bottom-center laser rangefinder readout.
+        Text("LRF " + HudMath.FormatRange(d.Range) + " M", Cx, 448, 20, ink, HudAnchor.Center, true);
+        if (d.RangeStatus is RangeStatus.NoReturn or RangeStatus.TooClose)
+            Text(d.RangeStatus == RangeStatus.NoReturn ? "NO RETURN" : "TOO CLOSE", Cx, 466, 10, Amber, HudAnchor.Center, true);
     }
 
     // ------------------------------------------------------------------ parts

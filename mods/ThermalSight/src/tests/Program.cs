@@ -6,7 +6,7 @@ int checks = 0;
 void Check(bool value, string name) { checks++; if (!value) throw new Exception(name); }
 void Reject(Action action, string name) { bool rejected = false; try { action(); } catch { rejected = true; } Check(rejected, name); }
 var catalog = ThermalCatalog.Read(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../package/BepInEx/plugins/SprocketThermalSight/thermal-models.json")));
-Check(catalog.Models.Count == 9, "0.5.4: the nine standardised profiles, legacy parts removed");
+Check(catalog.Models.Count == 10, "0.5.5: ten standardised profiles (including 2S38 OES-OP), legacy parts removed");
 Check(catalog.Aliases.Count == 5, "0.5.4: five legacy part aliases");
 Check(catalog.Models[0].ComponentId != catalog.Models[1].ComponentId, "per-part identity");
 var p = new ThermalProfile { PartGuid = Guid.NewGuid().ToString(), ComponentId = "test", DisplayName = "test", Width = 80, Height = 60, Noise = 0, Blur = 0, Contrast = 1, Gamma = 1, GrayLevels = 256 };

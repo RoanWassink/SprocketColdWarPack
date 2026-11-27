@@ -15,7 +15,7 @@ internal static class ThermalModelAssets
     private static bool failed;
     private static int appliedLogs;
     private static readonly HashSet<IntPtr> reportedModels=new();
-    private static bool Own(VehicleObjectModel model) => model.VehicleObject?.GetBehaviour<GunnerSight>() is {} sight && Runtime.IsThermal(sight);
+    private static bool Own(VehicleObjectModel model) => model.VehicleObject?.GetBehaviour<GunnerSight>() is {} sight && Runtime.IsThermal(sight) && sight.ComponentID != Runtime.OesOpId;
     [HarmonyPrefix,HarmonyPatch(typeof(VehicleObjectModel),nameof(VehicleObjectModel.Build))]
     private static void Building(VehicleObjectModel __instance)
     {

@@ -140,6 +140,66 @@
     "source": "Native part (alleen gelezen); routing in src/"
   },
   {
+    "part": "driverConsole",
+    "asset": "driver-console.obj",
+    "paint": [
+      "Housing"
+    ],
+    "fixed": [
+      "Glass"
+    ],
+    "reason": "Behuizing van de drie-schermen console camo (1 UV/m OpenSCAD export); schermen blijven donker glas.",
+    "source": "package/Sprocket_Data/StreamingAssets/Parts/driverConsolePart.json"
+  },
+  {
+    "part": "fcsDisplayConsole",
+    "asset": "driver-console.obj",
+    "paint": [
+      "Housing"
+    ],
+    "fixed": [
+      "Glass"
+    ],
+    "reason": "Behuizing van de moderne FCS Display console camo (1 UV/m OpenSCAD export); schermen blijven donker glas.",
+    "source": "package/Sprocket_Data/StreamingAssets/Parts/fcsDisplayConsolePart.json"
+  },
+  {
+    "part": "commanderConsole",
+    "asset": "driver-console.obj",
+    "paint": [
+      "Housing"
+    ],
+    "fixed": [
+      "Glass"
+    ],
+    "reason": "Behuizing van de Commander Console camo (1 UV/m OpenSCAD export); schermen blijven donker glas.",
+    "source": "package/Sprocket_Data/StreamingAssets/Parts/commanderConsolePart.json"
+  },
+  {
+    "part": "commanderPanoramicSight",
+    "asset": "commander-sight.obj",
+    "paint": [
+      "Housing"
+    ],
+    "fixed": [
+      "Glass"
+    ],
+    "reason": "Behuizing van de externe Commander Panoramic Sight camo (1 UV/m OpenSCAD export); optische vensters blijven donker glas.",
+    "source": "package/Sprocket_Data/StreamingAssets/Parts/commanderPanoramicSightPart.json"
+  },
+  {
+    "part": "oesOpSight",
+    "asset": "oes-op-sight.obj",
+    "paint": [
+      "Housing"
+    ],
+    "fixed": [
+      "Glass"
+    ],
+    "reason": "Behuizing van de OES-OP targeting sight camo (1 UV/m Cube Projection Blender cleanup); optische lenzen blijven donker glas.",
+    "source": "package/Sprocket_Data/StreamingAssets/Parts/oesOpSightPart.json"
+  },
+  {
     "part": "t72StyleSight",
     "asset": "t72-style-sight.obj",
     "paint": [

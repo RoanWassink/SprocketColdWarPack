@@ -24,59 +24,103 @@ internal static class CombatForensicPanel
         var head=content.Row(8);head.Chip(model.Outcome,UiKit.Colour(model.Colour)).Width(CombatReportView.ResultChipWidth);
         head.Label(model.Explanation,TextStyle.Small).Wrap();
         content.Label(model.Context,TextStyle.Small).Wrap();
-        if(model.BlastSummary is {Count:>0} blast)
+        if(model.IsPureBlast&&model.Blast is {} blast)
         {
-            content.Label(ForensicModel.BlastTitle,TextStyle.Section);
-            foreach(var line in blast)content.Label("- "+line,TextStyle.Small).Colour(line.Contains("breached",StringComparison.OrdinalIgnoreCase)?"#ffac91":"#f3cf86").Wrap();
-        }
-        bool heat=false;CanvasView? diagram=null;
-        var mode=content.Row(8);mode.Label(ForensicModel.ModeLabel,TextStyle.Small);
-        mode.Toggle(()=>heat,value=>{heat=value;diagram?.Invalidate();});
-        diagram=content.Canvas(CombatForensicDrawing.Height(model),d=>CombatForensicDrawing.Draw(new PainterSink(d),model,heat)).Fps(0);
-        content.Label(ForensicModel.GeometryNote,TextStyle.Small).Wrap();
-        content.Label(ForensicModel.ListTitle,TextStyle.Section);
-        foreach(var l in model.Layers)
-        {
-            var r=content.Row(6);
-            r.Label(l.Number.ToString("00"),TextStyle.Small).Width(28);
-            r.Canvas(18,d=>{d.ViewBox(0,0,18,18);d.Rect(2,2,14,14,l.Colour);}).Fps(0).Width(18);
-            var detail=l.GapMm!=null?l.Geometry:CombatForensicGeometry.Detail(l);
-            var name=l.GapMm!=null?"Air gap":CombatForensicGeometry.LayerName(l);
-            var text=r.Label(name+(detail.Length>0?" | "+detail:""),TextStyle.Small).Width(650).Wrap();
-            if(l.Array||l.Era.Length>0)text.Tooltip(l.Array?CombatForensicGeometry.Members(l)+(l.Era.Length>0?" | "+CombatForensicGeometry.EraLabel(l):""):CombatForensicGeometry.EraLabel(l));
-            if(l.GapMm==null)AbsorptionBar(r,l.Percent,l.Colour);
-            else r.Label("",TextStyle.Small).Width(160);
-            // Only measured shares: a gap shows a dash, a layer without a measured share shows nothing.
-            r.Label(l.GapMm!=null?"–":l.Percent!=null?CombatForensics.N(l.Percent)+"%":"",TextStyle.Value).Width(65).AlignRight();
-            // 0.22.41: the constituents of a composer preset, indented under the plate, without shares.
-            foreach(var paid in l.PaidIntervals??Array.Empty<string>())SubRow(content,46,l.Colour,paid);
-            // 0.22.91: the constituents of a layered module (its confirmed intervals), indented, without shares.
-            if(l.ModuleLayers!=null)foreach(var ml in l.ModuleLayers)SubRow(content,46,ml.Colour,ml.Label+" | "+ml.Detail);
-            else foreach(var sub in l.Sublayers??Array.Empty<CompositeSublayer>())
-                SubRow(content,46,sub.Colour,sub.Label+" | "+CombatForensicGeometry.SubDetail(l,sub),CombatForensicGeometry.IsStopSublayer(l,sub)?"#ffac91":null);
-            // 0.22.43: an internal module in the same native group as the plate, indented without a share.
-            if(l.Grouped)SubRow(content,46,CombatEnvelope.Grey,CombatForensics.Capital(l.Module)+" | "+CombatForensicGeometry.ModuleDetail(l));
-            // 0.22.42: the plates of a composite array front to back, indented without shares; under a preset plate its constituents.
-            foreach(var plate in l.Plates??Array.Empty<ForensicArrayPlate>())
+            var kpis=CombatReportView.BuildBlastKpis(blast);
+            if(kpis.Length>0)
             {
-                var detail2=CombatForensicGeometry.PlateDetail(plate);
-                SubRow(content,46,plate.Colour,plate.Name+(detail2.Length>0?" | "+detail2:""));
-                foreach(var sub in plate.Sublayers??Array.Empty<CompositeSublayer>())SubRow(content,68,sub.Colour,sub.Label+" | "+CombatForensicGeometry.SubDetail(sub));
+                var kpiRow=content.Row(8);
+                foreach(var kpi in kpis)
+                {
+                    var tile=kpiRow.Card().Stripe(()=>kpi.Accent).Flex().Stack(1);
+                    tile.Label(kpi.Label.ToUpperInvariant(),TextStyle.Faint);
+                    tile.Label(kpi.Value,TextStyle.Value).Colour(kpi.Accent);
+                    if(kpi.Sub.Length>0)tile.Label(kpi.Sub,TextStyle.Small).Colour("#b8ad94").Wrap();
+                }
+            }
+            content.Canvas(CombatForensicDrawing.Height(model),d=>CombatForensicDrawing.Draw(new PainterSink(d),model,false)).Fps(0);
+            content.Label(ForensicModel.BlastGeometryNote,TextStyle.Small).Colour("#b8ad94").Wrap();
+            content.Label(ForensicModel.BlastBarsTitle,TextStyle.Section);
+            double cap=blast.BreachCapacityMm??0,thick=blast.PrimaryThicknessMm??0;
+            double scaleMax=Math.Max(Math.Max(cap,thick),1.0)*1.15;
+            if(cap>0)
+            {
+                var rCap=content.Row(6);
+                rCap.Canvas(18,d=>{d.ViewBox(0,0,18,18);d.Rect(2,2,14,14,"#f39c52");}).Fps(0).Width(18);
+                string capDetail=blast.CalibreMm is >0?$"{CombatForensics.N(blast.CalibreMm)} mm {blast.Kind}"+(blast.Power is >0?$" · power {CombatForensics.N(blast.Power)}":""):"";
+                rCap.Label("Breach capacity"+(capDetail.Length>0?" | "+capDetail:""),TextStyle.Small).Width(660).Wrap();
+                AbsorptionBar(rCap,100.0*cap/scaleMax,"#f39c52");
+                rCap.Label(CombatForensics.N(cap)+" mm",TextStyle.Value).Width(75).AlignRight();
+            }
+            if(thick>0)
+            {
+                var rPlate=content.Row(6);
+                rPlate.Canvas(18,d=>{d.ViewBox(0,0,18,18);d.Rect(2,2,14,14,blast.PrimaryMaterialColour);}).Fps(0).Width(18);
+                string plateDetail=$"{blast.PrimaryPlateName} · {blast.PrimaryMaterial}"+(blast.PrimaryObliquityDeg is {} ang?$" · {CombatForensics.N(ang)}°":"");
+                rPlate.Label("Local armour | "+plateDetail,TextStyle.Small).Width(660).Wrap();
+                AbsorptionBar(rPlate,100.0*thick/scaleMax,blast.PrimaryMaterialColour);
+                rPlate.Label(CombatForensics.N(thick)+" mm",TextStyle.Value).Width(75).AlignRight();
+            }
+            if(cap>0&&thick>0)
+            {
+                string holeNote=blast.HoleDiameterM is >0?string.Create(System.Globalization.CultureInfo.InvariantCulture,$" · Ø {blast.HoleDiameterM:0.00} m hole"):"";
+                string margin=blast.Breached
+                    ?$"Breach excess: +{CombatForensics.N(Math.Max(0,cap-thick))} mm above plate thickness (armour ruptured{holeNote})."
+                    :$"Armour margin: +{CombatForensics.N(Math.Max(0,thick-cap))} mm above breach capacity (plate held — dent only).";
+                content.Label(margin,TextStyle.Small).Colour(blast.Breached?"#ffac91":"#a7e5b1").Wrap();
             }
         }
-        if(model.UnattributedMm is {} u&&Math.Abs(u)>.01)
+        else
         {
-            var between=content.Row(8);between.Label(model.BetweenLabel+": "+CombatForensics.N(Math.Abs(u))+" mm RHA-eq",TextStyle.Small).Width(700);
-            AbsorptionBar(between,model.Initial is >0?100*Math.Abs(u)/model.Initial:null,"#7c7566");
+            bool heat=false;CanvasView? diagram=null;
+            var mode=content.Row(8);mode.Label(ForensicModel.ModeLabel,TextStyle.Small);
+            mode.Toggle(()=>heat,value=>{heat=value;diagram?.Invalidate();});
+            diagram=content.Canvas(CombatForensicDrawing.Height(model),d=>CombatForensicDrawing.Draw(new PainterSink(d),model,heat)).Fps(0);
+            content.Label(ForensicModel.GeometryNote,TextStyle.Small).Wrap();
+            content.Label(ForensicModel.ListTitle,TextStyle.Section);
+            foreach(var l in model.Layers)
+            {
+                var r=content.Row(6);
+                r.Label(l.Number.ToString("00"),TextStyle.Small).Width(28);
+                r.Canvas(18,d=>{d.ViewBox(0,0,18,18);d.Rect(2,2,14,14,l.Colour);}).Fps(0).Width(18);
+                var detail=l.GapMm!=null?l.Geometry:CombatForensicGeometry.Detail(l);
+                var name=l.GapMm!=null?"Air gap":CombatForensicGeometry.LayerName(l);
+                var text=r.Label(name+(detail.Length>0?" | "+detail:""),TextStyle.Small).Width(650).Wrap();
+                if(l.Array||l.Era.Length>0)text.Tooltip(l.Array?CombatForensicGeometry.Members(l)+(l.Era.Length>0?" | "+CombatForensicGeometry.EraLabel(l):""):CombatForensicGeometry.EraLabel(l));
+                if(l.GapMm==null)AbsorptionBar(r,l.Percent,l.Colour);
+                else r.Label("",TextStyle.Small).Width(160);
+                // Only measured shares: a gap shows a dash, a layer without a measured share shows nothing.
+                r.Label(l.GapMm!=null?"–":l.Percent!=null?CombatForensics.N(l.Percent)+"%":"",TextStyle.Value).Width(65).AlignRight();
+                // 0.22.41: the constituents of a composer preset, indented under the plate, without shares.
+                foreach(var paid in l.PaidIntervals??Array.Empty<string>())SubRow(content,46,l.Colour,paid);
+                // 0.22.91: the constituents of a layered module (its confirmed intervals), indented, without shares.
+                if(l.ModuleLayers!=null)foreach(var ml in l.ModuleLayers)SubRow(content,46,ml.Colour,ml.Label+" | "+ml.Detail);
+                else foreach(var sub in l.Sublayers??Array.Empty<CompositeSublayer>())
+                    SubRow(content,46,sub.Colour,sub.Label+" | "+CombatForensicGeometry.SubDetail(l,sub),CombatForensicGeometry.IsStopSublayer(l,sub)?"#ffac91":null);
+                // 0.22.43: an internal module in the same native group as the plate, indented without a share.
+                if(l.Grouped)SubRow(content,46,CombatEnvelope.Grey,CombatForensics.Capital(l.Module)+" | "+CombatForensicGeometry.ModuleDetail(l));
+                // 0.22.42: the plates of a composite array front to back, indented without shares; under a preset plate its constituents.
+                foreach(var plate in l.Plates??Array.Empty<ForensicArrayPlate>())
+                {
+                    var detail2=CombatForensicGeometry.PlateDetail(plate);
+                    SubRow(content,46,plate.Colour,plate.Name+(detail2.Length>0?" | "+detail2:""));
+                    foreach(var sub in plate.Sublayers??Array.Empty<CompositeSublayer>())SubRow(content,68,sub.Colour,sub.Label+" | "+CombatForensicGeometry.SubDetail(sub));
+                }
+            }
+            if(model.UnattributedMm is {} u&&Math.Abs(u)>.01)
+            {
+                var between=content.Row(8);between.Label(model.BetweenLabel+": "+CombatForensics.N(Math.Abs(u))+" mm RHA-eq",TextStyle.Small).Width(700);
+                AbsorptionBar(between,model.Initial is >0?100*Math.Abs(u)/model.Initial:null,"#7c7566");
+            }
+            if(model.HasResidualRow)
+            {
+                // 0.22.43: the residual row names the last layer ("Residual penetration behind layer 16").
+                var rest=content.Row(8);rest.Label(model.RestLabel+": "+CombatForensics.N(model.Residual)+" mm RHA-eq",TextStyle.Label).Width(700);
+                AbsorptionBar(rest,model.ResidualPercent,"#8fd99c");
+                rest.Label(CombatForensics.N(model.ResidualPercent)+"%",TextStyle.Value).Width(65);
+            }
+            content.Label(ForensicModel.Footnote,TextStyle.Small).Wrap();
         }
-        if(model.HasResidualRow)
-        {
-            // 0.22.43: the residual row names the last layer ("Residual penetration behind layer 16").
-            var rest=content.Row(8);rest.Label(model.RestLabel+": "+CombatForensics.N(model.Residual)+" mm RHA-eq",TextStyle.Label).Width(700);
-            AbsorptionBar(rest,model.ResidualPercent,"#8fd99c");
-            rest.Label(CombatForensics.N(model.ResidualPercent)+"%",TextStyle.Value).Width(65);
-        }
-        content.Label(ForensicModel.Footnote,TextStyle.Small).Wrap();
         // A column with nothing measured to say is left out.
         if(model.Advice.Count>0)
         {

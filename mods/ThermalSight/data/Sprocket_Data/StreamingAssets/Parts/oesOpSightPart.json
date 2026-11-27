@@ -1,0 +1,78 @@
+{
+  "v": "0.2",
+  "guid": "f4c82a19-7d3e-4b61-9a85-3e1c6f0d8b42",
+  "name": "oesOpSight",
+  "tags": [
+    "gunner",
+    "scope",
+    "cannon",
+    "sightsElectronics"
+  ],
+  "components": [
+    {
+      "fileID": "oesOpSight",
+      "type": "sight",
+      "info": {
+        "v": "0.0",
+        "objectiveLensPosition": [
+          0.0,
+          0.43,
+          0.14
+        ],
+        "eyepiecePosition": [
+          0.0,
+          0.43,
+          -0.14
+        ],
+        "modelFileID": "oesOpSightModel"
+      }
+    },
+    {
+      "fileID": "oesOpSightModel",
+      "type": "model",
+      "info": {
+        "v": "0.2",
+        "meshGuid": "60f759b164460a140bf65902dd96dd5c",
+        "materialGuids": [
+          "91dfa45c1494952458353d309cfa9aa9"
+        ],
+        "scaling": true,
+        "flipping": true,
+        "selectable": true,
+        "placementSurface": false,
+        "damageable": false
+      }
+    }
+  ],
+  "transform": {
+    "mirroring": true,
+    "duplication": true,
+    "pickup": true,
+    "snapToCentre": true,
+    "autoRotate": false,
+    "airPlacement": true,
+    "translation": true,
+    "rotation": true,
+    "scaling": true,
+    "dynamic": true,
+    "placementMode": "upright",
+    "scale": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "maxScale": [
+      2.5,
+      2.5,
+      2.5
+    ],
+    "minScale": [
+      0.35,
+      0.35,
+      0.35
+    ],
+    "objects": []
+  },
+  "date": "1950.01.01",
+  "order": 0
+}

@@ -1,0 +1,5 @@
+Heat 0.4.0 CPU measurement (16 logical CPUs, Release, median)
+Profile 640x480, 8 vehicles, 24 hot spots at 500-1375 m (4 deg vertical FOV):
+  clear + raster 24 spots: 0,023 ms
+  Process without heat: 10,443 ms; with heat (raster + sum): 10,812 ms; extra: 0,369 ms per captured frame
+Worst case 24 close spots of radius 150 px: clear + raster 4,406 ms

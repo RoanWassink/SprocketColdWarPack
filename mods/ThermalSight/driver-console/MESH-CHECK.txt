@@ -1,0 +1,10 @@
+file: driver-console.obj
+sha256: 1BDBB2A6B5A26854E991650DCECB41DEA7B5507D95D9004663877F2CAA571E92
+positions: 1240
+vertices_expanded: 7284
+triangles_total: 2428
+triangles_housing: 2392
+triangles_glass: 36
+bounds_x: [-0.2280, 0.2280] (0.4560 m)
+bounds_y: [0.0000, 0.2680] (0.2680 m)
+bounds_z: [-0.1000, 0.0473] (0.1473 m)

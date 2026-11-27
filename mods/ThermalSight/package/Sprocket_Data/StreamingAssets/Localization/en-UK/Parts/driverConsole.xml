@@ -1,0 +1,1 @@
+<Part><name>Driver console</name><description>Remote driver camera display and control console. Place within the driver's normal operating reach. Link your vehicle's steering controls in the inspector so the driver can sit far from the assigned viewport (for example in a rear crew capsule). The exterior viewport must still remain clear of obstructions.</description></Part>
