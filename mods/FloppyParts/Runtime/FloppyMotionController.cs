@@ -994,18 +994,15 @@ internal static class FloppyMotionController
         {
             inst.Mesh.uv = inst.NormalUvs;
             inst.Renderer.sharedMaterial = inst.NormalMaterial;
+            inst.Renderer.SetPropertyBlock(null);
             if (inst.Plate != null && !inst.Plate.WasCollected)
             {
                 var cfg = PlateConfigStore.Get(inst.Plate);
-                if (cfg.Preset == LookPreset.Native)
-                {
-                    inst.Renderer.SetPropertyBlock(null);
-                }
-                else
+                if (cfg.Preset != LookPreset.Native && inst.NormalMaterial != null)
                 {
                     var paint = cfg.ColorMode == ColorMode.FollowTankPaint ? TankPaintReader.Read(inst.Plate) : null;
                     MaterialLibrary.GetMaterial(cfg.Preset, cfg.CustomFolder, out bool hasMask);
-                    MaterialLibrary.ApplyPropertyBlock(inst.Renderer, cfg, paint, hasMask);
+                    MaterialLibrary.ApplyMaterialProperties(inst.NormalMaterial, cfg, paint, hasMask);
                 }
             }
             inst.ShowingPinPreview = false;

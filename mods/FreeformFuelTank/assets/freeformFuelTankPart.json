@@ -1,0 +1,106 @@
+{
+  "v": "0.0",
+  "guid": "b7f4c2e1-8d3a-4f9b-9c12-5e8a3d7f0101",
+  "name": "freeformFuelTank",
+  "tags": [
+    "fuel",
+    "fuelTank",
+    "internal"
+  ],
+  "components": [
+    {
+      "fileID": "plateStructure",
+      "type": "plateStructure",
+      "info": {
+        "v": "0.0",
+        "interiorMaterialGuid": "1652c07d7ff619b4f975b029fbc36912",
+        "exteriorMaterialGuid": "1652c07d7ff619b4f975b029fbc36912",
+        "edgeMaterialGuid": "1652c07d7ff619b4f975b029fbc36912",
+        "rivetMaterialGuid": "2a222cbcc043b184ea4436ec438f7e0b",
+        "applique": true
+      }
+    },
+    {
+      "fileID": "fuelTank",
+      "type": "fuelTank",
+      "info": {
+        "v": "0.0",
+        "modelFileID": "model",
+        "dimensions": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "axis": 0,
+        "shape": 0
+      }
+    }
+  ],
+  "transform": {
+    "mirroring": true,
+    "duplication": true,
+    "pickup": true,
+    "snapToCentre": true,
+    "autoRotate": false,
+    "airPlacement": true,
+    "translation": true,
+    "rotation": true,
+    "scaling": true,
+    "dynamic": false,
+    "placementMode": "upright",
+    "scale": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "maxScale": [
+      5.0,
+      5.0,
+      5.0
+    ],
+    "minScale": [
+      0.1,
+      0.1,
+      0.1
+    ],
+    "objects": [
+      {
+        "fileID": "modelObject",
+        "parentFileID": null,
+        "localPosition": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "localRotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "localScale": [
+          0.0001,
+          0.0001,
+          0.0001
+        ],
+        "components": [
+          {
+            "fileID": "model",
+            "type": "model",
+            "info": {
+              "v": "0.2",
+              "meshGuid": "4450c851ed178fe49b208ed471329815",
+              "materialGuids": [
+                "1652c07d7ff619b4f975b029fbc36912"
+              ],
+              "scaling": false,
+              "flipping": false,
+              "selectable": false,
+              "placementSurface": false,
+              "damageable": false
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

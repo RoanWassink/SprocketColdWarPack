@@ -296,4 +296,29 @@ public sealed partial class Runtime
         double windowS=Math.Max(0,p.RebuildCoalesceMs.Value)/1000.0;
         coalescer.Request(root,Time.realtimeSinceStartup,windowS);
     }
+
+    private bool RemovePartArmourInPlace(Tracked t,long root,int partVuid)
+    {
+        var p=Plugin.Instance;
+        if(!p.EnableRouteA.Value)return false;
+        State.SetExcluded(root,partVuid,true);
+        if(p.ArmourUpdateMode.Value.Equals("InPlace",StringComparison.OrdinalIgnoreCase))
+        {
+            var idx=GetOrBuildArmourIndex(t,root);
+            if(idx!=null&&idx.Valid&&idx.ByVuid.TryGetValue(partVuid,out var tris)&&tris.Count>0)
+            {
+                int deg=0;
+                for(int i=0;i<tris.Count;i++)
+                {
+                    var (mi,off)=tris[i];
+                    var mref=idx.Meshes[mi];
+                    if(DegenerateNative(mref.Tris,off,mi,idx.MainBackups))deg++;
+                    if(mref.BvhTris!=null)DegenerateNative(mref.BvhTris,off,mi,idx.BvhBackups);
+                }
+                if(p.DetailedLogging.Value)Plugin.Info($"[ARMOUR] InPlace loose part vuid={partVuid}: degenerated {deg} tris");
+                return deg>0;
+            }
+        }
+        return false;
+    }
 }

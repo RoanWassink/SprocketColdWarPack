@@ -26,7 +26,7 @@ internal static class CarouselPersistence
         var layoutKey = keys.Contains(LayoutKey) ? LayoutKey : null;
         return new(enabledKey != null && info.GetBoolean(enabledKey!),
             cannonKey != null ? info.GetInt32(cannonKey) : -1,
-            layoutKey != null ? (CarouselLayout)Math.Clamp(info.GetInt32(layoutKey), 0, 1) : CarouselLayout.HorizontalCassette);
+            layoutKey != null ? (CarouselLayout)Math.Clamp(info.GetInt32(layoutKey), 0, 2) : CarouselLayout.HorizontalCassette);
     }
 
     internal static void CheckNativeJsonRoundTrip()
@@ -37,7 +37,7 @@ internal static class CarouselPersistence
         var old = serializer.DeserializeJSON(fixture);
         if (Read(old.VehicleObjects[0].State) != new Settings(false, -1, CarouselLayout.HorizontalCassette))
             throw new InvalidOperationException("Default blueprint settings failed.");
-        foreach (var layout in new[] { CarouselLayout.HorizontalCassette, CarouselLayout.VerticalCharge })
+        foreach (var layout in new[] { CarouselLayout.HorizontalCassette, CarouselLayout.VerticalCharge, CarouselLayout.StackedUnitary })
         foreach (var enabled in new[] { false, true })
         foreach (var cannonId in new[] { -1, 275, 370 })
         {

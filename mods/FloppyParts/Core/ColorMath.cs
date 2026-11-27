@@ -58,9 +58,32 @@ internal static class ColorMath
         ColorPresetId.FieldGrey => (0.36f, 0.39f, 0.35f),
         ColorPresetId.Charcoal => (0.18f, 0.19f, 0.20f),
         ColorPresetId.RubberBlack => (0.12f, 0.12f, 0.13f),
-        ColorPresetId.ClearGlass => (0.86f, 0.94f, 0.95f),
-        ColorPresetId.TintedGlass => (0.60f, 0.86f, 0.85f),
+        ColorPresetId.ClearGlass => (0.90f, 0.96f, 1.00f),
+        ColorPresetId.TintedGlass => (0.25f, 0.85f, 0.45f),
+        ColorPresetId.BrownTintedGlass => (0.65f, 0.36f, 0.14f),
+        ColorPresetId.YellowTintedGlass => (1.00f, 0.85f, 0.15f),
+        ColorPresetId.SmokeDarkGlass => (0.06f, 0.07f, 0.08f),
+        ColorPresetId.BlueAntiGlareGlass => (0.25f, 0.65f, 1.00f),
+        ColorPresetId.ThermalRainbowGlass => (0.95f, 0.97f, 1.00f),
         _ => (0.86f, 0.82f, 0.72f)
+    };
+
+    internal static float DefaultGlassOpacity(ColorPresetId id) => id switch
+    {
+        ColorPresetId.ClearGlass => 0.08f,
+        ColorPresetId.TintedGlass => 0.22f,
+        ColorPresetId.BrownTintedGlass => 0.24f,
+        ColorPresetId.YellowTintedGlass => 0.22f,
+        ColorPresetId.SmokeDarkGlass => 0.55f,
+        ColorPresetId.BlueAntiGlareGlass => 0.20f,
+        ColorPresetId.ThermalRainbowGlass => 0.30f,
+        _ => 0.15f
+    };
+
+    internal static float DefaultGlassSmoothness(ColorPresetId id) => id switch
+    {
+        ColorPresetId.ThermalRainbowGlass => 0.92f,
+        _ => 0.86f
     };
 
     /// <summary>
@@ -97,7 +120,7 @@ internal static class ColorMath
         (float R, float G, float B, float Saturation)? tankPaint)
     {
         float alpha = cfg.Preset == LookPreset.Glass
-            ? Math.Clamp(float.IsFinite(cfg.Opacity) ? cfg.Opacity : 0.23f, 0.05f, 1.0f)
+            ? Math.Clamp(float.IsFinite(cfg.Opacity) ? cfg.Opacity : 0.08f, 0.01f, 1.0f)
             : 1.0f;
         float bright = float.IsFinite(cfg.Brightness) ? Math.Clamp(cfg.Brightness, 0.25f, 2.0f) : 1.0f;
 

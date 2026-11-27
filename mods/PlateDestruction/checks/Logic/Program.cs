@@ -1357,6 +1357,160 @@ Check(Ballistics.Speed(3,25,8,0)==3&&Ballistics.Speed(3,25,8,1)==11&&Ballistics.
         "0.8.2 BlastOcclusion stops blocking when all barrier triangles along ray belong to broken cells");
 }
 
+// ---- 0.9.0: Destructible loose exterior parts & cannon/core hierarchy guards ----
+{
+    // Core / cannon / mantlet / drivetrain components must ALWAYS be protected
+    Check(PartFilter.IsCoreComponent("Cannon")&&PartFilter.IsCoreComponent("Mantlet")
+        &&PartFilter.IsCoreComponent("CannonBehaviour")&&PartFilter.IsCoreComponent("VehicleObjectModel","cannonBarrelSegment")
+        &&PartFilter.IsCoreComponent("VehicleObjectModel","motorModel")&&PartFilter.IsCoreComponent("VehicleObjectModel","sprocketHingeBaseModel"),
+        "0.9.0 PartFilter protects cannons, mantlets, barrel segments, motors, and hinges");
+
+    // Loose exterior parts: smoke launchers & decorative VehicleObjectModel accepted by default
+    Check(PartFilter.IsLoosePartCandidate("VehicleObjectModel","smokeLauncherBankModel","SmokeLauncher",false,false)
+        &&PartFilter.IsLoosePartCandidate("VehicleObjectModel","model","Headlight",false,false)
+        &&PartFilter.IsLoosePartCandidate("VehicleObjectModel","model","GeneratorBox",false,false),
+        "0.9.0 PartFilter accepts smoke launchers, headlights, and stowage (no false 'era' match on GeneratorBox)");
+
+    // Cannon/mantlet/barrel/wheel models rejected as loose parts
+    Check(!PartFilter.IsLoosePartCandidate("VehicleObjectModel","cannonBarrelSegment","Barrel",false,false)
+        &&!PartFilter.IsLoosePartCandidate("VehicleObjectModel","mantletModel","Mantlet",false,false)
+        &&!PartFilter.IsLoosePartCandidate("VehicleObjectModel","axleModel","Axle",false,false),
+        "0.9.0 PartFilter rejects cannon/mantlet/axle models as loose parts");
+
+    // Optics & ERA excluded by default, allowed when opted in
+    Check(!PartFilter.IsLoosePartCandidate("VehicleObjectModel","t72StyleSight","T72Sight",false,false)
+        &&PartFilter.IsLoosePartCandidate("VehicleObjectModel","t72StyleSight","T72Sight",true,false),
+        "0.9.0 PartFilter excludes optics by default and includes them when includeOptics=true");
+    Check(!PartFilter.IsLoosePartCandidate("VehicleObjectModel","kontakt1Housing","Kontakt1",false,false)
+        &&!PartFilter.IsLoosePartCandidate("VehicleObjectModel","model","ERA_Block_01",false,false)
+        &&PartFilter.IsLoosePartCandidate("VehicleObjectModel","kontakt1Housing","Kontakt1",false,true),
+        "0.9.0 PartFilter excludes ERA by default and includes it when includeEra=true");
+
+    // LoosePartMath: durability scales with size, kinetic hits break light parts, SegmentDistSq works
+    double sSmall=LoosePartMath.Strength(35.0,0.15);
+    double sMed=LoosePartMath.Strength(35.0,0.35);
+    double sLarge=LoosePartMath.Strength(35.0,0.90);
+    Check(sSmall>=10.0&&sSmall<sMed&&sMed<sLarge&&sLarge<=250.0,
+        $"0.9.0 LoosePartMath.Strength scales with size ({sSmall:F1} < {sMed:F1} < {sLarge:F1})");
+    Check(LoosePartMath.KineticDamage(0.05,25)>=35.0&&LoosePartMath.KineticDamage(6.0,120)>=200.0,
+        "0.9.0 LoosePartMath.KineticDamage breaks loose parts on direct 25mm+ / APFSDS hits");
+    Check(Math.Abs(LoosePartMath.SegmentDistSq(new V3(0,1,0),new V3(0,0,0),new V3(2,0,0))-1.0)<1e-6
+        &&Math.Abs(LoosePartMath.SegmentDistSq(new V3(3,0,0),new V3(0,0,0),new V3(2,0,0))-1.0)<1e-6,
+        "0.9.0 LoosePartMath.SegmentDistSq exact for perpendicular and clamped endpoint queries");
+}
+
+// ---- 1.0.0: Whole-tank toggle, EB-integrated blast breach math, and inward breach crew/module damage ----
+{
+    // 1. TankDestructionFlag roundtrip & case-insensitivity
+    Check(!TankDestructionFlag.IsDisabled(null)&&!TankDestructionFlag.IsDisabled("")&&!TankDestructionFlag.IsDisabled("Main hull"),
+        "1.0.0 TankDestructionFlag: enabled by default when [no-destruction] is absent");
+    string? td1=TankDestructionFlag.SetEnabled("Main hull",false);
+    Check(TankDestructionFlag.IsDisabled(td1)&&td1=="Main hull [no-destruction]",
+        "1.0.0 TankDestructionFlag: SetEnabled(false) appends [no-destruction]");
+    Check(TankDestructionFlag.SetEnabled(td1,false)==td1,"1.0.0 TankDestructionFlag: idempotent disable");
+    Check(TankDestructionFlag.SetEnabled(td1,true)=="Main hull","1.0.0 TankDestructionFlag: SetEnabled(true) restores original description");
+    Check(TankDestructionFlag.SetEnabled("[NO-DESTRUCTION]",true)==null,"1.0.0 TankDestructionFlag: removes case-insensitive token cleanly to null");
+
+    // 2. BlastBreachMath: EB override, fallback HE/HESH/HEAT/ERA, steep distance falloff, accumulation guard, bounded hole radius, 0.4 m zones
+    Check(Math.Abs(BlastBreachMath.EffectiveCalibreMm(100,true,152.0)-152.0)<1e-6
+        &&Math.Abs(BlastBreachMath.EffectiveCalibreMm(125,false,152.0)-125.0)<1e-6,
+        "1.0.0 BlastBreachMath.EffectiveCalibreMm prefers EB telemetry when present");
+    double he100=BlastBreachMath.EffectiveBreachMm("he",100,false,0,20);
+    double he152=BlastBreachMath.EffectiveBreachMm("he",152,false,0,20);
+    double hesh152=BlastBreachMath.EffectiveBreachMm("hesh",152,false,0,20);
+    double heat125=BlastBreachMath.EffectiveBreachMm("heat",125,false,0,20);
+    double ebOverride=BlastBreachMath.EffectiveBreachMm("he",152,true,55.0,20);
+    Check(Math.Abs(he100-20.0)<1e-6&&he152>45.0&&he152<47.0&&hesh152>24.0&&hesh152<28.0&&heat125==0.0&&Math.Abs(ebOverride-55.0)<1e-6,
+        $"1.0.0 BlastBreachMath.EffectiveBreachMm: HE100={he100:F1}mm, HE152={he152:F1}mm, HESH152={hesh152:F1}mm, HEAT={heat125:F1}mm, EB={ebOverride:F1}mm");
+
+    // Steep breach distance falloff: 152 mm HE (46.2 mm contact) drops sharply with distance so 1.76 m away cannot breach a 20 mm roof or 5 mm turret
+    double cap0=BlastBreachMath.BreachCapacityAtDistanceMm(he152,152,0.0);
+    double capHalf=BlastBreachMath.BreachCapacityAtDistanceMm(he152,152,0.4256);
+    double capFar=BlastBreachMath.BreachCapacityAtDistanceMm(he152,152,1.76);
+    Check(Math.Abs(cap0-he152)<1e-6&&Math.Abs(capHalf-he152*0.5)<0.5&&capFar<1.0,
+        $"1.0.0 BlastBreachMath distance falloff: 0m={cap0:F1}mm, rCore={capHalf:F1}mm, 1.76m={capFar:F2}mm (<1mm)");
+
+    // Accumulation guard: 152mm HE (46mm) can chip away at an 80mm plate (<=101mm), NOT a 200mm turret cheek (>101mm)
+    Check(BlastBreachMath.CanAccumulateBreach(80.0,he152)&&!BlastBreachMath.CanAccumulateBreach(200.0,he152)&&!BlastBreachMath.CanAccumulateBreach(10.0,0.0),
+        "1.0.0 BlastBreachMath.CanAccumulateBreach allows <=2.2x contact breach and blocks tiny shells chipping 200mm armor");
+
+    // Localized hole radius stays realistic (0.09..0.38 m)
+    double rSmall=BlastBreachMath.BreachHoleRadiusM(22.0,20.0,100.0,0.38);
+    double rBig=BlastBreachMath.BreachHoleRadiusM(46.2,10.0,152.0,0.38);
+    Check(rSmall>=0.09&&rSmall<0.16&&rBig>rSmall&&rBig<=0.38,
+        $"1.0.0 BlastBreachMath.BreachHoleRadiusM: bounded localized radii (small={rSmall:F3}m, big={rBig:F3}m <= 0.38m)");
+
+    // 0.4 m zone buckets group nearby hits and separate opposite ends of the hull
+    var z1=BlastBreachMath.ZoneKey(new V3(0.10f,0.10f,0.10f));
+    var z2=BlastBreachMath.ZoneKey(new V3(0.35f,0.20f,0.15f));
+    var z3=BlastBreachMath.ZoneKey(new V3(1.50f,0.10f,0.10f));
+    Check(z1==z2&&z1!=z3,"1.0.0 BlastBreachMath.ZoneKey groups same-spot hits and isolates distant hits");
+
+    // 3. BreachDamageMath: excess, cone radius, behind-hole cone check, crew vs module damage falloff
+    double ex152=BreachDamageMath.ExcessMm(46.2,15.0);
+    double exThin=BreachDamageMath.ExcessMm(20.0,20.0);
+    double cone152=BreachDamageMath.ConeRadiusM(152.0,46.2,15.0);
+    double cone100=BreachDamageMath.ConeRadiusM(100.0,20.0,20.0);
+    Check(ex152>35.0&&exThin>6.0&&cone152>cone100&&cone152<=3.00&&cone100>=0.85,
+        $"1.0.0/1.0.2 BreachDamageMath cone: 152mm={cone152:F2}m (excess={ex152:F1}mm) > 100mm={cone100:F2}m (excess={exThin:F1}mm)");
+    Check(BreachDamageMath.IsBehindHole(new V3(0,0,0),new V3(0,0,1),new V3(0.1f,0,0.8f))
+        &&!BreachDamageMath.IsBehindHole(new V3(0,0,0),new V3(0,0,1),new V3(0,0,-0.8f))
+        &&BreachDamageMath.IsBehindHole(new V3(0,0,0),new V3(0,0,1),new V3(0,0,-0.20f),0.35),
+        "1.0.0 BreachDamageMath.IsBehindHole accepts inward hemisphere and close-contact modules, rejects exterior behind-blast points");
+    double crewNear=BreachDamageMath.ModuleDamageFraction(0.30,cone152,152.0,ex152,46.2,true);
+    double crewFar=BreachDamageMath.ModuleDamageFraction(1.60,cone152,152.0,ex152,46.2,true);
+    double modFar=BreachDamageMath.ModuleDamageFraction(1.60,cone152,152.0,ex152,46.2,false);
+    double outOfCone=BreachDamageMath.ModuleDamageFraction(cone152+0.1,cone152,152.0,ex152,46.2,true);
+    Check(crewNear>=0.95&&crewFar>modFar&&modFar>0&&crewFar<crewNear&&outOfCone==0.0,
+        $"1.0.0/1.0.2 BreachDamageMath.ModuleDamageFraction: crewNear={crewNear:P0}, crewFar={crewFar:P0} > modFar={modFar:P0}, out={outOfCone:P0}");
+
+    // 5. 1.0.2 Shot 3 turret-roof breach lethality (152mm HE on 28.7mm roof -> crew at 1.10m takes >=75% lethal overpressure, 75mm HE is gentler) + ERA stripping helpers
+    double exRoof=BreachDamageMath.ExcessMm(46.2,28.7);
+    double coneRoof=BreachDamageMath.ConeRadiusM(152.0,46.2,28.7);
+    double crewRoof110=BreachDamageMath.ModuleDamageFraction(1.10,coneRoof,152.0,exRoof,46.2,true);
+    double ex75=BreachDamageMath.ExcessMm(11.25,10.0);
+    double cone75=BreachDamageMath.ConeRadiusM(75.0,11.25,10.0);
+    double crew75_110=BreachDamageMath.ModuleDamageFraction(1.10,cone75,75.0,ex75,11.25,true);
+    Check(coneRoof>2.3&&crewRoof110>=0.75&&crew75_110>0.05&&crew75_110<0.40,
+        $"1.0.2 Enclosed-compartment breach: 152mm roof breach cone={coneRoof:F2}m crew@1.10m={crewRoof110:P0} (>=75%), 75mm crew@1.10m={crew75_110:P0}");
+    Check(Math.Abs(BlastBreachMath.EraStripRadiusM(152.0,0.45)-0.684)<1e-3&&BlastBreachMath.EraStripRadiusM(30.0,0.45)==0.0
+        &&PartFilter.IsEraComponent("VehicleObjectModel","kontakt5WtTurretSHousing","")
+        &&PartFilter.IsEraComponent("VehicleObjectModel","nizhPanel","")
+        &&PartFilter.IsEraActiveCell("kontakt5Stage1Cell1","")&&!PartFilter.IsEraActiveCell("kontakt5WtTurretSHousing",""),
+        "1.0.2 ERA blast strip radius (152mm->0.684m, 30mm->0m) and ERA housing vs active cell classification");
+
+    // 4. 1.0.1 [Solid block] recognition, RayFarthest full-block depth vs 4mm visual shell, and thick-armor blast dent cap
+    Check(BlastBreachMath.IsSolidBlockName("Composite armour [Solid block]")&&!BlastBreachMath.IsSolidBlockName("Composite armour [Layers]")&&!BlastBreachMath.IsSolidBlockName(null),
+        "1.0.1 IsSolidBlockName detects EB [Solid block] marker accurately");
+
+    // Hollow 300mm solid-block cheek with 4mm front/back skins: RayFirst sees 4mm skin, RayFarthest sees full 300mm block!
+    V3[] sbV={
+        new(-0.5f,-0.5f,0.000f),new(0.5f,-0.5f,0.000f),new(0.5f,0.5f,0.000f),new(-0.5f,0.5f,0.000f), // front outer z=0
+        new(-0.5f,-0.5f,0.004f),new(0.5f,-0.5f,0.004f),new(0.5f,0.5f,0.004f),new(-0.5f,0.5f,0.004f), // front inner z=4mm
+        new(-0.5f,-0.5f,0.296f),new(0.5f,-0.5f,0.296f),new(0.5f,0.5f,0.296f),new(-0.5f,0.5f,0.296f), // back inner z=296mm
+        new(-0.5f,-0.5f,0.300f),new(0.5f,-0.5f,0.300f),new(0.5f,0.5f,0.300f),new(-0.5f,0.5f,0.300f)  // back outer z=300mm
+    };
+    int[] sbT={
+        0,1,2, 0,2,3,
+        4,6,5, 4,7,6,
+        8,9,10, 8,10,11,
+        12,14,13, 12,15,14
+    };
+    var sbAcc=new TriAccel();
+    bool rfOk=sbAcc.RayFirst(sbV,sbT,0,new V3(0,0,0.002f),new V3(0,0,1),1.5,null,out double rfD,out _,out _);
+    bool rlOk=sbAcc.RayFarthest(sbV,sbT,0,new V3(0,0,0.002f),new V3(0,0,1),1.5,null,out double rlD,out _);
+    double firstMm=(rfD+0.002)*1000.0,farMm=(rlD+0.002)*1000.0;
+    Check(rfOk&&rlOk&&Math.Abs(firstMm-4.0)<0.2&&Math.Abs(farMm-300.0)<0.2,
+        $"1.0.1 RayFarthest measures full [Solid block] depth={farMm:F1}mm instead of hollow visual skin={firstMm:F1}mm");
+
+    double dmg152=BlastMath.Damage(190.0,152.0,0.0,0.5,20.0);
+    double dThin=BlastBreachMath.RealisticBlastDentDepthMm(dmg152,20.0,20.0,150.0,1.8,120.0,out _);
+    double d130=BlastBreachMath.RealisticBlastDentDepthMm(dmg152,130.0,20.0,150.0,1.8,120.0,out _);
+    double d350=BlastBreachMath.RealisticBlastDentDepthMm(dmg152,350.0,20.0,150.0,1.8,120.0,out _);
+    Check(dThin>80.0&&d130>=12.0&&d130<=50.0&&d350>=5.0&&d350<=25.0&&d130>d350,
+        $"1.0.1 RealisticBlastDentDepthMm: 20mm={dThin:F1}mm, 130mm={d130:F1}mm (<=50mm), 350mm={d350:F1}mm (<=25mm)");
+}
+
 Console.WriteLine($"SUMMARY {pass} PASS, {fail} FAIL");
 return fail==0?0:1;
 

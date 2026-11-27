@@ -23,6 +23,8 @@ internal sealed class CombatImpactView
     internal string SummaryLine="";
     /// <summary>The summary line cut into lines of at most <see cref="CombatReportView.LineColumns"/> characters at word breaks.</summary>
     internal string[] SummaryLines=Array.Empty<string>();
+    internal string BlastHeadline="";
+    internal string[] BlastLines=Array.Empty<string>();
     internal CombatLayerRow[] Layers=Array.Empty<CombatLayerRow>();
     internal string[] Diagnostics=Array.Empty<string>();
 }
@@ -57,7 +59,7 @@ internal static class CombatReportView
     internal const int ReactionMaxLines=3;
     /// <summary>Fixed chip width in pixels for the longest word it must hold (about 10 px per capital letter plus padding), so the result never gets cut off ("PENETRAT…").</summary>
     internal static float ChipWidth(string longest)=>MathF.Ceiling(longest.Length*10f+28f);
-    internal static readonly float ResultChipWidth=ChipWidth(new[]{HitBlockBuilder.Penetrated,HitBlockBuilder.Stopped,HitBlockBuilder.StoppedSpall,HitBlockBuilder.Ricochet,HitBlockBuilder.NoArmour}.OrderByDescending(s=>s.Length).First());
+    internal static readonly float ResultChipWidth=ChipWidth(new[]{HitBlockBuilder.Penetrated,HitBlockBuilder.Stopped,HitBlockBuilder.StoppedSpall,HitBlockBuilder.StoppedBlast,HitBlockBuilder.Breached,HitBlockBuilder.Ricochet,HitBlockBuilder.NoArmour}.OrderByDescending(s=>s.Length).First());
     internal const string DestroyedText="TANK DESTROYED";
     internal static readonly float DestroyedChipWidth=ChipWidth(DestroyedText);
     private static readonly Regex NumericName=new(@"^\s*#?\d+\s*$",RegexOptions.CultureInvariant);
@@ -194,10 +196,12 @@ internal static class CombatReportView
             var damage=CombatDamageSummary.From(shot.Events);
             var line=CombatReportPresentation.Escape(damage.Line(shot.CrewTotal));
             var target=CombatReportPresentation.Escape(CombatHitSummaryModel.Fit(shot.Target??"",48));var destroyed=CombatDamageSummary.IsDestroyed(shot);
+            var blastLines=BuildBlastLines(shot.Events);
             list.Add(new CombatImpactView
             {
                 Key=shot.Number.ToString(CultureInfo.InvariantCulture),Block=block,Layers=rows.ToArray(),Forensic=CombatForensics.Build(shot),
                 Diagnostics=shot.Events.Where(CombatReportNoise.IsEndedPlate).Select(e=>CombatReportPresentation.Escape(CombatReportLanguage.Diagnostic(e.Text))).ToArray(),
+                BlastLines=blastLines,BlastHeadline=BuildBlastHeadline(shot.Events,blastLines),
                 Target=target,Destroyed=destroyed,Head=HeadText(block,target,destroyed),
                 SummaryLine=line,SummaryLines=line.Length==0?Array.Empty<string>():Lines(line,LineColumns),
                 Summary=(shot.Direction=="Incoming"?"From: "+CombatReportPresentation.Escape(CombatReportTruth.Text(shot.Shooter,"unknown"))+" · ":"")+$"{CombatReportPresentation.Escape(shot.Direction)} · {N(shot.SpeedMps,"0")} m/s · {rows.Count} layer{(rows.Count==1?"":"s")}"
@@ -205,5 +209,32 @@ internal static class CombatReportView
             });
         }
         return list;
+    }
+    private static string[] BuildBlastLines(IReadOnlyList<CombatReportEvent> events)
+    {
+        var list=new List<string>();
+        foreach(var e in events)
+            if(e.Kind=="blastSummary")list.Add(CombatReportPresentation.Escape(CombatReportLanguage.BlastLine(e.Text)));
+        foreach(var e in events)
+            if(e.Kind=="blastPlate"&&e.Text.Contains("BREACHED",StringComparison.Ordinal))list.Add(CombatReportPresentation.Escape(CombatReportLanguage.BlastLine(e.Text)));
+        foreach(var e in events)
+            if(e.Kind=="blastPlate"&&!e.Text.Contains("BREACHED",StringComparison.Ordinal))list.Add(CombatReportPresentation.Escape(CombatReportLanguage.BlastLine(e.Text)));
+        foreach(var e in events)
+            if(e.Kind=="blastEra")list.Add(CombatReportPresentation.Escape(CombatReportLanguage.BlastLine(e.Text)));
+        return list.ToArray();
+    }
+    private static string BuildBlastHeadline(IReadOnlyList<CombatReportEvent> events,string[] blastLines)
+    {
+        if(blastLines.Length==0)return "";
+        var summary=events.FirstOrDefault(e=>e.Kind=="blastSummary");
+        var breached=events.FirstOrDefault(e=>e.Kind=="blastPlate"&&e.Text.Contains("BREACHED",StringComparison.Ordinal));
+        var resisted=events.FirstOrDefault(e=>e.Kind=="blastPlate"&&!e.Text.Contains("BREACHED",StringComparison.Ordinal));
+        var era=events.FirstOrDefault(e=>e.Kind=="blastEra");
+        var parts=new List<string>();
+        if(summary!=null)parts.Add(CombatReportLanguage.BlastLine(summary.Text));
+        if(breached!=null)parts.Add(CombatReportLanguage.BlastLine(breached.Text));
+        else if(resisted!=null)parts.Add(CombatReportLanguage.BlastLine(resisted.Text));
+        if(era!=null)parts.Add(CombatReportLanguage.BlastLine(era.Text));
+        return CombatReportPresentation.Escape(string.Join(" · ",parts));
     }
 }

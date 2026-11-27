@@ -16,12 +16,12 @@ internal static class MaterialLibrary
         internal bool DirectX => string.Equals(normalConvention, "DirectX", StringComparison.OrdinalIgnoreCase);
     }
 
-    private sealed record MaterialEntry(Material Material, bool HasMaskMap, bool TransparentGlass);
+    private sealed record MaterialEntry(Material Material, bool HasMaskMap, bool TransparentGlass, bool HasCustomBaseMap);
 
     private static readonly Dictionary<(LookPreset Preset, string Folder), MaterialEntry> cache = new();
     private static readonly List<Object> ownedObjects = new();
     private static readonly HashSet<string> warnings = new(StringComparer.Ordinal);
-    private static MaterialPropertyBlock? propertyBlock;
+    private static Texture2D? thermalRainbowTex;
     private static string texturesRoot = "";
 
     internal static int Generation { get; private set; } = 1;
@@ -70,26 +70,86 @@ internal static class MaterialLibrary
             Plugin.ModLog.LogInfo($"[Materials] Reloaded texture cache (generation {Generation}).");
     }
 
-    internal static void ApplyPropertyBlock(
-        Renderer renderer,
+    internal static Material CreateInstanceMaterial(Material template) => new(template)
+    {
+        hideFlags = HideFlags.HideAndDontSave,
+        name = $"{template.name} (Inst)"
+    };
+
+    internal static void ApplyMaterialProperties(
+        Material mat,
         PlateLookConfig cfg,
         (float R, float G, float B, float Saturation)? tankPaint,
         bool hasMaskMap)
     {
-        if (renderer == null) return;
-        var block = propertyBlock ??= new MaterialPropertyBlock();
-        block.Clear();
+        if (mat == null) return;
+
+        if (cfg.Preset == LookPreset.Glass)
+        {
+            var (gr, gg, gb, ga) = ColorMath.ResolveTint(cfg, tankPaint);
+            var glassColor = new Color(gr, gg, gb, ga);
+            if (mat.HasProperty("_UnlitColor")) mat.SetColor("_UnlitColor", glassColor);
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", glassColor);
+
+            bool isRainbow = cfg.ColorMode == ColorMode.Preset && cfg.ColorPreset == ColorPresetId.ThermalRainbowGlass;
+            bool hasCustomGlassMap = cache.TryGetValue((LookPreset.Glass, ""), out var glassEntry) && glassEntry.HasCustomBaseMap;
+            string mapProp = mat.HasProperty("_UnlitColorMap") ? "_UnlitColorMap" : "_BaseColorMap";
+            try
+            {
+                if (isRainbow)
+                {
+                    var rainbowTex = GetOrCreateThermalRainbowTexture();
+                    if (rainbowTex != null && mat.HasProperty(mapProp))
+                    {
+                        AssignTexture(mat, mapProp, rainbowTex);
+                        if (mapProp == "_UnlitColorMap")
+                            mat.EnableKeyword("_UNLIT_COLOR_MAP");
+                    }
+                }
+                else if (!hasCustomGlassMap)
+                {
+                    if (mat.HasProperty(mapProp))
+                        mat.SetTexture(mapProp, null);
+                    if (mapProp == "_UnlitColorMap")
+                        mat.DisableKeyword("_UNLIT_COLOR_MAP");
+                }
+                else if (glassEntry?.Material != null && glassEntry.Material.HasProperty(mapProp))
+                {
+                    var customTex = glassEntry.Material.GetTexture(mapProp);
+                    mat.SetTexture(mapProp, customTex);
+                    if (mapProp == "_UnlitColorMap")
+                    {
+                        if (customTex != null) mat.EnableKeyword("_UNLIT_COLOR_MAP");
+                        else mat.DisableKeyword("_UNLIT_COLOR_MAP");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Warn("glass-texture", ex.Message);
+            }
+            return;
+        }
 
         var (r, g, b, a) = ColorMath.ResolveTint(cfg, tankPaint);
-        block.SetColor("_BaseColor", new Color(r, g, b, a));
+        mat.SetColor("_BaseColor", new Color(r, g, b, a));
 
-        if (!hasMaskMap)
-            block.SetFloat("_Smoothness", Math.Clamp(cfg.Smoothness, 0f, 1f));
+        if (!hasMaskMap && mat.HasProperty("_Smoothness"))
+            mat.SetFloat("_Smoothness", Math.Clamp(cfg.Smoothness, 0f, 1f));
 
-        if (cfg.Preset == LookPreset.CamoNet)
-            block.SetFloat("_AlphaCutoff", Math.Clamp(cfg.Opacity, 0.05f, 1f));
+        if (cfg.Preset == LookPreset.CamoNet && mat.HasProperty("_AlphaCutoff"))
+            mat.SetFloat("_AlphaCutoff", Math.Clamp(cfg.Opacity, 0.05f, 1f));
+    }
 
-        renderer.SetPropertyBlock(block);
+    private static Texture2D? GetOrCreateThermalRainbowTexture()
+    {
+        if (thermalRainbowTex != null) return thermalRainbowTex;
+        thermalRainbowTex = CreateTexture(
+            ProceduralTextureData.GenerateThermalRainbowRgba(),
+            128,
+            linear: false,
+            "Floppy Thermal Rainbow");
+        return thermalRainbowTex;
     }
 
     internal static void Clear()
@@ -113,10 +173,14 @@ internal static class MaterialLibrary
                 Object.DestroyImmediate(ownedObjects[i]);
         }
         ownedObjects.Clear();
+        thermalRainbowTex = null;
     }
 
     private static MaterialEntry BuildMaterial(LookPreset preset, string customFolder)
     {
+        if (preset == LookPreset.Glass)
+            return BuildGlassMaterial();
+
         var shader = Shader.Find("HDRP/Lit");
         if (shader == null || !shader.isSupported)
             throw new InvalidOperationException("HDRP/Lit shader unavailable.");
@@ -184,49 +248,6 @@ internal static class MaterialLibrary
                 if (!HDMaterial.ValidateMaterial(mat))
                     throw new InvalidOperationException("HDRP CamoNet material validation failed.");
             }
-            else if (preset == LookPreset.Glass)
-            {
-                mat.SetColor("_BaseColor", new Color(0.60f, 0.86f, 0.85f, 0.23f));
-                try
-                {
-                    HDMaterial.SetSurfaceType(mat, true);
-                    SetFloat("_BlendMode", 0f);
-                    SetFloat("_ZWrite", 0f);
-                    SetFloat("_TransparentZWrite", 0f);
-                    SetFloat("_SrcBlend", 1f);
-                    SetFloat("_DstBlend", 10f);
-                    SetFloat("_AlphaSrcBlend", 1f);
-                    SetFloat("_AlphaDstBlend", 10f);
-                    SetFloat("_CoatMask", 1f);
-                    mat.renderQueue = 3000;
-                    bool validated = HDMaterial.ValidateMaterial(mat);
-                    transparentGlass = validated &&
-                                       mat.HasProperty("_SurfaceType") &&
-                                       Math.Abs(mat.GetFloat("_SurfaceType") - 1f) < 0.01f &&
-                                       mat.renderQueue == 3000 &&
-                                       mat.IsKeywordEnabled("_SURFACE_TYPE_TRANSPARENT");
-                }
-                catch (Exception ex)
-                {
-                    Warn("glass-transparent", ex.Message);
-                }
-
-                if (!transparentGlass)
-                {
-                    HDMaterial.SetSurfaceType(mat, false);
-                    mat.SetColor("_BaseColor", new Color(0.035f, 0.07f, 0.075f, 1f));
-                    SetFloat("_ZWrite", 1f);
-                    SetFloat("_TransparentZWrite", 0f);
-                    SetFloat("_SrcBlend", 1f);
-                    SetFloat("_DstBlend", 0f);
-                    SetFloat("_AlphaSrcBlend", 1f);
-                    SetFloat("_AlphaDstBlend", 0f);
-                    mat.renderQueue = 2000;
-                    if (!HDMaterial.ValidateMaterial(mat))
-                        throw new InvalidOperationException("Opaque glass fallback validation failed.");
-                    Warn("glass-fallback", "Transparent HDRP glass unavailable; using dark glossy opaque fallback.");
-                }
-            }
             else
             {
                 if (!HDMaterial.ValidateMaterial(mat))
@@ -235,10 +256,91 @@ internal static class MaterialLibrary
 
             if (Plugin.Detailed)
                 Plugin.ModLog.LogInfo($"[Materials] Built {preset}" +
-                    (loadedFolder ? $" from {folderPath}" : " (procedural)") +
-                    (preset == LookPreset.Glass ? (transparentGlass ? " [transparent]" : " [opaque fallback]") : "") + ".");
+                    (loadedFolder ? $" from {folderPath}" : " (procedural)") + ".");
 
-            return new MaterialEntry(mat, hasMaskMap, transparentGlass);
+            return new MaterialEntry(mat, hasMaskMap, transparentGlass, loadedFolder);
+        }
+        catch
+        {
+            Object.DestroyImmediate(mat);
+            throw;
+        }
+    }
+
+    private static MaterialEntry BuildGlassMaterial()
+    {
+        // HDRP/Unlit with SrcAlpha / OneMinusSrcAlpha gives true light transmission in Sprocket
+        // across all sun angles, and responds 1:1 to _UnlitColor RGB and Opacity (0.01..1.00).
+        var shader = Shader.Find("HDRP/Unlit") ?? Shader.Find("Unlit/Transparent") ?? Shader.Find("HDRP/Lit");
+        if (shader == null || !shader.isSupported)
+            throw new InvalidOperationException("HDRP/Unlit glass shader unavailable.");
+
+        var mat = new Material(shader)
+        {
+            hideFlags = HideFlags.HideAndDontSave,
+            name = "FloppyParts Glass"
+        };
+
+        try
+        {
+            void SetFloat(string prop, float value)
+            {
+                if (mat.HasProperty(prop)) mat.SetFloat(prop, value);
+            }
+
+            var initColor = new Color(0.90f, 0.96f, 1.00f, 0.08f);
+            if (mat.HasProperty("_UnlitColor")) mat.SetColor("_UnlitColor", initColor);
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", initColor);
+
+            SetFloat("_SurfaceType", 1f);
+            SetFloat("_BlendMode", 0f);
+            SetFloat("_ZWrite", 0f);
+            SetFloat("_TransparentZWrite", 0f);
+            SetFloat("_SrcBlend", 5f);       // SrcAlpha
+            SetFloat("_DstBlend", 10f);      // OneMinusSrcAlpha
+            SetFloat("_AlphaSrcBlend", 1f);  // One
+            SetFloat("_AlphaDstBlend", 10f); // OneMinusSrcAlpha
+            SetFloat("_DoubleSidedEnable", 0f);
+            SetFloat("_CullMode", 2f);
+            SetFloat("_CullModeForward", 2f);
+            SetFloat("_TransparentCullMode", 2f);
+            SetFloat("_EnableFogOnTransparent", 0f);
+            mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            mat.renderQueue = 3000;
+
+            bool loadedFolder = false;
+            string? folderPath = ResolveFolderPath(LookPreset.Glass, "");
+            if (folderPath != null)
+            {
+                try
+                {
+                    var albedo = LoadPng(Path.Combine(folderPath, "albedo.png"), linear: false);
+                    ownedObjects.Add(albedo);
+                    string mapProp = mat.HasProperty("_UnlitColorMap") ? "_UnlitColorMap" : "_BaseColorMap";
+                    if (mat.HasProperty(mapProp))
+                    {
+                        AssignTexture(mat, mapProp, albedo);
+                        if (mapProp == "_UnlitColorMap")
+                            mat.EnableKeyword("_UNLIT_COLOR_MAP");
+                        loadedFolder = true;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Warn("glass-custom-tex", ex.Message);
+                }
+            }
+
+            if (Plugin.Detailed)
+            {
+                float surf = mat.HasProperty("_SurfaceType") ? mat.GetFloat("_SurfaceType") : -1f;
+                float sb = mat.HasProperty("_SrcBlend") ? mat.GetFloat("_SrcBlend") : -1f;
+                float db = mat.HasProperty("_DstBlend") ? mat.GetFloat("_DstBlend") : -1f;
+                Plugin.ModLog.LogInfo(
+                    $"[Materials] Built Glass ({shader.name}) [transparent]: surface={surf} src={sb} dst={db} queue={mat.renderQueue} kw={mat.IsKeywordEnabled("_SURFACE_TYPE_TRANSPARENT")}.");
+            }
+
+            return new MaterialEntry(mat, HasMaskMap: false, TransparentGlass: true, HasCustomBaseMap: loadedFolder);
         }
         catch
         {

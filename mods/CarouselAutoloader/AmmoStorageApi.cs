@@ -112,7 +112,9 @@ public static class AmmoStorageApi
             basketVuid=state.Basket.VUID.Value;capacity=size.Capacity;
             if(capacity<=0||state.Basket.HealthFraction<=0||state.Damage.Ignited)return -1;
             if(cannon.Vehicle?.Behaviour!=null)
-                aggregate=CarouselRuntime.EnsureMixedStorage(state,cannon,size)!;
+                aggregate=(AmmoLoadoutBridge.HasLoadout(cannon)
+                    ? CarouselRuntime.EnsureMixedStorage(state,cannon,size)
+                    : state.Rack)!;
             return cannon.Vehicle?.Behaviour!=null&&aggregate==null?-1:1;
         }
         catch{return -1;}

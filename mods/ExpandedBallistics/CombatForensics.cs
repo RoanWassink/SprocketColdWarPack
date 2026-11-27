@@ -65,13 +65,14 @@ internal sealed record ForensicEnvelope(bool Perforated,IReadOnlyList<int> Armou
 internal sealed record ForensicModel(int Number,string Outcome,string Colour,string Explanation,string Context,
     IReadOnlyList<ForensicLayer> Layers,double? Initial,double? Residual,double? ResidualPercent,
     double? UnattributedMm,IReadOnlyList<string> Findings,IReadOnlyList<string> Advice,string Damage,int HiddenZeroSpans=0,
-    IReadOnlyList<ForensicArray>? Arrays=null,ForensicEnvelope? Envelope=null,bool Arrested=false)
+    IReadOnlyList<ForensicArray>? Arrays=null,ForensicEnvelope? Envelope=null,bool Arrested=false,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<string>? BlastSummary=null)
 {
     // 0.22.41 (user 08-11): at most one sober line under the drawing and one under the bars; only measured statements.
     internal const string Footnote="Share of initial penetration absorbed per layer; heat-map 0 % (blue) to 100 % (red).";
     internal const string GeometryNote="Cross-section to scale along the shot line; each plate band is its normal thickness at the measured obliquity; framed icons mark the internal modules on the shot line.";
     internal const string Title="Forensic investigation",ModeLabel="Material / Absorption (heat-map)",ListTitle="Penetration absorbed per layer",
-        FindingsTitle="Findings",AdviceTitle="Advice",ResidualLabel="Residual penetration behind the last layer",NoDamage="no crew casualties or module damage";
+        BlastTitle="HE / HESH blast assessment",FindingsTitle="Findings",AdviceTitle="Advice",ResidualLabel="Residual penetration behind the last layer",NoDamage="no crew casualties or module damage";
     internal bool HasResidualRow=>Residual!=null&&ResidualPercent!=null;
     internal string BetweenLabel=>UnattributedMm is {} u&&u<0?"Increase between layers":"Reduction between layers";
     internal IReadOnlyList<ForensicArray> ArrayRuns=>Arrays??System.Array.Empty<ForensicArray>();
@@ -290,7 +291,20 @@ internal static class CombatForensics
         var arrays=Arrange(layers);
         if(stopLayer!=null)stopLayer=layers[stopLayer.Number-1];
         if(ricochetLayer!=null)ricochetLayer=layers[ricochetLayer.Number-1];
-        string outcome=perforated&&!bare?HitBlockBuilder.Penetrated:stopped?(block.Result==HitBlockBuilder.StoppedSpall?block.Result:"STOPPED"):ricochet?"RICOCHET":block.Result;
+        var blastSummaryEvents=shot.Events.Where(e=>e.Kind=="blastSummary").ToArray();
+        var blastPlateEvents=shot.Events.Where(e=>e.Kind=="blastPlate").ToArray();
+        var blastEraEvents=shot.Events.Where(e=>e.Kind=="blastEra").ToArray();
+        bool hasBlastEvents=blastSummaryEvents.Length>0||blastPlateEvents.Length>0||blastEraEvents.Length>0;
+        var parsedPlates=blastPlateEvents.Select(e=>CombatBlastReport.TryParsePlate(e,out var p)?(ParsedBlastPlate?)p:null).Where(p=>p!=null).Select(p=>p!.Value).ToArray();
+        var breachedPlates=parsedPlates.Where(p=>p.Breached).ToArray();
+        var resistedPlates=parsedPlates.Where(p=>!p.Breached).ToArray();
+        var parsedEras=blastEraEvents.Select(e=>CombatBlastReport.TryParseEra(e,out var er)?(ParsedBlastEra?)er:null).Where(er=>er!=null).Select(er=>er!.Value).ToArray();
+        bool hasBlastBreach=breachedPlates.Length>0||HeReportText.HasBlastBreach(shot.Events);
+        var breachDamageEvents=shot.Events.Where(e=>e.Kind=="interaction"&&e.Text.Contains("[breach overpressure]",StringComparison.Ordinal)).ToArray();
+        var exteriorOrShockEvents=shot.Events.Where(e=>e.Kind=="interaction"&&(e.Text.Contains("[exterior]",StringComparison.Ordinal)||e.Text.Contains("[shock ",StringComparison.Ordinal))).ToArray();
+        bool isHesh=shot.Profile.Contains("HESH",StringComparison.OrdinalIgnoreCase)||blastSummaryEvents.Any(e=>e.Text.StartsWith("HESH ",StringComparison.OrdinalIgnoreCase));
+        string blastKindLabel=isHesh?"HESH":"HE";
+        string outcome=hasBlastBreach?HitBlockBuilder.Breached:perforated&&!bare?HitBlockBuilder.Penetrated:stopped?(block.Result==HitBlockBuilder.StoppedSpall?block.Result:"STOPPED"):ricochet?"RICOCHET":block.Result;
         if(measured.Starts==0)residual=null;
         double? restPct=initial is >0&&residual!=null&&!ricochet?100*residual/initial:null;
         var mainLayers=layers.Where(l=>l.Stage!="Precursor").ToArray();
@@ -298,7 +312,29 @@ internal static class CombatForensics
         string Pct(double? mm)=>initial is >0&&mm is {} v?$" ({N(100*v/initial)} % of initial penetration)":"";
         var firstModule=perforated?layers[envelope.FirstLayer-1]:null;
         string explanation;
-        if(layers.Count==0)explanation="No armour layer data for this impact.";
+        if(hasBlastBreach)
+        {
+            if(breachedPlates.Length>0)
+            {
+                var p=breachedPlates[0];
+                string plateDesc=$"Plate #{p.PlateVuid}"+(p.IsSolidBlock?" (solid composite)":"")+$" ({N(p.ThicknessMm)} mm)";
+                string more=breachedPlates.Length>1?$" and {breachedPlates.Length-1} other plate{(breachedPlates.Length==2?"":"s")}":"";
+                string overpressure=breachDamageEvents.Length>0?" and projected overpressure into the compartment":"";
+                explanation=string.Create(CultureInfo.InvariantCulture,$"{blastKindLabel} blast breached {plateDesc}{more} with a Ø {p.HoleDiameterM:0.00} m blast hole (capacity {N(p.CapacityMm)} mm RHA){overpressure}.");
+            }
+            else explanation=$"{blastKindLabel} blast breached the armour plate and projected overpressure into the compartment.";
+        }
+        else if(layers.Count==0&&hasBlastEvents)
+        {
+            if(resistedPlates.Length>0)
+            {
+                var r=resistedPlates[0];
+                string plateDesc=$"Plate #{r.PlateVuid}"+(r.IsSolidBlock?" (solid composite)":"")+$" ({N(r.ThicknessMm)} mm)";
+                explanation=$"{blastKindLabel} blast detonated against {plateDesc}: resisted blast (surface dent only; capacity {N(r.CapacityMm)} mm RHA).";
+            }
+            else explanation=$"{blastKindLabel} blast detonated against the vehicle without breaching the armour.";
+        }
+        else if(layers.Count==0)explanation="No armour layer data for this impact.";
         else if(perforated)
         {
             // "Perforation of the protective envelope: residual penetration 203.1 mm RHA-eq on entry into the engine compartment (layer 9, fuel tank) (…);
@@ -316,6 +352,35 @@ internal static class CombatForensics
         else if(outcome==HitBlockBuilder.Penetrated&&residual is {} res)explanation=$"Perforation: residual penetration {N(res)} mm RHA-eq behind the armour{Pct(res)}.";
         else{var last=mainLayers.LastOrDefault()??layers[^1];explanation=$"Last measured layer: {Ref(last)}"+(last.Before is {} entry?$", entry penetration {N(entry)} mm RHA-eq":"")+".";}
         var findings=new List<string>{explanation};var advice=new List<string>();
+        var blastFindings=new List<string>();
+        if(hasBlastEvents)
+        {
+            foreach(var e in blastSummaryEvents)
+            {
+                var line=CombatReportLanguage.BlastLine(e.Text);
+                if(!line.EndsWith('.'))line+=".";
+                blastFindings.Add(line);
+            }
+            foreach(var p in breachedPlates)
+            {
+                var solid=p.IsSolidBlock?"solid composite, ":"";
+                blastFindings.Add(string.Create(CultureInfo.InvariantCulture,$"Plate breach: Plate #{p.PlateVuid} ({solid}{N(p.ThicknessMm)} mm) breached by blast — hole Ø {p.HoleDiameterM:0.00} m (capacity {N(p.CapacityMm)} mm RHA)."));
+            }
+            foreach(var p in resistedPlates)
+            {
+                var solid=p.IsSolidBlock?"solid composite, ":"";
+                blastFindings.Add($"Plate resistance: Plate #{p.PlateVuid} ({solid}{N(p.ThicknessMm)} mm) resisted the blast — surface dent only (capacity {N(p.CapacityMm)} mm RHA).");
+            }
+            foreach(var er in parsedEras)
+                blastFindings.Add(string.Create(CultureInfo.InvariantCulture,$"Blast stripped {er.Count} ERA element{(er.Count==1?"":"s")} within {er.RadiusM:0.00} m of the detonation."));
+            if(hasBlastBreach&&(stopped||ricochet))
+                blastFindings.Add("Although the kinetic casing was arrested or deflected by plate thickness or obliquity, the explosive charge exceeded the local plate thickness and ruptured the plate directly.");
+            if(breachDamageEvents.Length>0)
+                blastFindings.Add("Compartment breach overpressure: "+Effects(CombatDamageSummary.From(breachDamageEvents),shot.CrewTotal));
+            else if(exteriorOrShockEvents.Length>0)
+                blastFindings.Add("Exterior blast and attenuated shock: "+Effects(CombatDamageSummary.From(exteriorOrShockEvents),shot.CrewTotal));
+            findings.AddRange(blastFindings);
+        }
         if(perforated)
         {
             // 0.22.43: the envelope ahead of the first internal module, and every internal module reached, in order, with its entry value.
@@ -360,7 +425,23 @@ internal static class CombatForensics
         // 0.22.43: the protection that was needed is the residual on entry into the envelope's compartment; never "no additional protection" when
         // internal modules were hit (by the projectile, or by spall behind an arrest).
         bool hurt=HitResultRule.InternalDamage(shot.Events)||CombatDamageSummary.IsDestroyed(shot);
-        if(perforated)advice.Insert(0,$"Preventing perforation required at least {N(envelope.EntryMm)} mm RHA-eq of additional protection ahead of the {envelope.Compartment} (RHA equivalent, not a plate thickness).");
+        if(hasBlastBreach)
+        {
+            double? cap=breachedPlates.Length>0?breachedPlates[0].CapacityMm:blastSummaryEvents.FirstOrDefault()?.BeforeMm;
+            advice.Insert(0,cap is >0
+                ?$"Preventing blast rupture at this plate requires local armour thicker than the charge's {N(cap)} mm RHA breach capacity; thin roof and side plates remain vulnerable to high-explosive overpressure regardless of strike angle."
+                :"Preventing blast rupture requires local armour thicker than the charge's RHA breach capacity; thin roof and side plates remain vulnerable to high-explosive overpressure regardless of strike angle.");
+        }
+        else if(hasBlastEvents&&resistedPlates.Length>0)
+        {
+            var r=resistedPlates[0];
+            if(parsedEras.Length>0)
+                advice.Insert(0,$"The thick {(r.IsSolidBlock?"solid composite ":"")}armour ({N(r.ThicknessMm)} mm) resisted blast rupture (surface dent only), keeping the fighting compartment sealed; exposed ERA elements and external fittings within the blast radius remain vulnerable to stripping and shock.");
+            else
+                advice.Insert(0,$"The {(r.IsSolidBlock?"solid composite ":"")}plate ({N(r.ThicknessMm)} mm) exceeded the charge's {N(r.CapacityMm)} mm RHA breach capacity and resisted blast rupture (surface dent only), keeping the compartment sealed.");
+        }
+        else if(perforated)advice.Insert(0,$"Preventing perforation required at least {N(envelope.EntryMm)} mm RHA-eq of additional protection ahead of the {envelope.Compartment} (RHA equivalent, not a plate thickness).");
+        else if(stopped&&hurt&&HeReportText.OutsideBlast(shot.Events))advice.Insert(0,(stopLayer!=null?$"The projectile was arrested in {StopRef(stopLayer)}":"The projectile was arrested")+"; damage arose from external blast pressure and attenuated interior shock.");
         else if(stopped&&hurt)advice.Insert(0,(stopLayer!=null?$"The projectile was arrested in {StopRef(stopLayer)}":"The projectile was arrested")+"; the internal damage arose from behind-armour effects (spall).");
         else if(stopped)advice.Insert(0,"No additional protection was required against this impact"+(stopLayer!=null?$": the projectile was arrested in {StopRef(stopLayer)}.":"."));
         else if(outcome==HitBlockBuilder.Penetrated&&residual is >0)advice.Insert(0,$"Arresting this projectile requires at least {N(residual)} mm RHA-eq of additional protection at this point of impact (RHA equivalent, not a plate thickness).");
@@ -370,8 +451,8 @@ internal static class CombatForensics
         if(spent.Length>0)advice.Add($"The ERA element at {LayerList(spent)} had been initiated by an earlier impact; this projectile met the remaining layers only.");
         string speed=shot.SpeedMps is {} mps?$", {N(mps)} m/s":"";
         string context=$"Impact {shot.Number}: {shot.Profile}{speed} → {shot.Target??"target vehicle"}."+(layers.Count>0?" Layers: "+string.Join(" → ",layers.Select(l=>$"{l.Number} {Short(l)}")):"");
-        return new(shot.Number,outcome,stopped&&!perforated?"#e07a4f":block.Colour,explanation,context,layers,initial,residual,restPct,unattributed,findings,advice,damage,hidden,arrays,
-            envelope,stopped);
+        return new(shot.Number,outcome,hasBlastBreach?HitBlockBuilder.BreachColour:stopped&&!perforated?"#e07a4f":block.Colour,explanation,context,layers,initial,residual,restPct,unattributed,findings,advice,damage,hidden,arrays,
+            envelope,stopped,blastFindings.Count>0?blastFindings:null);
     }
     /// <summary>
     /// 0.22.72 (presentation only): what the report recorded for the internal modules of one layer, from the "interaction" events of the shot ("Crew member Gunner killed",

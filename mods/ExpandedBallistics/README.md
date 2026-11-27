@@ -4,7 +4,7 @@ Expanded Ballistics changes how shells and armour work in Sprocket, so the way y
 
 ![Armour cassettes (ERA) you can place on a tank](../../docs/img/era-cassettes.png)
 
-- Version: 0.22.109
+- Version: 0.22.111
 - Plugin GUID: `sprocket.expandedballistics`
 - Author: Nero. GPL-3.0-only licence (see `LICENSE`).
 - Requires: Sprocket JSON Editor (`sprocket.jsoneditor`, 0.1.5 or later 0.1.x) and Sprocket UI Kit (`sprocket.uikit`, 0.1.7 or later 0.1.x)

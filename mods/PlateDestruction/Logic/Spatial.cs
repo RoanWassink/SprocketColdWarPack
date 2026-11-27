@@ -86,6 +86,28 @@ public sealed class TriAccel
         return tri>=0;
     }
 
+    /// <summary>1.0.1: Returns the farthest ray-triangle intersection within maxDist (used to measure full through-block depth on EB [Solid block] plates whose visual mesh is a hollow thin-walled shell).</summary>
+    public bool RayFarthest(V3[] v,int[] t,int version,V3 o,V3 dir,double maxDist,Func<int,bool>? ok,out double dist,out int tri)
+    {
+        dist=-1.0;tri=-1;
+        var d=VM.Norm(dir,new V3(0,0,0));if(VM.Len(d)<0.5)return false;
+        EnsureBuilt(v,t,version);
+        if(triCount==0||!RayAabb(o,d,maxDist,meshMinX,meshMinY,meshMinZ,meshMaxX,meshMaxY,meshMaxZ))return false;
+        for(int i=0;i<triCount;i++)
+        {
+            if(!valid[i]||(ok!=null&&!ok(i)))continue;
+            if(!RayAabb(o,d,maxDist,minX[i],minY[i],minZ[i],maxX[i],maxY[i],maxZ[i]))continue;
+            int ia=t[i*3],ib=t[i*3+1],ic=t[i*3+2];
+            var a=v[ia];var e1=VM.Sub(v[ib],a);var e2=VM.Sub(v[ic],a);
+            var pv=VM.Cross(d,e2);double det=VM.Dot(e1,pv);if(Math.Abs(det)<1e-14)continue;
+            double inv=1.0/det;var tv=VM.Sub(o,a);double u=VM.Dot(tv,pv)*inv;if(u<0||u>1)continue;
+            var qv=VM.Cross(tv,e1);double w=VM.Dot(d,qv)*inv;if(w<0||u+w>1)continue;
+            double tt=VM.Dot(e2,qv)*inv;if(tt<0||tt>maxDist||tt<=dist)continue;
+            dist=tt;tri=i;
+        }
+        return tri>=0;
+    }
+
     public bool Closest(V3[] v,int[] t,int version,V3 p,Func<int,bool>? ok,out V3 point,out V3 normal)
         =>Closest(v,t,version,p,ok,out point,out normal,out _);
 

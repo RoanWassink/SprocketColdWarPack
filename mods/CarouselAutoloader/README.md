@@ -2,7 +2,7 @@
 
 Carousel Autoloader adds dated autoloader mechanisms to Sprocket: a bustle, a semi-autoloader, a revolver and a belt feed, plus a carousel for the turret basket. Each one feeds a cannon from a limited store of rounds and has its own model, sound and display.
 
-- Version: 0.3.4
+- Version: 0.3.6
 - Needs: no other mod
 - Works better with: Sprocket UI Kit for the display, and Sprocket Expanded Ballistics for mixed ammunition, round sizes and the display position under its AMMO panel
 - Game version tested: 0.2.56.2

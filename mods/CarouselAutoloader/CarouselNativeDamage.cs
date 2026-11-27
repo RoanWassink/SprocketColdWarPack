@@ -286,9 +286,12 @@ internal static class CarouselNativeDamage
             if(size.Capacity<=0) { TraceMesh($"basket={basket.VUID.Value} skipped: capacity0 {size.Reason}"); return; }
             var scale=basket.Scale;
             if(Math.Abs(scale.x)<.0001f || Math.Abs(scale.y)<.0001f || Math.Abs(scale.z)<.0001f) return;
-            var geometry=CarouselVisualGeometry.Build(size.DiameterMm/1000,size.DepthMm/1000,size.Capacity,
-                cannon.ShellBlueprint.Diameter/1000.0,size.StoredProjectileMm/1000,size.StoredChargeMm/1000,
-                state.Layout==CarouselLayout.VerticalCharge);
+            var geometry=state.Layout==CarouselLayout.StackedUnitary
+                ? StackedCarouselGeometry.Build(size.DiameterMm/1000,size.DepthMm/1000,size.Capacity,size.SlotsPerTier,
+                    cannon.ShellBlueprint.Diameter/1000.0,size.StoredProjectileMm/1000,showLift:false)
+                : CarouselVisualGeometry.Build(size.DiameterMm/1000,size.DepthMm/1000,size.Capacity,
+                    cannon.ShellBlueprint.Diameter/1000.0,size.StoredProjectileMm/1000,size.StoredChargeMm/1000,
+                    state.Layout==CarouselLayout.VerticalCharge);
             var bounds=generator.LocalBounds;
             var matrix=generator.transform.localToWorldMatrix*Matrix4x4.TRS(
                 new Vector3(bounds.center.x,bounds.min.y,bounds.center.z),Quaternion.identity,

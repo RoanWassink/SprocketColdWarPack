@@ -25,6 +25,8 @@ internal static class CarouselVisuals
         // 0.2.31: cassettes and rounds hang under this transform; a stock change turns it (the lift and the mechanism stay).
         internal GameObject? Ring;
         internal int LiftSlot;
+        internal int RingPitchSlots;
+        internal bool Stacked;
         // 0.2.33: the ring parts (our cassette/projectile/charge objects and meshes) and where they are in Play.
         internal readonly List<GameObject> RingObjects = new();
         internal readonly List<IntPtr> RingMeshes = new();
@@ -147,10 +149,23 @@ internal static class CarouselVisuals
         if (targetSource == CarouselLiftTargetSource.Fresh) LastTargets[targetKey] = liftTarget!.Value;
         else if (targetSource == CarouselLiftTargetSource.Cached && Plugin.DetailedLogging)
             Plugin.ModLog.LogInfo($"[Carousel visual] Basket {basket.VUID.Value}: lift target not valid now, the last valid target is used.");
-        // 0.2.29: the approved T-72/T-80 models ([Visuals] CarouselModel); a basket they do not fit gets the 0.2.28 model.
-        var geometry = CarouselModelGeometry.Build(size.DiameterMm / 1000, size.DepthMm / 1000,
-            size.Capacity, caliber, Math.Max(.001,size.StoredProjectileMm/1000),
-            Math.Max(0,size.StoredChargeMm/1000), state.Layout == CarouselLayout.VerticalCharge, out var choice, target: liftTarget);
+        // 0.2.29: the approved T-72/T-80 models ([Visuals] CarouselModel); 0.3.5: 2S38-style stacked unitary procedural model.
+        bool stacked = state.Layout == CarouselLayout.StackedUnitary;
+        IReadOnlyList<CarouselVisualMesh> geometry;
+        CarouselModelChoice choice;
+        if (stacked)
+        {
+            geometry = StackedCarouselGeometry.Build(size.DiameterMm / 1000, size.DepthMm / 1000,
+                size.Capacity, size.SlotsPerTier, caliber, Math.Max(.001, size.StoredProjectileMm / 1000),
+                target: liftTarget, showLift: CarouselModelGeometry.Lift);
+            choice = new(CarouselModelLevel.Simple, "2S38", "", CarouselModelGeometry.Triangles(geometry));
+        }
+        else
+        {
+            geometry = CarouselModelGeometry.Build(size.DiameterMm / 1000, size.DepthMm / 1000,
+                size.Capacity, caliber, Math.Max(.001,size.StoredProjectileMm/1000),
+                Math.Max(0,size.StoredChargeMm/1000), state.Layout == CarouselLayout.VerticalCharge, out choice, target: liftTarget);
+        }
         if (choice.Info is { } info && ModelNotes.Add($"{basket.VUID.Value}|{choice.Level}"))
             Plugin.ModLog.LogInfo($"[Carousel visual] Basket {basket.VUID.Value}: {info}.");
         var root = new GameObject("Carousel autoloader visual");
@@ -159,7 +174,9 @@ internal static class CarouselVisuals
         root.transform.localScale = new(1/Math.Abs(scale.x),1/Math.Abs(scale.y),1/Math.Abs(scale.z));
         var ring = new GameObject("Carousel ring");
         ring.transform.SetParent(root.transform, false);
-        var visual = new Visual(basket, generator, root) { Capacity = size.Capacity, Ring = ring, LiftSlot = CarouselModelGeometry.LiftSlotFor(size.Capacity, liftTarget), TargetSource = targetSource,
+        int ringPitch = stacked && size.SlotsPerTier > 0 ? size.SlotsPerTier : size.Capacity;
+        var visual = new Visual(basket, generator, root) { Capacity = size.Capacity, Ring = ring, Stacked = stacked, RingPitchSlots = ringPitch,
+            LiftSlot = CarouselModelGeometry.LiftSlotFor(ringPitch, liftTarget), TargetSource = targetSource,
             CapacityReason = size.Reason ?? "", Level = choice.Level, BasketTop = size.DepthMm / 1000.0,
             LiftTop = geometry.Where(m => m.Material == "Mechanism").SelectMany(m => m.Vertices).Select(v => v.Y).DefaultIfEmpty(0).Max() };
         Models[basket.Pointer] = visual;
@@ -236,7 +253,10 @@ internal static class CarouselVisuals
         // 0.2.31: the ring turns one slot per shot (a jump, no animation, only when the native stock changes): the full slots are those from
         // slot (L + fired) round the ring, the ring transform is turned by the same amount so that full slot stands under the lift.
         int n=visual.Capacity;
-        var ranges=CarouselModelGeometry.RingVisibleRanges(n,visual.LiftSlot,remaining);
+        int pitch=visual.RingPitchSlots>0 ? visual.RingPitchSlots : n;
+        var ranges=visual.Stacked
+            ? StackedCarouselGeometry.VisibleRanges(n,pitch,visual.LiftSlot,remaining)
+            : CarouselModelGeometry.RingVisibleRanges(n,visual.LiftSlot,remaining);
         foreach(var group in visual.Ammo)
         {
             if(group.Prefix.Length<=n){ group.Mesh.triangles=new Il2CppStructArray<int>(group.Triangles.Take(group.Prefix[Math.Min(remaining,group.Prefix.Length-1)]).ToArray()); continue; }
@@ -247,7 +267,8 @@ internal static class CarouselVisuals
         }
         // 0.2.32: a stock change while a turn runs sends that ring straight to its end angle first (it never stays half way).
         FinishTurn(visual);
-        double angle=CarouselModelGeometry.RingTurn(n,remaining);
+        int fired=CarouselModelGeometry.RingFired(n,remaining);
+        double angle=pitch<=0 ? 0 : -Math.Max(0,fired-1)*2*Math.PI/pitch;
         double seconds=CarouselModelGeometry.TurnSeconds;
         bool smooth=visual.Ring!=null && visual.Displayed>=0 && CarouselModelGeometry.IsSingleShot(n,visual.Displayed,remaining,seconds) && Math.Abs(angle-visual.Angle)>1e-9;
         int previous=visual.Displayed;

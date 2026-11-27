@@ -34,16 +34,32 @@ internal sealed class CombatDamageSummary
         return t;
     }
     internal static bool IsAnonymous(string label)=>label.Length==0||Anonymous.IsMatch(label);
+    private static string CrewRole(string label)
+    {
+        if(IsAnonymous(label))return "";
+        int bracket=label.IndexOf('[');
+        if(bracket>0)
+        {
+            var head=label[..bracket].Trim();
+            if(IsAnonymous(head))return label[bracket..].Trim();
+        }
+        return label;
+    }
     /// <summary>Component ids such as "fuelTank" read as "fuel tank"; names with spaces or numbers stay as they are.</summary>
     internal static string PartLabel(string label)
     {
         var t=Regex.Replace((label??"").Trim(),@"\s*\[Material:[^\]]*\]","");
         if(t.Length==0)return "part";
+        string tag="";
+        int bracket=t.IndexOf('[');
+        if(bracket>0&&t.EndsWith(']')){tag=" "+t[bracket..].Trim();t=t[..bracket].Trim();}
         // 0.22.41: report names for native module ids ("ammoRack" → "ammunition stowage", "cannon" → "main gun").
-        if(CombatReportLanguage.KnownModule(t) is {} known)return known;
-        if(!t.Contains(' ')&&!t.Contains('#')&&CamelCase.IsMatch(t))t=CamelCase.Replace(t," $1").ToLowerInvariant();
+        if(CombatReportLanguage.KnownModule(t) is {} known)t=known;
+        else if(!t.Contains(' ')&&!t.Contains('#')&&CamelCase.IsMatch(t))t=CamelCase.Replace(t," $1").ToLowerInvariant();
         else if(t.Length>1&&char.IsUpper(t[0])&&!char.IsUpper(t[1])&&!t.Any(char.IsDigit)&&!t.Contains('#'))t=char.ToLowerInvariant(t[0])+t[1..];
-        return t.Length>40?t[..40]:t;
+        var combined=t+tag;
+        int limit=tag.Length>0?56:40;
+        return combined.Length>limit?combined[..limit]:combined;
     }
 
     internal static CombatDamageSummary From(IEnumerable<CombatReportEvent> events)
@@ -60,7 +76,7 @@ internal sealed class CombatDamageSummary
             {
                 var killed=text.EndsWith(" killed",StringComparison.Ordinal);
                 var label=CrewLabel(text[..^(killed?" killed".Length:" wounded".Length)]);
-                var role=IsAnonymous(label)?"":label;
+                var role=CrewRole(label);
                 var key=e.RelatedEntity is {} id?"#"+id:label.Length==0?"?"+crew.Count:label;
                 crew[key]=crew.TryGetValue(key,out var old)?(old.Role.Length>0?old.Role:role,old.Killed||killed):(role,killed);
                 continue;

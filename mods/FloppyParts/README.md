@@ -2,7 +2,7 @@
 
 Visual plate-look and soft-body / hinged plate motion mod for Sprocket (BepInEx 6 IL2CPP).
 
-- Version: 0.3.6
+- Version: 0.3.10
 - Needs: no other mod
 
 ## Features

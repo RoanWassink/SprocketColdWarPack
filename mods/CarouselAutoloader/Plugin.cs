@@ -20,7 +20,7 @@ public sealed class Plugin : BasePlugin
     internal static bool OwnRounds = true;
     internal const string Guid = "sprocket.carousel", UiKitGuid = "sprocket.uikit";
     /// <summary>0.2.32: the one version constant (BepInPlugin attribute and the load log line).</summary>
-    public const string PluginVersion = "0.3.4";
+    public const string PluginVersion = "0.3.6";
     internal static double MaxFeedDistance;
     internal static bool HudEnabled;
     /// <summary>0.2.27: the loaded UI Kit plugin is 0.1.8 or later, so the HUD draws rings instead of bars.</summary>
@@ -91,6 +91,7 @@ public sealed class Plugin : BasePlugin
         // 0.2.32: smooth turn of the ring on a single shot; 0 = jump.
         CarouselModelGeometry.TurnSeconds=CarouselModelGeometry.SanitizeTurnSeconds(Config.Bind("Visuals","CarouselTurnSeconds",CarouselModelGeometry.DefaultTurnSeconds,"Seconds the carousel ring takes to turn to the next cassette after one shot or loading. 0 = the ring jumps. Refills, Play resets and loading a save always jump.").Value);
         CarouselModelGeometry.Lift=Config.Bind("Visuals","CarouselLift",true,"Show the cassette lift of the detailed carousel model behind the slots (local -Z, ram towards the breech). It stands just outside the basket and reaches up into the turret; false hides it if it shows through the hull or turret.").Value;
+        CarouselGeometry.StackedCycleFactor=Config.Bind("Carousel","StackedCycleFactor",CarouselGeometry.DefaultStackedCycleFactor,"Fire cycle multiplier for the 2S38-style stacked unitary carousel relative to the standard carousel/bustle curve (0.57 gives ~0.5 s / 120 rpm at 57 mm).").Value;
         DetailedLogging=Config.Bind("Diagnostics","DetailedLogging",false,"Enable detailed loading diagnostics when troubleshooting.").Value;
         // 0.2.24: feed reach for bustle and revolver (Semi keeps the native reach) and the revolver limits.
         MaxFeedDistance=Math.Max(0,Config.Bind("Bustle","MaxFeedDistance",0.0,"Maximum distance in metres from the bustle/revolver feed arm to the breech load point. 0 = native crew hand reach; e.g. 1.5 allows a longer arm. The Semi-autoloader always uses the native reach.").Value);

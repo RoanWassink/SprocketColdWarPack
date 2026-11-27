@@ -14,12 +14,30 @@ public sealed partial class Runtime
     private sealed class DebrisPack{internal Mesh? Mesh;internal Il2CppReferenceArray<Material>? Mats;internal Vector3 Pos,Scale;internal Quaternion Rot;internal int Layer;}
     private sealed class MergedCandidate{internal MeshRenderer R=null!;internal MeshFilter F=null!;internal Mesh M=null!;internal Bounds WorldBounds;internal Mat4 L2W=null!;}
     private readonly HashSet<(long,int)> cellFailed=new();
-    private readonly Dictionary<(long Root,int Vuid,PlateSide Side),double> holeDmg=new();
+    private readonly Dictionary<(long Root,int Vuid,PlateSide Side,int Gx,int Gy,int Gz),double> holeZoneDmg=new();
+    private readonly Dictionary<(long Root,int Vuid),bool> solidBlockCache=new();
     private int holeSeq;
     private bool eraProbed;
 
-    // ---- 0.7.0: localized ragged blast holes (for coarse/small plates or BlastHoleMode=Always) -------------------
-    private void HandleHoleBlast(Tracked t,VehicleComponent comp,int vuid,PlateStructure plate,SidePlan? plan,PlateCells? pcs,BlastEvent e,double damageScale=1.0)
+    private bool IsSolidBlockPlate(long root,PlateStructure plate,int vuid)
+    {
+        if(solidBlockCache.TryGetValue((root,vuid),out bool cached))return cached;
+        bool isSolid=false;
+        try
+        {
+            if(BuilderPatches.SolidBlockVuids.ContainsKey((root,vuid)))isSolid=true;
+            else
+            {
+                string? mName=plate.Mesh?.ToMeshBlueprint(false)?.Name;
+                if(BlastBreachMath.IsSolidBlockName(mName))isSolid=true;
+            }
+        }catch{}
+        solidBlockCache[(root,vuid)]=isSolid;
+        return isSolid;
+    }
+
+    // ---- 1.0.0/1.0.1: localized ragged blast holes with true local thickness ([Solid block] full depth), EB breach thresholds, and inward breach damage ----
+    private void HandleHoleBlast(Tracked t,VehicleComponent comp,int vuid,PlateStructure plate,SidePlan? plan,PlateCells? pcs,BlastEvent e,double damageScale=1.0,HashSet<long>? breachedVehicles=null)
     {
         long root=t.Root;
         var p=Plugin.Instance;
@@ -38,51 +56,122 @@ public sealed partial class Runtime
             d=BoundsDistance(comp,t.V,distPos,out _);
         }
         if(led.IsGone(root,vuid)||led.IsBroken(root,vuid,side)||(side!=PlateSide.Whole&&State.IsSideBroken(root,vuid,side)))return;
-        double reach=BlastMath.Reach(p.BlastRadiusPer100mm.Value,e.Calibre);
-        if(d>reach)return;
-        double dmg=BlastMath.Damage(p.BlastBase.Value*damageScale,e.Calibre,d,p.BlastRadiusPer100mm.Value,p.MinCalibreMm.Value);
-        if(dmg<=0)return;
+        double cal=BlastBreachMath.EffectiveCalibreMm(e.Calibre,e.EbHasData,e.EbCalibreMm);
+        double reach=BlastMath.Reach(p.BlastRadiusPer100mm.Value,cal);
+        if(!direct&&d>reach)return;
 
-        var st=StatsFor(root,comp,vuid);
-        double effStr=st.Strength;
-        double effTh=st.ThicknessMm;
-        if(pcs!=null&&p.PerCellThickness.Value)
+        var set=EnsureDents(t,comp,vuid,plan);
+        var tg=set?.Targets.FirstOrDefault(x=>!x.IsLow&&x.Filter!=null)??set?.Targets.FirstOrDefault(x=>x.Filter!=null);
+        if(set==null||tg==null||tg.Mesh==null||tg.Filter==null)return;
+
+        var sm=tg.Mesh;
+        var tf=tg.Filter.transform;float sc=tg.Scale;
+        var posL=tf.InverseTransformPoint(e.Pos);
+        var blastLocal=new V3(posL.x,posL.y,posL.z);
+        Func<int,bool>? ok=null;
+        bool sideF=side!=PlateSide.Whole&&sm.FlatTriSide!=null;byte sbyte_=(byte)side;
+        bool brokenF=tg.AppliedBroken.Count>0&&sm.FlatTriCell!=null;
+        if(sideF||brokenF)ok=ti=>
         {
-            try
-            {
-                var lp=plate.WorldToStructureSpace(distPos);
-                int hc=pcs.Plan.CellOfPoint(new V3(lp.x,lp.y,lp.z));
-                if(hc>=0)
-                {
-                    effStr=pcs.StrengthOf(hc);
-                    if(pcs.Info.TryGetValue(hc,out var hci)&&hci.ThicknessMm>0)effTh=hci.ThicknessMm;
-                }
-            }catch{}
+            if(sideF&&!(ti<sm.FlatTriSide!.Length&&sm.FlatTriSide[ti]==sbyte_))return false;
+            if(brokenF&&ti<sm.FlatTriCell!.Length&&tg.AppliedBroken.Contains(sm.FlatTriCell[ti]))return false;
+            return true;
+        };
+
+        V3 center,normal;
+        double actualDistM;
+        if(direct)
+        {
+            var dirW=e.SnapDir.normalized;
+            var dirL=tf.InverseTransformDirection(dirW).normalized;
+            var away=VM.Norm(new V3(dirL.x,dirL.y,dirL.z),new V3(0,-1,0));
+            var o=tf.InverseTransformPoint(e.SnapHitPos-dirW*0.25f);
+            if(tg.Accel.RayFirst(sm.FlatBasis,sm.FlatTris,sm.TopologyVersion,new V3(o.x,o.y,o.z),away,0.75/sc,ok,out double dist,out normal,out _))
+                center=VM.Add(new V3(o.x,o.y,o.z),VM.Mul(away,dist));
+            else if(!tg.Accel.Closest(sm.FlatBasis,sm.FlatTris,sm.TopologyVersion,blastLocal,ok,out center,out normal))
+                return;
+            normal=DentMath.Orient(normal,away);
+            actualDistM=0.0;
         }
-        var key=(root,vuid,side);
-        holeDmg.TryGetValue(key,out double prev);
-        double total=prev+dmg;
-
-        if(!p.BreakEnabled.Value||total<effStr)
+        else
         {
-            holeDmg[key]=total;
-            if(p.LogDamage.Value)Plugin.Info($"[DMG] vuid={vuid} side={SideName(side)} +{dmg:0.0} (blast hole cal={e.Calibre}mm d={d:0.00}m) {total:0.0}/{effStr:0.0}");
-            double q=DentMath.BlastRatio(dmg,effStr);
-            double depth=DentMath.BlastDepthMm(q,p.BlastMaxDepthMm.Value);
-            if(depth>=0.5)
+            if(!tg.Accel.ClosestBlast(sm.FlatBasis,sm.FlatTris,sm.TopologyVersion,sm.Normals,blastLocal,ok,out center,out var outN,out _,out double frontCos,0.005/sc))return;
+            actualDistM=VM.Len(VM.Sub(center,blastLocal))*sc;
+            if(actualDistM>reach)return;
+            if(actualDistM>0.04&&frontCos<=0.0)return;
+            if(actualDistM>0.06)
             {
-                double r=DentMath.BlastRadiusM(BlastMath.Radius(p.BlastRadiusPer100mm.Value,e.Calibre),p.BlastRadiusFactor.Value);
-                EnqueueDent(new DentReq{T=t,Comp=comp,Vuid=vuid,Side=side,Src=DentSrc.Blast,Style=DentStyle.Blast,CalibreMm=e.Calibre,UseExplicitDir=direct,Pos=distPos,Dir=BlastPushDir(e),DepthMm=depth,RadiusM=r,Q=q,ThicknessMm=effTh});
+                var centerW=tf.TransformPoint(new Vector3(center.X,center.Y,center.Z));
+                if(IsBlastOccluded(t,vuid,e.Pos,centerW))return;
+            }
+            var pushW=BlastPushDir(e);
+            var fbL=pushW.sqrMagnitude>1e-8f?tf.InverseTransformDirection(pushW.normalized).normalized:Vector3.zero;
+            var away=DentMath.ResolveBlastAway(blastLocal,center,outN,new V3(fbL.x,fbL.y,fbL.z));
+            normal=DentMath.Orient(outN,away);
+        }
+
+        bool isSolid=IsSolidBlockPlate(root,plate,vuid);
+        double fallbackTh=QuickThicknessMm(root,comp,vuid);
+        double localThMm=fallbackTh;
+        double probeSpanMm=0;
+        bool edgeOn=false;
+        if(isSolid)
+        {
+            if(tg.Accel.RayFarthest(sm.FlatBasis,sm.FlatTris,sm.TopologyVersion,VM.Add(center,VM.Mul(normal,0.002/sc)),normal,1.5/sc,ok,out double fdist,out _))
+            {
+                double lm=fdist*sc+0.002;
+                probeSpanMm=lm*1000.0;
+                localThMm=probeSpanMm>=25.0?probeSpanMm:Math.Max(fallbackTh,120.0);
+            }
+            else localThMm=Math.Max(fallbackTh,120.0);
+        }
+        else
+        {
+            if(tg.Accel.RayFirst(sm.FlatBasis,sm.FlatTris,sm.TopologyVersion,VM.Add(center,VM.Mul(normal,0.002/sc)),normal,6.0/sc,ok,out double bdist,out _,out _))
+            {
+                double lm=bdist*sc+0.002;
+                probeSpanMm=lm*1000.0;
+                if(lm>=0.0025&&lm<=0.600)localThMm=probeSpanMm;
+            }
+            edgeOn=!direct&&DentMath.IsEdgeOnRim(probeSpanMm,fallbackTh);
+        }
+
+        double contactBreachMm=BlastBreachMath.EffectiveBreachMm(e.Kind,cal,e.EbHasData,e.EbBreachMm,p.BreachMmAt100.Value);
+        double capMm=edgeOn?0.0:BlastBreachMath.BreachCapacityAtDistanceMm(contactBreachMm,cal,actualDistM);
+        var (gx,gy,gz)=BlastBreachMath.ZoneKey(center);
+        var zKey=(root,vuid,side,gx,gy,gz);
+        holeZoneDmg.TryGetValue(zKey,out double prevCap);
+        bool canAccum=!edgeOn&&BlastBreachMath.CanAccumulateBreach(localThMm,contactBreachMm)&&capMm>=localThMm*0.25;
+        double totalCapMm=canAccum?prevCap+capMm:capMm;
+
+        if(!p.BreakEnabled.Value||totalCapMm<localThMm)
+        {
+            if(canAccum)holeZoneDmg[zKey]=totalCapMm;
+            if(p.LogDamage.Value&&(capMm>=1.0||direct))
+                Plugin.Info($"[DMG] vuid={vuid} side={SideName(side)} cal={cal:0}mm d={actualDistM:0.00}m localTh={localThMm:0.0}mm{(isSolid?" [Solid block]":"")} cap={totalCapMm:0.0}/{localThMm:0.0}mm (dent only{(edgeOn?", edge-on":"")})");
+            if((direct||actualDistM<=0.35)&&contactBreachMm>0)
+                BallisticsEffectProbe.ReportPlate(e.EbSeq,vuid,localThMm,totalCapMm,false,0.0,isSolid,direct);
+            double rawDmg=BlastMath.Damage(p.BlastBase.Value*damageScale,cal,actualDistM,p.BlastRadiusPer100mm.Value,p.MinCalibreMm.Value);
+            if(rawDmg>0)
+            {
+                double depth=BlastBreachMath.RealisticBlastDentDepthMm(rawDmg,localThMm,p.BlastStrengthPerMm.Value,p.DefaultPlateStrength.Value,p.HullTurretBlastScale.Value,p.BlastMaxDepthMm.Value,out double q);
+                if(edgeOn)depth*=0.15;
+                if(depth>=0.8)
+                {
+                    double r=DentMath.BlastRadiusM(BlastMath.Radius(p.BlastRadiusPer100mm.Value,cal),p.BlastRadiusFactor.Value);
+                    EnqueueDent(new DentReq{T=t,Comp=comp,Vuid=vuid,Side=side,Src=DentSrc.Blast,Style=DentStyle.Blast,CalibreMm=(int)Math.Round(cal),UseExplicitDir=direct,IsSolidBlock=isSolid,Pos=distPos,Dir=BlastPushDir(e),DepthMm=depth,RadiusM=r,Q=q,ThicknessMm=localThMm});
+                }
             }
             return;
         }
 
-        holeDmg[key]=0;
-        double ratio=effStr>0?total/effStr:1.0;
-        double blastR=BlastMath.Radius(p.BlastRadiusPer100mm.Value,e.Calibre);
-        double rHole=HoleMath.HoleRadiusM(ratio,blastR,p.BlastHoleMaxRadiusM.Value);
-        if(p.LogDamage.Value)Plugin.Info($"[DMG] vuid={vuid} side={SideName(side)} +{dmg:0.0} (blast hole cal={e.Calibre}mm d={d:0.00}m) {total:0.0}/{effStr:0.0} -> PUNCH HOLE R={rHole:0.00}m");
-        ExecuteHolePunch(t,comp,vuid,plate,plan,side,e,rHole,ratio);
+        holeZoneDmg.Remove(zKey);
+        double rHole=BlastBreachMath.BreachHoleRadiusM(totalCapMm,localThMm,cal,p.BlastHoleMaxRadiusM.Value);
+        double ratio=totalCapMm/Math.Max(localThMm,1.0);
+        if(p.LogDamage.Value)
+            Plugin.Info($"[DMG] vuid={vuid} side={SideName(side)} cal={cal:0}mm d={actualDistM:0.00}m localTh={localThMm:0.0}mm{(isSolid?" [Solid block]":"")} cap={totalCapMm:0.0}/{localThMm:0.0}mm -> PUNCH HOLE R={rHole:0.00}m");
+        BallisticsEffectProbe.ReportPlate(e.EbSeq,vuid,localThMm,totalCapMm,true,rHole,isSolid,direct);
+        ExecuteHolePunch(t,comp,vuid,plate,plan,set,tg,side,e,center,normal,rHole,ratio,cal,totalCapMm,localThMm,breachedVehicles);
     }
 
     private void HideHoleDecals(VehicleComponent comp,PlateStructure plate,V3 centerStruct,double rHoleM)
@@ -101,52 +190,39 @@ public sealed partial class Runtime
         }catch{}
     }
 
-    private void ExecuteHolePunch(Tracked t,VehicleComponent comp,int vuid,PlateStructure plate,SidePlan? plan,PlateSide side,BlastEvent e,double rHole,double ratio)
+    private void HideAttachedNearHole(Tracked t,VehicleComponent comp,int vuid,SidePlan? plan,PlateSide side,Vector3 hitW,double rHole,BlastEvent e,double ratio)
+    {
+        long root=t.Root;
+        if(!attached.ContainsKey((root,vuid)))Safe("find attached lazy",()=>FindAttached(t,comp,vuid,plan));
+        if(!attached.TryGetValue((root,vuid),out var list)||list.Count==0)return;
+        float cutSq=(float)((rHole*1.15+0.12)*(rHole*1.15+0.12));
+        bool any=false;
+        foreach(var a in list)
+        {
+            if(a.Done||State.IsHidden(root,a.Vuid)||a.Comp==null||a.Comp.WasCollected)continue;
+            if(side!=PlateSide.Whole&&a.Side!=side)continue;
+            try{if((a.Comp.transform.position-hitW).sqrMagnitude<=cutSq){any=true;break;}}catch{}
+        }
+        if(!any)return;
+        var attJob=new BreakJob{T=t,Comp=comp,Vuid=vuid,Side=side,Plan=plan,HasBlast=true,BlastPos=e.Pos,Ratio=ratio};
+        HideAttached(attJob,root,a=>
+        {
+            if(side!=PlateSide.Whole&&a.Side!=side)return false;
+            try{return a.Comp!=null&&!a.Comp.WasCollected&&(a.Comp.transform.position-hitW).sqrMagnitude<=cutSq;}catch{return false;}
+        });
+        foreach(int av in attJob.HiddenAttachedVuids)RemovePartArmourInPlace(t,root,av);
+    }
+
+    private void ExecuteHolePunch(Tracked t,VehicleComponent comp,int vuid,PlateStructure plate,SidePlan? plan,DentSet set,DentTarget tg,PlateSide side,BlastEvent e,V3 center,V3 normal,double rHole,double ratio,double cal,double breachCapMm,double localThMm,HashSet<long>? breachedVehicles)
     {
         var sw=Stopwatch.StartNew();
         var p=Plugin.Instance;
         long root=t.Root;
-        var set=EnsureDents(t,comp,vuid,plan);
-        var tg=set?.Targets.FirstOrDefault(x=>!x.IsLow&&x.Filter!=null)??set?.Targets.FirstOrDefault(x=>x.Filter!=null);
-        if(set==null||tg==null||tg.Mesh==null||tg.Filter==null)return;
-
-        var sm=tg.Mesh;
+        var sm=tg.Mesh!;
         var tf=tg.Filter.transform;float sc=tg.Scale;
         bool direct=IsDirectSnap(e,root,vuid);
         var posL=tf.InverseTransformPoint(e.Pos);
         var blastLocal=new V3(posL.x,posL.y,posL.z);
-        Func<int,bool>? ok=null;
-        bool sideF=side!=PlateSide.Whole&&sm.FlatTriSide!=null;byte sbyte_=(byte)side;
-        bool brokenF=tg.AppliedBroken.Count>0&&sm.FlatTriCell!=null;
-        if(sideF||brokenF)ok=ti=>
-        {
-            if(sideF&&!(ti<sm.FlatTriSide!.Length&&sm.FlatTriSide[ti]==sbyte_))return false;
-            if(brokenF&&ti<sm.FlatTriCell!.Length&&tg.AppliedBroken.Contains(sm.FlatTriCell[ti]))return false;
-            return true;
-        };
-        V3 center,normal;
-        if(direct)
-        {
-            var dirW=e.SnapDir.normalized;
-            var dirL=tf.InverseTransformDirection(dirW).normalized;
-            var away=VM.Norm(new V3(dirL.x,dirL.y,dirL.z),new V3(0,-1,0));
-            var o=tf.InverseTransformPoint(e.SnapHitPos-dirW*0.25f);
-            if(tg.Accel.RayFirst(sm.FlatBasis,sm.FlatTris,sm.TopologyVersion,new V3(o.x,o.y,o.z),away,0.75/sc,ok,out double dist,out normal,out _))
-                center=VM.Add(new V3(o.x,o.y,o.z),VM.Mul(away,dist));
-            else if(!tg.Accel.Closest(sm.FlatBasis,sm.FlatTris,sm.TopologyVersion,blastLocal,ok,out center,out normal))
-                return;
-            normal=DentMath.Orient(normal,away);
-        }
-        else
-        {
-            if(!tg.Accel.ClosestBlast(sm.FlatBasis,sm.FlatTris,sm.TopologyVersion,sm.Normals,blastLocal,ok,out center,out var outN,out _,out double frontCos,0.005/sc))return;
-            double cDistM=VM.Len(VM.Sub(center,blastLocal))*sc;
-            if(cDistM>0.04&&frontCos<=0.0)return;
-            var pushW=BlastPushDir(e);
-            var fbL=pushW.sqrMagnitude>1e-8f?tf.InverseTransformDirection(pushW.normalized).normalized:Vector3.zero;
-            var away=DentMath.ResolveBlastAway(blastLocal,center,outN,new V3(fbL.x,fbL.y,fbL.z));
-            normal=DentMath.Orient(outN,away);
-        }
 
         double rHoleLocal=rHole/sc;
         double curlWidthLocal=p.TearCurlWidthM.Value/sc;
@@ -169,8 +245,8 @@ public sealed partial class Runtime
         {
             double q=DentMath.BlastRatio(ratio,1.0);
             double dMm=DentMath.BlastDepthMm(q,p.BlastMaxDepthMm.Value);
-            double r=DentMath.BlastRadiusM(BlastMath.Radius(p.BlastRadiusPer100mm.Value,e.Calibre),p.BlastRadiusFactor.Value);
-            EnqueueDent(new DentReq{T=t,Comp=comp,Vuid=vuid,Side=side,Src=DentSrc.Blast,Style=DentStyle.Blast,CalibreMm=e.Calibre,UseExplicitDir=direct,Pos=direct?e.SnapHitPos:e.Pos,Dir=BlastPushDir(e),DepthMm=dMm,RadiusM=r,Q=q,ThicknessMm=tg.ThicknessMm});
+            double r=DentMath.BlastRadiusM(BlastMath.Radius(p.BlastRadiusPer100mm.Value,cal),p.BlastRadiusFactor.Value);
+            EnqueueDent(new DentReq{T=t,Comp=comp,Vuid=vuid,Side=side,Src=DentSrc.Blast,Style=DentStyle.Blast,CalibreMm=(int)Math.Round(cal),UseExplicitDir=direct,Pos=direct?e.SnapHitPos:e.Pos,Dir=BlastPushDir(e),DepthMm=dMm,RadiusM=r,Q=q,ThicknessMm=localThMm});
             return;
         }
 
@@ -201,7 +277,7 @@ public sealed partial class Runtime
         var movedVerts=new List<int>(64);
         if(p.TearCurlDepthMm.Value>0)
         {
-            TearCurl.Apply(sm,new HashSet<int>{holeId},c=>tg.AppliedBroken.Contains(c),blastLocal,curlDepthLocal,curlWidthLocal,tg.ThicknessMm/1000.0,sm.MaxDepthM,seed,movedVerts);
+            TearCurl.Apply(sm,new HashSet<int>{holeId},c=>tg.AppliedBroken.Contains(c),blastLocal,curlDepthLocal,curlWidthLocal,localThMm/1000.0,sm.MaxDepthM,seed,movedVerts);
             if(movedVerts.Count>0)SmartNormals.Compute(sm,movedVerts,p.SmoothAngleDeg.Value,c=>tg.AppliedBroken.Contains(c));
         }
         MeshOps.Upload(tg,true);
@@ -220,17 +296,21 @@ public sealed partial class Runtime
         var hitStruct=plate.WorldToStructureSpace(hitW);
         var centerStruct=new V3(hitStruct.x,hitStruct.y,hitStruct.z);
         HideHoleDecals(comp,plate,centerStruct,rHole);
-        var nrmW=tf.TransformDirection(new Vector3(-normal.X,-normal.Y,-normal.Z)).normalized;
+        HideAttachedNearHole(t,comp,vuid,plan,side,hitW,rHole,e,ratio);
+        var inwardW=tf.TransformDirection(new Vector3(normal.X,normal.Y,normal.Z)).normalized;
+        var nrmW=-inwardW;
         if(p.EnableEffects.Value)
-            PlayExplosion(new Hit{T=t,Comp=comp,Vuid=vuid,Pos=hitW,Normal=nrmW,Dir=-nrmW,CalibreMm=e.Calibre});
+            PlayExplosion(new Hit{T=t,Comp=comp,Vuid=vuid,Pos=hitW,Normal=nrmW,Dir=inwardW,CalibreMm=(int)Math.Round(cal)});
         ScheduleArmourHoleUpdate(t,root,vuid,plate,side,centerStruct,rHole);
+        ApplyBreachInternalDamage(t,vuid,hitW,inwardW,rHole,cal,breachCapMm,localThMm,e,breachedVehicles);
 
         sw.Stop();
-        Plugin.Info($"[HOLE] vuid={vuid} side={SideName(side)} R={rHole:0.00}m punched={punched} tris remaining={remTris}/{totTris} curled={movedVerts.Count}{(topoChanged?" subdiv":"")} ms={sw.Elapsed.TotalMilliseconds:0.0}");
+        Plugin.Info($"[HOLE] vuid={vuid} side={SideName(side)} R={rHole:0.00}m localTh={localThMm:0.0}mm punched={punched} tris remaining={remTris}/{totTris} curled={movedVerts.Count}{(topoChanged?" subdiv":"")} ms={sw.Elapsed.TotalMilliseconds:0.0}");
 
-        if(totTris>0&&remTris<totTris*0.28)
+        // Only collapse small plates wholesale when >80% of triangles are gone; never vanish a large turret/hull.
+        if(totTris>0&&totTris<180&&remTris<totTris*0.20)
         {
-            var h=new Hit{T=t,Comp=comp,Vuid=vuid,Pos=hitW,Normal=nrmW,Dir=-nrmW,CalibreMm=e.Calibre};
+            var h=new Hit{T=t,Comp=comp,Vuid=vuid,Pos=hitW,Normal=nrmW,Dir=inwardW,CalibreMm=(int)Math.Round(cal)};
             if(side==PlateSide.Whole)led.ForceBreak(root,vuid,PlateSide.Whole);
             else led.ForceBreak(root,vuid,side);
             QueueBreak(t,comp,vuid,side,plan,1,h,e.Pos,ratio);
@@ -619,7 +699,7 @@ public sealed partial class Runtime
             if(r.gameObject.name.Contains("PlateStructure"))continue;
             var f=r.GetComponent<MeshFilter>();var mesh=f==null?null:f.sharedMesh;
             if(f==null||mesh==null||!mesh.isReadable||mesh.vertexCount==0)continue;
-            if(mesh.name.StartsWith("PlateStructure")||mesh.name.StartsWith("PD_"))continue;
+            if(mesh.name.StartsWith("PlateStructure")||(mesh.name.StartsWith("PD_")&&!mesh.name.StartsWith("PD_era_")))continue;
             var rb=r.bounds;rb.Expand(0.05f);
             list.Add(new MergedCandidate{R=r,F=f,M=mesh,WorldBounds=rb,L2W=SideOps.ToMat4(r.transform.localToWorldMatrix)});
         }

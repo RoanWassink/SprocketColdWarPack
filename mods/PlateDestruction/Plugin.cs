@@ -5,14 +5,15 @@ using HarmonyLib;
 namespace PlateDestructionP0;
 
 [BepInPlugin("nero.sprocket.platedestruction.p0","Plate Destruction P0",Version)]
+[BepInDependency("sprocket.keybinds",BepInDependency.DependencyFlags.SoftDependency)]
 public sealed class Plugin:BasePlugin
 {
-    internal const string Version="0.8.4";
+    internal const string Version="1.0.2";
     internal static Plugin Instance=null!;
     internal static ConfigFile Cfg=null!;
     internal ConfigEntry<string> TargetMode=null!,KeyBreak=null!,KeyDent=null!,RebuildMode=null!,ArmourUpdateMode=null!,BlastHoleMode=null!;
-    internal ConfigEntry<float> EffectScaleBoost=null!,EffectOffsetM=null!,DefaultPlateStrength=null!,BlastBase=null!,BlastRadiusPer100mm=null!,BlastStrengthPerMm=null!,MinCalibreMm=null!,KineticDepthMm=null!,KineticRadiusM=null!,BlastMaxDepthMm=null!,BlastRadiusFactor=null!,MaxDepthMm=null!,CellSizeM=null!,EdgeJitterM=null!,SpeedMin=null!,SpeedMax=null!,SpeedPerRatio=null!,LifetimeS=null!,SubdivTargetEdgeM=null!,SubdivCoreEdgeM=null!,HullTurretDentScale=null!,HullTurretBlastScale=null!,BlastHoleMaxRadiusM=null!,SmoothAngleDeg=null!,CraterLipRatio=null!,BlastBuckling=null!,TearCurlDepthMm=null!,TearCurlWidthM=null!,DebrisWarpMm=null!,DentFrameBudgetMs=null!,HeatBlastScale=null!;
-    internal ConfigEntry<bool> EnableHitLog=null!,EnableInventory=null!,EnableRouteA=null!,EnableEffects=null!,DecalOnHit=null!,AffectPlateStructure=null!,AffectModelParts=null!,LogDecouplers=null!,LogEveryHitObject=null!,LogRawFields=null!,LogDamage=null!,DetailedLogging=null!,BreakEnabled=null!,PerSideBreak=null!,BuilderPatch=null!,KineticLogOnly=null!,DentEnabled=null!,DebrisEnabled=null!,DentNonDestructiblePlates=null!,SubdivEnabled=null!,LazyLowDetail=null!,ExitBlowoutEnabled=null!,PerCellThickness=null!,RimCapsEnabled=null!;
+    internal ConfigEntry<float> EffectScaleBoost=null!,EffectOffsetM=null!,DefaultPlateStrength=null!,BlastBase=null!,BlastRadiusPer100mm=null!,BlastStrengthPerMm=null!,MinCalibreMm=null!,KineticDepthMm=null!,KineticRadiusM=null!,BlastMaxDepthMm=null!,BlastRadiusFactor=null!,MaxDepthMm=null!,CellSizeM=null!,EdgeJitterM=null!,SpeedMin=null!,SpeedMax=null!,SpeedPerRatio=null!,LifetimeS=null!,SubdivTargetEdgeM=null!,SubdivCoreEdgeM=null!,HullTurretDentScale=null!,HullTurretBlastScale=null!,BlastHoleMaxRadiusM=null!,SmoothAngleDeg=null!,CraterLipRatio=null!,BlastBuckling=null!,TearCurlDepthMm=null!,TearCurlWidthM=null!,DebrisWarpMm=null!,DentFrameBudgetMs=null!,HeatBlastScale=null!,LoosePartStrength=null!,BreachMmAt100=null!,BreachDamageScale=null!,EraStripRadiusPer100mm=null!;
+    internal ConfigEntry<bool> EnableHitLog=null!,EnableInventory=null!,EnableRouteA=null!,EnableEffects=null!,DecalOnHit=null!,AffectPlateStructure=null!,AffectModelParts=null!,LogDecouplers=null!,LogEveryHitObject=null!,LogRawFields=null!,LogDamage=null!,DetailedLogging=null!,BreakEnabled=null!,WholeTankDestructible=null!,PerSideBreak=null!,BuilderPatch=null!,KineticLogOnly=null!,DentEnabled=null!,DebrisEnabled=null!,DentNonDestructiblePlates=null!,SubdivEnabled=null!,LazyLowDetail=null!,ExitBlowoutEnabled=null!,PerCellThickness=null!,RimCapsEnabled=null!,LoosePartsEnabled=null!,LoosePartsIncludeOptics=null!,LoosePartsIncludeEra=null!,BreachCrewDamageEnabled=null!,StripEraOnBlast=null!;
     internal ConfigEntry<int> EffectCalibreMm=null!,MaxLines=null!,SummaryEvery=null!,ForceBuildAfterMs=null!,MaxCount=null!,MaxKineticDentsPerShot=null!,SubdivMaxPasses=null!,SubdivMaxVertices=null!,RebuildCoalesceMs=null!,MaxAttachedParts=null!,MaxDentsPerFrame=null!,MaxNonDestructibleBlastDents=null!;
     public override void Load()
     {
@@ -20,14 +21,20 @@ public sealed class Plugin:BasePlugin
         // The brief asks for this exact file name (not the default GUID-based one).
         Cfg=new ConfigFile(System.IO.Path.Combine(Paths.ConfigPath,"sprocket.platedestruction.p0.cfg"),true);
         BreakEnabled=Cfg.Bind("Break","BreakEnabled",true,"Master switch: destructible plates break when enough blast damage has accumulated. Off = blasts are only counted and logged.");
+        WholeTankDestructible=Cfg.Bind("Break","WholeTankDestructible",true,"1.0.0: Every vehicle is destructible by default with a single tank-wide toggle in the Designer ([no-destruction] on root hull). Off = legacy per-plate Destructable checkboxes.");
         DefaultPlateStrength=Cfg.Bind("Break","DefaultPlateStrength",150f,"Blast strength used for a plate side when its thickness cannot be read.");
-        BlastHoleMode=Cfg.Bind("Break","BlastHoleMode","Auto","How blasts tear open destructible plates: Auto = punch localized ragged holes on coarse/small plates (<180 tris or <=8 cells) and cell-tear fine plates; Always = localized ragged blast holes on all destructible plates; Off = legacy cell tearing only.");
-        BlastHoleMaxRadiusM=Cfg.Bind("Break","BlastHoleMaxRadiusM",0.45f,"Maximum radius (m) of a single localized ragged blast hole.");
+        BlastHoleMode=Cfg.Bind("Break","BlastHoleMode","Always",new ConfigDescription("How blasts tear open destructible plates: Always = localized ragged blast holes using true local thickness and EB breach thresholds (default in 1.0.0); Auto = holes on coarse/small plates and cell-tear fine plates; Off = legacy cell tearing only.",new AcceptableValueList<string>("Always","Auto","Off")));
+        BlastHoleMaxRadiusM=Cfg.Bind("Break","BlastHoleMaxRadiusM",0.38f,new ConfigDescription("Maximum radius (m) of a single localized ragged blast hole.",new AcceptableValueRange<float>(0.10f,0.45f)));
         BlastBase=Cfg.Bind("Blast","BlastBase",190f,"Blast damage to one plate side = BlastBase x (calibre / 100 mm)^3 x falloff(d), falloff(d) = 1 / (1 + (d / r)^2), r = BlastRadiusPer100mm x calibre / 100. d = distance from the blast to the closest point of that side's bounds.");
         BlastRadiusPer100mm=Cfg.Bind("Blast","BlastRadiusPer100mm",0.5f,"Falloff radius r (m) of a 100 mm blast; scales linearly with the calibre. A blast does nothing beyond 4 x r.");
         BlastStrengthPerMm=Cfg.Bind("Blast","BlastStrengthPerMm",5f,"Strength of one plate side = BlastStrengthPerMm x mean thickness (mm), no area factor. Default: a 3.2 mm skirt (16) is torn off by a 57 mm HE shell right next to it (not by 20-30 mm); a 20 mm plate (100) needs 105 mm HE close by or 152/155 mm HE within about 1 m.");
         MinCalibreMm=Cfg.Bind("Blast","MinCalibreMm",20f,"Explosions below this calibre (mm) are ignored.");
-        HeatBlastScale=Cfg.Bind("Blast","HeatBlastScale",0.35f,"Blast damage and dent scale applied to HEAT shaped-charge visual explosions (0 = ignore HEAT blast, 1 = full HE blast).");
+        HeatBlastScale=Cfg.Bind("Blast","HeatBlastScale",0.35f,new ConfigDescription("Blast damage and dent scale applied to HEAT shaped-charge visual explosions (0 = ignore HEAT blast, 1 = full HE blast).",new AcceptableValueRange<float>(0f,1f)));
+        BreachMmAt100=Cfg.Bind("Blast","BreachMmAt100",20f,new ConfigDescription("1.0.0: Fallback RHA steel thickness (mm) breached on direct contact by a 100 mm HE blast when Expanded Ballistics telemetry is unavailable (scales with (calibre/100)^2).",new AcceptableValueRange<float>(5f,60f)));
+        BreachCrewDamageEnabled=Cfg.Bind("Blast","BreachCrewDamageEnabled",true,"1.0.0: When a blast punches a fresh hole through a plate (and Expanded Ballistics did not already score perforation on that vehicle), apply realistic inward overpressure and fragment damage to exposed crew and internal modules behind the hole.");
+        BreachDamageScale=Cfg.Bind("Blast","BreachDamageScale",1.0f,new ConfigDescription("1.0.0: Multiplier on behind-breach crew and internal module damage (0 = off, 1 = default realistic scaling).",new AcceptableValueRange<float>(0f,3f)));
+        StripEraOnBlast=Cfg.Bind("Blast","StripEraOnBlast",true,"1.0.2: Direct or close HE/HESH blasts strip exterior ERA blocks inside the blast core (visual + collider removal + debris), even when thick composite armor behind them remains intact.");
+        EraStripRadiusPer100mm=Cfg.Bind("Blast","EraStripRadiusPer100mm",0.45f,new ConfigDescription("1.0.2: ERA stripping radius (m) per 100 mm of HE/HESH calibre (default 0.45 m -> ~0.68 m for 152 mm HE).",new AcceptableValueRange<float>(0.15f,1.0f)));
         KineticLogOnly=Cfg.Bind("Kinetic","LogOnly",true,"Kinetic hits (AP/APFSDS) never tear off a plate (they make holes and later dents). They are only logged ([KIN] lines). false is not supported yet and behaves as true.");
         LogRawFields=Cfg.Bind("Diagnostics","LogRawFields",false,"Once per shot, log the raw fragment fields and the CompoundStructure.HitBuffer ([RAW] lines). Switch on without a rebuild.");
         LogDamage=Cfg.Bind("Diagnostics","LogDamage",true,"Log one [DMG] line per blast that damages a destructible plate side, one [KIN] line per kinetic hit on one, and one [PLATE] line per plate with its blast strength.");
@@ -76,9 +83,9 @@ public sealed class Plugin:BasePlugin
         SmoothAngleDeg=Cfg.Bind("Dent","SmoothAngleDeg",50f,"Crease threshold angle (deg) for spatial-weld normal smoothing across split-vertex seams.");
         CraterLipRatio=Cfg.Bind("Dent","CraterLipRatio",0.28f,"Height of the raised forged metal lip around kinetic impact craters relative to crater depth.");
         BlastBuckling=Cfg.Bind("Dent","BlastBuckling",0.45f,"Strength of multi-frequency sheet-metal buckling and tension creases in blast dents.");
-        TearCurlDepthMm=Cfg.Bind("Dent","TearCurlDepthMm",95f,"Outward curl/petal deformation depth (mm) on surviving mesh edges next to torn cells.");
+        TearCurlDepthMm=Cfg.Bind("Dent","TearCurlDepthMm",95f,new ConfigDescription("Outward curl/petal deformation depth (mm) on surviving mesh edges next to torn cells.",new AcceptableValueRange<float>(0f,150f)));
         TearCurlWidthM=Cfg.Bind("Dent","TearCurlWidthM",0.22f,"Width (m) of the curled band along torn cell borders.");
-        DebrisWarpMm=Cfg.Bind("Dent","DebrisWarpMm",70f,"Bending, buckling and twist magnitude (mm) applied to detached flying debris meshes.");
+        DebrisWarpMm=Cfg.Bind("Dent","DebrisWarpMm",70f,new ConfigDescription("Bending, buckling and twist magnitude (mm) applied to detached flying debris meshes.",new AcceptableValueRange<float>(0f,150f)));
         RimCapsEnabled=Cfg.Bind("Dent","RimCapsEnabled",true,"0.8.0: generate solid sheared-steel cross-section walls along torn cell edges and blast holes so armor thickness is visible.");
         LazyLowDetail=Cfg.Bind("Dent","LazyLowDetail",true,"Defer cloning/updating a plate's low-detail LOD mesh until its renderer actually becomes visible.");
         DebrisEnabled=Cfg.Bind("Debris","Enabled",true,"The cells torn off by one blast fly away as one piece (one object per blast and side) together with the attached parts of those cells and lies on the ground (own ballistic integration, no physics objects). Off = it only disappears.");
@@ -91,7 +98,12 @@ public sealed class Plugin:BasePlugin
         CellSizeM=Cfg.Bind("Cells","CellSizeM",0.5f,"0.4.1: each destructible plate side is split into cells of about this size (m) in the plane of its two largest extents. A blast breaks single cells (damage and strength per cell), not the whole side. Read when the plate is adopted.");
         EdgeJitterM=Cfg.Bind("Cells","EdgeJitterM",0.08f,"0.4.1: cell edges are ragged: a smooth seeded offset of up to this size (m) is added to the triangle centroid before it is assigned to a cell (the same offset in the render meshes and the armour).");
         PerCellThickness=Cfg.Bind("Cells","PerCellThickness",true,"0.8.0: compute each destructible cell's blast strength from its own local armor thickness instead of one plate-wide average (keeps 80 mm+ glacis realistic while thin fenders/skirts still tear easily).");
+        LoosePartsEnabled=Cfg.Bind("LooseParts","Enabled",false,"0.9.0: automatically allow loose exterior parts (smoke launchers, lamps, stowage, tools, antennas) on any vehicle to be damaged and blown off. Disabled by default in 1.0.0.");
+        LoosePartStrength=Cfg.Bind("LooseParts","BaseStrength",35f,new ConfigDescription("0.9.0: base durability of a medium (~0.35 m) loose exterior part; scales with part bounding-box size (clamped 10..250).",new AcceptableValueRange<float>(10f,200f)));
+        LoosePartsIncludeOptics=Cfg.Bind("LooseParts","IncludeOpticsAndHatches",true,"0.9.1: also allow optics, sights, rangefinders, viewports, cupolas, and hatches to be blown off visually.");
+        LoosePartsIncludeEra=Cfg.Bind("LooseParts","IncludeEra",false,"0.9.0: also allow standalone ERA blocks to be blown off by nearby HE blasts (independent of Expanded Ballistics ERA handling and destructible skirt tear-off).");
         KeyDent=Cfg.Bind("Keys","Dent","End","Key (UnityEngine.InputSystem.Key name) that puts a test dent (blast style, q 0.5, radius 155 mm) at the entry point of the last shot on a destructible plate. Play only (test key).");
+        ModSettingsBridge.RegisterAll(this);
         try
         {
             // Always patch: the editor checkbox needs it. The collider prefixes only act while the break state excludes a plate.

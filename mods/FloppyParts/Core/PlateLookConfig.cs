@@ -33,7 +33,12 @@ internal enum ColorPresetId
     Charcoal = 7,
     RubberBlack = 8,
     ClearGlass = 9,
-    TintedGlass = 10
+    TintedGlass = 10,
+    BrownTintedGlass = 11,
+    YellowTintedGlass = 12,
+    SmokeDarkGlass = 13,
+    BlueAntiGlareGlass = 14,
+    ThermalRainbowGlass = 15
 }
 
 internal enum MotionProfile
@@ -162,10 +167,10 @@ internal sealed class PlateLookConfig
         {
             Preset = LookPreset.Glass,
             ColorMode = ColorMode.Preset,
-            ColorPreset = ColorPresetId.TintedGlass,
+            ColorPreset = ColorPresetId.ClearGlass,
             TileSizeM = 1.00f,
-            Smoothness = 0.96f,
-            Opacity = 0.23f
+            Smoothness = 0.86f,
+            Opacity = 0.08f
         },
         LookPreset.Custom => new PlateLookConfig
         {
@@ -224,7 +229,8 @@ internal sealed class PlateLookConfig
         TileSizeM = float.IsFinite(TileSizeM) ? Math.Clamp(TileSizeM, 0.05f, 5.0f) : def.TileSizeM;
         UvRotationDeg = NormalizeAngle(UvRotationDeg);
         Smoothness = float.IsFinite(Smoothness) ? Math.Clamp(Smoothness, 0.0f, 1.0f) : def.Smoothness;
-        Opacity = float.IsFinite(Opacity) ? Math.Clamp(Opacity, 0.05f, 1.0f) : def.Opacity;
+        float minOpacity = preset == LookPreset.Glass ? 0.01f : 0.05f;
+        Opacity = float.IsFinite(Opacity) ? Math.Clamp(Opacity, minOpacity, 1.0f) : def.Opacity;
         CustomFolder = SanitizeFolder(CustomFolder);
 
         Motion = Enum.IsDefined(Motion) ? Motion : MotionProfile.Static;

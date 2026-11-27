@@ -181,10 +181,10 @@ internal static class Feat022101ShellEraFallbackAndWarningsTests
             && selection.Contains("ui.InfoField(eraWarning,", StringComparison.Ordinal),
             "5 RuntimeShellSelection displays diagnostic warning in cannon inspector");
 
-        Check(Read("Plugin.cs").Contains("\"0.22.109\"", StringComparison.Ordinal)
-            && Read("SprocketExpandedBallistics.csproj").Contains("<Version>0.22.109</Version>", StringComparison.Ordinal)
-            && Read("RELEASE-NOTES.md").Contains("## 0.22.109", StringComparison.Ordinal),
-            "5 Plugin.cs, csproj, and RELEASE-NOTES.md carry version 0.22.109");
+        Check(Read("Plugin.cs").Contains("\"0.22.111\"", StringComparison.Ordinal)
+            && Read("SprocketExpandedBallistics.csproj").Contains("<Version>0.22.111</Version>", StringComparison.Ordinal)
+            && Read("RELEASE-NOTES.md").Contains("## 0.22.111", StringComparison.Ordinal),
+            "5 Plugin.cs, csproj, and RELEASE-NOTES.md carry version 0.22.111");
 
         int hooks = Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
             .Where(f => { var r = f.Replace('\\', '/'); return !r.Contains("/tests/") && !r.Contains("/bin/") && !r.Contains("/obj/"); })

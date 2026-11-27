@@ -55,9 +55,9 @@ internal static class HitResultRule
 /// <summary>Pure: combat-report shot → hit block (reuses <see cref="CombatHitProjection"/> and the shared category colours).</summary>
 internal static class HitBlockBuilder
 {
-    internal const string Penetrated="PENETRATED",Stopped="STOPPED",StoppedSpall="STOPPED · spall damage",Ricochet="RICOCHET",NoArmour="NO ARMOUR",Unknown="?";
+    internal const string Penetrated="PENETRATED",Stopped="STOPPED",StoppedSpall="STOPPED · spall damage",Breached="BREACHED",Ricochet="RICOCHET",NoArmour="NO ARMOUR",Unknown="?";
     internal const string StoppedBlast="STOPPED · blast damage"; // 0.22.86 HE
-    internal const string Grey="#A5ADB5";
+    internal const string Grey="#A5ADB5",BreachColour="#F39C52";
     internal const int AmmoColumns=30,DetailColumns=120,LineColumns=100,MaxBreakdown=16;
     private static string N(double? v)=>v is {} x&&double.IsFinite(x)?Math.Round(x).ToString("0",CultureInfo.InvariantCulture):"?";
     private static string Clean(string? text,int columns)=>CombatHitSummaryModel.Fit(CombatReportPresentation.Escape(text??""),columns);
@@ -85,9 +85,12 @@ internal static class HitBlockBuilder
         var values=result==Ricochet||result==NoArmour?$"{N(before)} mm":result==Unknown?$"{N(before)} → ? mm":$"{N(before)} → {N(after)} mm";
         var colour=shown is Unknown or NoArmour?Grey:shown==StoppedSpall?CombatHitSummaryModel.Category(shot.Events).Colour:shown!=result?HitResultRule.PenetratedColour(shot.Events):CombatHitSummaryModel.Category(shot.Events).Colour;
         if(shown==StoppedSpall&&HeReportText.OutsideBlast(shot.Events))shown=StoppedBlast; // 0.22.86 HE
+        bool blastBreach=HeReportText.HasBlastBreach(shot.Events);
+        if(blastBreach){shown=Breached;colour=BreachColour;}
         var tokens=Tokens(shot.Events,main);
         if(HeReportText.Token(shot.Events) is {} heToken)tokens.Add(heToken); // 0.22.86 HE
-        var end=EndToken(result,main.LastOrDefault(v=>!CombatZeroSpan.Is(v))??last); // 0.22.41: never name a hidden 0 mm layer
+        if(HeReportText.BlastToken(shot.Events) is {} blastToken)tokens.Add(blastToken);
+        var end=blastBreach?null:EndToken(result,main.LastOrDefault(v=>!CombatZeroSpan.Is(v))??last); // 0.22.41: never name a hidden 0 mm layer
         if(end!=null)tokens.Add(end);
         if(tokens.Count==0)tokens.Add(result==Unknown?"outcome not measured":"no measured layer loss");
         var damage=Damage(shot.Events);
@@ -244,6 +247,16 @@ internal sealed class HitPanelBuffer
         if(!double.IsFinite(now)||block==null)return;
         block.Time=now;blocks.Insert(0,block);Trim();Version++;
     }
+    internal bool Replace(int number,HitBlock updated)
+    {
+        if(updated==null)return false;
+        int idx=blocks.FindIndex(b=>b.Number==number);
+        if(idx<0)return false;
+        updated.Time=blocks[idx].Time;
+        if(ReferenceEquals(Pinned,blocks[idx]))Pinned=updated;
+        blocks[idx]=updated;Version++;
+        return true;
+    }
     private void Trim()
     {
         while(blocks.Count>max)
@@ -321,6 +334,59 @@ internal static class HeReportText
             {var m=Shock.Match(e.Text);return m.Success?$"HE outside the armour, shock {m.Groups[1].Value} %":"HE outside the armour";}
         }
         return null;
+    }
+    /// <summary>True when Plate Destruction reported at least one blast-breached plate on this shot (0.22.111).</summary>
+    internal static bool HasBlastBreach(IReadOnlyList<CombatReportEvent> events)
+    {
+        for(int i=0;i<events.Count;i++)
+        {
+            var e=events[i];
+            if(e?.Kind=="blastPlate"&&e.Text.Contains("BREACHED",StringComparison.Ordinal))return true;
+        }
+        return false;
+    }
+    /// <summary>True when this shot carries any Plate Destruction / HE-HESH blast telemetry events (0.22.111).</summary>
+    internal static bool HasBlastEvents(IReadOnlyList<CombatReportEvent> events)
+    {
+        for(int i=0;i<events.Count;i++)
+        {
+            var e=events[i];
+            if(e?.Kind is "blastSummary" or "blastPlate" or "blastEra")return true;
+        }
+        return false;
+    }
+    /// <summary>Compact hit-panel token for blast breach, surface dent, or stripped ERA (0.22.111).</summary>
+    internal static string? BlastToken(IReadOnlyList<CombatReportEvent> events)
+    {
+        var parts=new List<string>();
+        foreach(var e in events)
+        {
+            if(CombatBlastReport.TryParsePlate(e,out var p)&&p.Breached)
+            {
+                parts.Add(string.Create(CultureInfo.InvariantCulture,$"blast breached Plate #{p.PlateVuid} (Ø {p.HoleDiameterM:0.00} m)"));
+                break;
+            }
+        }
+        if(parts.Count==0)
+        {
+            foreach(var e in events)
+            {
+                if(CombatBlastReport.TryParsePlate(e,out var p)&&!p.Breached)
+                {
+                    parts.Add($"Plate #{p.PlateVuid} resisted blast (dent only)");
+                    break;
+                }
+            }
+        }
+        foreach(var e in events)
+        {
+            if(CombatBlastReport.TryParseEra(e,out var era))
+            {
+                parts.Add($"stripped {era.Count} ERA");
+                break;
+            }
+        }
+        return parts.Count>0?string.Join(" · ",parts):null;
     }
 }
 // 0.22.86 HE end

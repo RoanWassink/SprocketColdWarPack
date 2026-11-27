@@ -64,11 +64,15 @@ internal static class CarouselInspector
                     ui.InfoField($"Storage layout needs {from:yyyy-MM-dd}; this vehicle keeps manual loading. Saved layout retained.", 2,
                         new UnityEngine.Color(.6f, .6f, .6f));
                 }
-                var layouts = new[] { CarouselLayout.HorizontalCassette, CarouselLayout.VerticalCharge };
+                var layouts = new[] { CarouselLayout.HorizontalCassette, CarouselLayout.VerticalCharge, CarouselLayout.StackedUnitary };
                 var layoutLabels = layouts.Select(layout =>
                 {
-                    var name = layout == CarouselLayout.HorizontalCassette
-                        ? "T-72 style: both horizontal" : "T-64/80 style: upright charge";
+                    var name = layout switch
+                    {
+                        CarouselLayout.HorizontalCassette => "T-72 style: both horizontal",
+                        CarouselLayout.VerticalCharge => "T-64/80 style: upright charge",
+                        _ => "2S38 style: stacked unitary"
+                    };
                     var from = CarouselDatePolicy.ForLayout(layout);
                     return CarouselDatePolicy.Allows(date, from)
                         ? name : $"{name} (vanaf {from:yyyy-MM-dd})";
@@ -76,12 +80,12 @@ internal static class CarouselInspector
                 ui.Dropdown("Storage layout", Labels(layoutLabels), (int)state.Layout,
                     Int(index =>
                     {
-                        if (index is < 0 or > 1) return;
+                        if (index is < 0 or > 2) return;
                         var layout = (CarouselLayout)index;
                         if (!CarouselDatePolicy.Allows(date, CarouselDatePolicy.ForLayout(layout))) return;
                         state.Layout = layout; Changed();
                     }),
-                    "Horizontal or upright charge storage. Too-early layouts are labelled with their start date.");
+                    "Two-piece horizontal/upright (T-72, T-64/80) or stacked complete rounds (2S38). Too-early layouts are labelled with their start date.");
                 var cannons = CarouselRuntime.Cannons(basket);
                 var selected = cannons.FindIndex(c => c.VUID.Value == state.CannonId);
                 var names = new[] { "Select cannon..." }.Concat(cannons.Select(c =>
@@ -115,7 +119,7 @@ internal static class CarouselInspector
                 var size = CarouselRuntime.Calculate(basket, cannon);
                 var shell = cannon.shellBlueprintSlot?.Blueprint;
                 if (shell == null) { ui.InfoField("Ammunition blueprint is not ready", 2); return; }
-                foreach(var line in LoaderFitReadout.Carousel(size)) ui.InfoField(line,2);
+                foreach(var line in LoaderFitReadout.Carousel(size, state.Layout)) ui.InfoField(line,2);
                 if(size.Capacity==0) ui.InfoField("Disable or unassign the carousel to use manual loading.",2);
             }
             finally { __0.EndAllDropdowns(); }

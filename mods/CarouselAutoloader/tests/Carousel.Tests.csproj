@@ -19,6 +19,7 @@
     <Compile Include="..\SafetyPolicy.cs" Link="SafetyPolicy.cs" />
     <Compile Include="..\CarouselModelGeometry.cs" Link="CarouselModelGeometry.cs" />
     <Compile Include="..\CarouselModelData.cs" Link="CarouselModelData.cs" />
+    <Compile Include="..\StackedCarouselGeometry.cs" Link="StackedCarouselGeometry.cs" />
     <None Update="Fixtures\revolver-approved.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

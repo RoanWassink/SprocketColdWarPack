@@ -42,7 +42,12 @@ public sealed partial class Runtime
         internal int Shots;
         internal List<int> Destr=new();
         internal HashSet<int> DestrSet=new();
+        internal bool TankDestructible=true;
         internal List<PlateEntry> AllPlates=new();
+        internal Dictionary<int,PlateEntry> PlateByVuid=new();
+        internal List<LoosePart> LooseParts=new();
+        internal Dictionary<int,LoosePart> LooseByVuid=new();
+        internal List<LoosePart> EraParts=new();
     }
     private sealed class Att
     {
@@ -238,7 +243,9 @@ public sealed partial class Runtime
             long relRoot=t.Root!=0?t.Root:RootOf(t);
             RestoreInPlaceArmour(r=>r==relRoot);
             coalescer.ClearRoot(relRoot);
-            foreach(var hk in holeDmg.Keys.Where(k=>k.Root==relRoot).ToArray())holeDmg.Remove(hk);
+            foreach(var hk in holeZoneDmg.Keys.Where(k=>k.Root==relRoot).ToArray())holeZoneDmg.Remove(hk);
+            foreach(var sk in solidBlockCache.Keys.Where(k=>k.Root==relRoot).ToArray())solidBlockCache.Remove(sk);
+            foreach(var sbk in BuilderPatches.SolidBlockVuids.Keys.Where(k=>k.Item1==relRoot).ToArray())BuilderPatches.SolidBlockVuids.TryRemove(sbk,out _);
             recentSimHits.RemoveAll(s=>s.Root==relRoot);
             RestoreSnappedMarks(relRoot);
             foreach(var pk in Plans.Keys.Where(k=>k.Item1==relRoot).ToArray())if(Plans.TryRemove(pk,out var rp))SideOps.Restore(rp);
@@ -275,6 +282,7 @@ public sealed partial class Runtime
     {
         t.Map.Clear();
         t.AllPlates.Clear();
+        t.PlateByVuid.Clear();
         var reader=t.V.ObjectReader;if(reader==null)return;
         var items=reader.Items;
         for(int i=0;i<reader.Count;i++)
@@ -287,7 +295,12 @@ public sealed partial class Runtime
                 if(t.Map.TryAdd(vuid,c))
                 {
                     var pl=c.TryCast<PlateStructure>();
-                    if(pl!=null)t.AllPlates.Add(new PlateEntry{Vuid=vuid,Plate=pl,Rends=PlateUnityRenderers(c,t.V).ToArray()});
+                    if(pl!=null)
+                    {
+                        var pe=new PlateEntry{Vuid=vuid,Plate=pl,Rends=PlateUnityRenderers(c,t.V).ToArray()};
+                        t.AllPlates.Add(pe);
+                        t.PlateByVuid[vuid]=pe;
+                    }
                 }
             }
         }
@@ -414,6 +427,7 @@ public sealed partial class Runtime
             }
         }
         ChooseTarget(t,path);
+        Safe("loose part kinetic",()=>HandleLoosePartKinetic(t,haveSeg,seg0,seg1,path));
         CheckTorn(t,haveSeg,seg0,seg1,path);
         if(verbose&&spallWithHits>0)Line($"[HIT]   spall/child fragments with hit objects: {spallWithHits}");
         if(probe is {} pr&&probeReady&&seen!=null)
@@ -455,12 +469,12 @@ public sealed partial class Runtime
         last=new Hit{T=t,Comp=h.Comp,Vuid=h.Vuid,Pos=exactEntry,Normal=-dir,Dir=dir,CalibreMm=h.CalibreMm};
         if(recentSimHits.Count>=12)recentSimHits.RemoveAt(0);
         recentSimHits.Add(new SimHitMark(Time.frameCount,new V3(exactEntry.x,exactEntry.y,exactEntry.z),new V3(dir.x,dir.y,dir.z),h.CalibreMm,t.Root,h.Vuid));
-        if(p.DetailedLogging.Value||IsDestructible(h.Comp))
+        if(p.DetailedLogging.Value||IsDestructible(t,h.Comp))
             Plugin.Info($"[TARGET] chosen vuid={h.Vuid} type={ClassName(h.Comp)} reason={(mode==TargetMode.FirstPlate?"first plate on path":"last plate on path")}; path vuids: {string.Join(",",path.Select(x=>x.Vuid))}; entry=({exactEntry.x:0.00},{exactEntry.y:0.00},{exactEntry.z:0.00}) via {(IsFinite(h.End)?"fragment hit":how)}");
 
         int dented=0;
         var seenHits=new Dictionary<(int,PlateSide),Vector3>();
-        if(IsDestructible(h.Comp))
+        if(IsDestructible(t,h.Comp))
         {
             var hPlan=PlanFor(t,h.Comp,h.Vuid);
             var hSide=SideOfPoint(h.Comp,hPlan,exactEntry);
@@ -478,7 +492,7 @@ public sealed partial class Runtime
                 if(!ph.Eligible||ph.Comp.TryCast<PlateStructure>()==null)continue;
                 DentStyle style=StyleFromFlags(ph.Flags);
                 Vector3 ent=IsFinite(ph.End)?ph.End:(ph==h?entry:EntryPoint(ph,out _));
-                bool isDestr=IsDestructible(ph.Comp);
+                bool isDestr=IsDestructible(t,ph.Comp);
                 PlateSide pSide=PlateSide.Whole;
                 if(isDestr&&Plans.TryGetValue((t.Root,ph.Vuid),out var dPlan))pSide=SideOfPoint(ph.Comp,dPlan,ent);
                 var hitKey=(ph.Vuid,pSide);
@@ -568,20 +582,54 @@ public sealed partial class Runtime
     {
         try{var p=c.TryCast<PlateStructure>();return p!=null&&DestructibleFlag.Has(p.Blueprint?.Description);}catch{return false;}
     }
+    private static bool IsDestructible(Tracked t,VehicleComponent c)
+    {
+        try
+        {
+            var pl=c.TryCast<PlateStructure>();
+            if(pl==null)return false;
+            return Plugin.Instance.WholeTankDestructible.Value?t.TankDestructible:DestructibleFlag.Has(pl.Blueprint?.Description);
+        }
+        catch{return false;}
+    }
     private void LogFlags(Tracked t)
     {
         var ids=new List<int>();
-        foreach(var kv in t.Map){var c=kv.Value;if(c==null||c.WasCollected)continue;if(c.TryCast<PlateStructure>()!=null&&IsDestructible(c))ids.Add(kv.Key);}
-        ids.Sort();
-        t.Destr=ids;
-        t.DestrSet=new HashSet<int>(ids);
-        Plugin.Info($"[FLAG] {t.Name}: destructible plates vuid={(ids.Count==0?"none":string.Join(",",ids))}");
-        foreach(var id in ids)
+        if(Plugin.Instance.WholeTankDestructible.Value)
         {
-            if(!t.Map.TryGetValue(id,out var c)||c==null)continue;
-            var cc=c;int vid=id;
-            Safe("probe vuid "+id,()=>{var pl=PlanFor(t,cc,vid);CellsFor(t,cc,vid,pl);FindAttached(t,cc,vid,pl);});
+            bool disabled=false;
+            foreach(var pe in t.AllPlates)
+            {
+                try{if(TankDestructionFlag.IsDisabled(pe.Plate?.Blueprint?.Description)){disabled=true;break;}}catch{}
+            }
+            t.TankDestructible=!disabled;
+            if(t.TankDestructible)
+            {
+                foreach(var pe in t.AllPlates)ids.Add(pe.Vuid);
+                ids.Sort();
+            }
+            t.Destr=ids;
+            t.DestrSet=new HashSet<int>(ids);
+            Plugin.Info(t.TankDestructible
+                ?$"[FLAG] {t.Name}: whole-tank destruction ENABLED ({ids.Count} plates, lazy)"
+                :$"[FLAG] {t.Name}: whole-tank destruction DISABLED ({TankDestructionFlag.Token})");
         }
+        else
+        {
+            foreach(var kv in t.Map){var c=kv.Value;if(c==null||c.WasCollected)continue;if(c.TryCast<PlateStructure>()!=null&&IsDestructible(c))ids.Add(kv.Key);}
+            ids.Sort();
+            t.Destr=ids;
+            t.DestrSet=new HashSet<int>(ids);
+            Plugin.Info($"[FLAG] {t.Name}: destructible plates vuid={(ids.Count==0?"none":string.Join(",",ids))}");
+            foreach(var id in ids)
+            {
+                if(!t.Map.TryGetValue(id,out var c)||c==null)continue;
+                var cc=c;int vid=id;
+                Safe("probe vuid "+id,()=>{var pl=PlanFor(t,cc,vid);CellsFor(t,cc,vid,pl);FindAttached(t,cc,vid,pl);});
+            }
+        }
+        Safe("discover loose parts",()=>DiscoverLooseParts(t));
+        Safe("discover era parts",()=>DiscoverEraParts(t));
     }
 
     // ---- attached parts (ERA etc.) ----------------------------------------------------------------------------
@@ -602,7 +650,10 @@ public sealed partial class Runtime
             int cv=comp.VUID.Value;if(!seenV.Add(cv))return;
             var go=comp.gameObject;if(go==null||go==vehicleGo)return;
             string typeName=ClassName(comp);
-            if(AttachedFilter.IsCoreStructuralPart(typeName))return;
+            string cid="";try{cid=comp.ComponentID??"";}catch{}
+            if(PartFilter.IsCoreComponent(typeName,cid))return;
+            if(HasCoreBehaviour(comp.vehicleObject,includePlateStructure:true,includeOpticsAsCore:false))return;
+            if(IsUnderCoreObject(comp,plate))return;
             var side=PlateSide.Whole;
             try{if(plan is {PerSide:true,Geo:not null}){var p=plate.TryCast<PlateStructure>();if(p!=null){var l=p.WorldToStructureSpace(comp.transform.position);side=plan.Geo.Choose(new V3(l.x,l.y,l.z));}}}catch{}
             bool covered=comp.TryCast<PlateStructure>()!=null||comp.TryCast<VehicleObjectModel>()!=null;
@@ -618,6 +669,7 @@ public sealed partial class Runtime
             {
                 var child=ch![i];if(child==null)continue;
                 var obj=child.VehicleObject;
+                if(HasCoreBehaviour(obj,includePlateStructure:true,includeOpticsAsCore:false))continue;
                 var comps=obj?.behaviours;
                 if(comps!=null)foreach(var cc in comps)Add(cc,src);
                 Walk(child,depth+1,src);
@@ -671,7 +723,7 @@ public sealed partial class Runtime
         a.CachedRenderers=res;
         return res;
     }
-    private void HideAttached(BreakJob j,long root)
+    private void HideAttached(BreakJob j,long root,Func<Att,bool>? pick=null)
     {
         if(!attached.TryGetValue((root,j.Vuid),out var list)||list.Count==0)return;
         int hid=0,excl=0,tris=0;var visual=new List<string>();
@@ -684,8 +736,9 @@ public sealed partial class Runtime
         bool verbose=Plugin.Instance.DetailedLogging.Value;
         foreach(var a in list)
         {
-            if(a.Done)continue;
-            if(j.CellOnly){if(j.Cells==null||!j.Cells.Contains(a.Cell))continue;}
+            if(a.Done||State.IsHidden(root,a.Vuid))continue;
+            if(pick!=null){if(!pick(a))continue;}
+            else if(j.CellOnly){if(j.Cells==null||!j.Cells.Contains(a.Cell))continue;}
             else if(j.Side!=PlateSide.Whole&&a.Side!=j.Side)continue;
             if(a.Comp==null||a.Comp.WasCollected)continue;
             a.Done=true;
@@ -845,7 +898,7 @@ public sealed partial class Runtime
 
     private void CountHit(Tracked t,PathHit ph,Hit h,DentStyle style=DentStyle.Kinetic)
     {
-        if(!IsDestructible(ph.Comp))return;
+        if(!IsDestructible(t,ph.Comp))return;
         var p=Plugin.Instance;long root=t.Root;
         var plan=PlanFor(t,ph.Comp,ph.Vuid);
         var side=SideOfPoint(ph.Comp,plan,h.Pos);
@@ -912,14 +965,16 @@ public sealed partial class Runtime
     private void HandleBlast(BlastEvent e)
     {
         var p=Plugin.Instance;
-        if(blastDedup.IsDuplicate(e.Frame,new V3(e.Pos.x,e.Pos.y,e.Pos.z),e.Calibre))return;
+        double cal=BlastBreachMath.EffectiveCalibreMm(e.Calibre,e.EbHasData,e.EbCalibreMm);
+        int snapCal=(int)Math.Round(cal);
+        if(blastDedup.IsDuplicate(e.Frame,new V3(e.Pos.x,e.Pos.y,e.Pos.z),snapCal))return;
         var filter=BlastEffectFilter.Classify(e.Kind,e.VisualOnly,p.HeatBlastScale.Value,p.MaxNonDestructibleBlastDents.Value);
         if(filter.SkipBlast)
         {
-            if(p.DetailedLogging.Value)BLine($"[BLAST] skipped visual-only '{e.Kind}' calibre={e.Calibre}mm");
+            if(p.DetailedLogging.Value)BLine($"[BLAST] skipped visual-only '{e.Kind}' calibre={snapCal}mm");
             return;
         }
-        if(BlastSnap.TrySnap(recentSimHits,e.Frame,new V3(e.Pos.x,e.Pos.y,e.Pos.z),e.Calibre,out var snap,out double shift))
+        if(BlastSnap.TrySnap(recentSimHits,e.Frame,new V3(e.Pos.x,e.Pos.y,e.Pos.z),snapCal,out var snap,out double shift))
         {
             var hitPos=new Vector3(snap.Pos.X,snap.Pos.Y,snap.Pos.Z);
             var hitDir=new Vector3(snap.Dir.X,snap.Dir.Y,snap.Dir.Z);
@@ -928,19 +983,19 @@ public sealed partial class Runtime
             e.Pos=hitPos-hitDir*0.08f;
             BLine($"[BLAST] snapped offset {shift:0.00}m -> hit ({hitPos.x:0.00},{hitPos.y:0.00},{hitPos.z:0.00}) vuid={snap.Vuid} cal={snap.CalibreMm}mm dir=({hitDir.x:0.00},{hitDir.y:0.00},{hitDir.z:0.00})");
         }
-        else if(BlastSnap.TryMatchContact(recentSimHits,e.Frame,new V3(e.Pos.x,e.Pos.y,e.Pos.z),e.Calibre,out var contact,out double cdist,out double calong))
+        else if(BlastSnap.TryMatchContact(recentSimHits,e.Frame,new V3(e.Pos.x,e.Pos.y,e.Pos.z),snapCal,out var contact,out double cdist,out double calong))
         {
             var hitPos=new Vector3(contact.Pos.X,contact.Pos.Y,contact.Pos.Z);
             var hitDir=new Vector3(contact.Dir.X,contact.Dir.Y,contact.Dir.Z);
             hitDir=hitDir.sqrMagnitude>1e-8f?hitDir.normalized:Vector3.down;
             e.HasSnap=true;e.SnapRoot=contact.Root;e.SnapVuid=contact.Vuid;e.SnapHitPos=hitPos;e.SnapDir=hitDir;
             if(calong>-0.08)e.Pos=hitPos-hitDir*0.08f;
-            BLine($"[BLAST] matched contact hit d={cdist:0.00}m -> hit ({hitPos.x:0.00},{hitPos.y:0.00},{hitPos.z:0.00}) vuid={contact.Vuid} cal={contact.CalibreMm}mm->{e.Calibre}mm dir=({hitDir.x:0.00},{hitDir.y:0.00},{hitDir.z:0.00})");
+            BLine($"[BLAST] matched contact hit d={cdist:0.00}m -> hit ({hitPos.x:0.00},{hitPos.y:0.00},{hitPos.z:0.00}) vuid={contact.Vuid} cal={contact.CalibreMm}mm->{snapCal}mm dir=({hitDir.x:0.00},{hitDir.y:0.00},{hitDir.z:0.00})");
         }
-        double cal=e.Calibre;
         double effBase=p.BlastBase.Value*filter.DamageScale;
         double reach=BlastMath.Reach(p.BlastRadiusPer100mm.Value,cal);
         double vehicleCutoffSq=(reach+45.0)*(reach+45.0);
+        bool holeAlways=p.BlastHoleMode.Value.Equals("Always",StringComparison.OrdinalIgnoreCase);
         var targets=new List<BlastTarget>();
         var cellPlates=new List<CellPlate>();
         var holePlates=new List<(Tracked T,VehicleComponent Comp,int Vuid,PlateStructure Plate,SidePlan? Plan,PlateCells? PC,double Dist)>();
@@ -954,43 +1009,62 @@ public sealed partial class Runtime
             long root=t.Root;
             foreach(var vuid in t.Destr)
             {
-                var comp=Resolve(t,vuid);if(comp==null||led.IsGone(root,vuid))continue;
-                var plan=PlanFor(t,comp,vuid);
-                var plate=comp.TryCast<PlateStructure>();
-                var pcs=plate==null?null:CellsFor(t,comp,vuid,plan);
-                if(plate!=null&&UseBlastHole(root,vuid,pcs,plate))
+                if(led.IsGone(root,vuid))continue;
+                if(holeAlways)
                 {
-                    Vector3 distPos=e.HasSnap&&root==e.SnapRoot&&vuid==e.SnapVuid?e.SnapHitPos:e.Pos;
-                    double hd;
+                    t.PlateByVuid.TryGetValue(vuid,out var pe);
+                    var comp=pe?.Plate??Resolve(t,vuid);if(comp==null)continue;
+                    var plate=pe?.Plate??comp.TryCast<PlateStructure>();if(plate==null||plate.WasCollected)continue;
+                    bool isDir=IsDirectSnap(e,root,vuid);
+                    Vector3 distPos=isDir?e.SnapHitPos:e.Pos;
+                    double hd=pe!=null?BoundsDistance(pe.Rends,distPos,out _):BoundsDistance(comp,t.V,distPos,out _);
+                    if(!isDir&&hd>reach+0.25)continue;
+                    var plan=PlanFor(t,comp,vuid);
                     if(plan is {PerSide:true,Geo:not null})
                     {
                         var hl=plate.WorldToStructureSpace(distPos);var hlp=new V3(hl.x,hl.y,hl.z);
                         hd=Math.Min(plan.Geo.Distance(hlp,PlateSide.Original),plan.Geo.Distance(hlp,PlateSide.Mirror));
                     }
-                    else hd=BoundsDistance(comp,t.V,distPos,out _);
-                    holePlates.Add((t,comp,vuid,plate,plan,pcs,hd));
+                    holePlates.Add((t,comp,vuid,plate,plan,null,hd));
                     continue;
                 }
-                if(pcs!=null&&plate!=null)
+                var comp2=Resolve(t,vuid);if(comp2==null)continue;
+                var plan2=PlanFor(t,comp2,vuid);
+                var plate2=comp2.TryCast<PlateStructure>();
+                var pcs=plate2==null?null:CellsFor(t,comp2,vuid,plan2);
+                if(plate2!=null&&UseBlastHole(root,vuid,pcs,plate2))
                 {
-                    var cl=plate.WorldToStructureSpace(e.Pos);var clp=new V3(cl.x,cl.y,cl.z);
+                    Vector3 distPos=e.HasSnap&&root==e.SnapRoot&&vuid==e.SnapVuid?e.SnapHitPos:e.Pos;
+                    double hd;
+                    if(plan2 is {PerSide:true,Geo:not null})
+                    {
+                        var hl=plate2.WorldToStructureSpace(distPos);var hlp=new V3(hl.x,hl.y,hl.z);
+                        hd=Math.Min(plan2.Geo.Distance(hlp,PlateSide.Original),plan2.Geo.Distance(hlp,PlateSide.Mirror));
+                    }
+                    else hd=BoundsDistance(comp2,t.V,distPos,out _);
+                    holePlates.Add((t,comp2,vuid,plate2,plan2,pcs,hd));
+                    continue;
+                }
+                if(pcs!=null&&plate2!=null)
+                {
+                    var cl=plate2.WorldToStructureSpace(e.Pos);var clp=new V3(cl.x,cl.y,cl.z);
                     double near=double.MaxValue;foreach(var kv in pcs.Info)if(!pcs.IsBroken(kv.Key))near=Math.Min(near,BoxMath.Distance(clp,kv.Value.Min,kv.Value.Max));
-                    cellPlates.Add(new CellPlate{T=t,Comp=comp,Vuid=vuid,PC=pcs,Plan=plan,Plate=plate,Local=clp,Nearest=near});
+                    cellPlates.Add(new CellPlate{T=t,Comp=comp2,Vuid=vuid,PC=pcs,Plan=plan2,Plate=plate2,Local=clp,Nearest=near});
                     continue;
                 }
-                if(plan is {PerSide:true,Geo:not null}&&plate!=null)
+                if(plan2 is {PerSide:true,Geo:not null}&&plate2!=null)
                 {
-                    var l=plate.WorldToStructureSpace(e.Pos);var lp=new V3(l.x,l.y,l.z);
+                    var l=plate2.WorldToStructureSpace(e.Pos);var lp=new V3(l.x,l.y,l.z);
                     foreach(var side in new[]{PlateSide.Original,PlateSide.Mirror})
                     {
-                        var cl=plan.Geo.Closest(lp,side);
-                        targets.Add(new BlastTarget{T=t,Comp=comp,Vuid=vuid,Side=side,Dist=plan.Geo.Distance(lp,side),Closest=plate.StructureToWorldSpace(new Vector3(cl.X,cl.Y,cl.Z)),Plan=plan});
+                        var cl=plan2.Geo.Closest(lp,side);
+                        targets.Add(new BlastTarget{T=t,Comp=comp2,Vuid=vuid,Side=side,Dist=plan2.Geo.Distance(lp,side),Closest=plate2.StructureToWorldSpace(new Vector3(cl.X,cl.Y,cl.Z)),Plan=plan2});
                     }
                 }
                 else
                 {
-                    float d=BoundsDistance(comp,t.V,e.Pos,out var cp);
-                    targets.Add(new BlastTarget{T=t,Comp=comp,Vuid=vuid,Side=PlateSide.Whole,Dist=d,Closest=cp,Plan=plan});
+                    float d=BoundsDistance(comp2,t.V,e.Pos,out var cp);
+                    targets.Add(new BlastTarget{T=t,Comp=comp2,Vuid=vuid,Side=PlateSide.Whole,Dist=d,Closest=cp,Plan=plan2});
                 }
             }
             if(ndCandidates!=null)
@@ -1003,6 +1077,16 @@ public sealed partial class Runtime
                     if(d<=ndReach)ndCandidates.Add((t,pe,d));
                 }
             }
+        }
+        if(holePlates.Count>1)
+        {
+            holePlates.Sort((a,b)=>
+            {
+                bool da=IsDirectSnap(e,a.T.Root,a.Vuid);
+                bool db=IsDirectSnap(e,b.T.Root,b.Vuid);
+                if(da!=db)return da?-1:1;
+                return a.Dist.CompareTo(b.Dist);
+            });
         }
         if(ndCandidates!=null&&ndCandidates.Count>0)
         {
@@ -1029,8 +1113,9 @@ public sealed partial class Runtime
         foreach(var x in holePlates)if(x.Dist<bestNear){bestNear=x.Dist;nearestText=x.Vuid+"/hole";}
         string nearestDist=bestNear<double.MaxValue?bestNear.ToString("0.00"):"n/a";
         string scale=e.MinScale<0?"unreadable":$"min={e.MinScale:0.###} max={e.MaxScale:0.###}";
+        string ebTxt=e.EbHasData?$" eb=(pow={e.EbPower:0.0} breach={e.EbBreachMm:0.0}mm perf={e.EbPerforated})":"";
         if(p.DetailedLogging.Value||nearestCell!=null||nearest!=null||holePlates.Count>0)
-            BLine($"[BLAST] calibre={e.Calibre}mm kind={(e.Kind==""?"native":e.Kind)} pos=({e.Pos.x:0.00},{e.Pos.y:0.00},{e.Pos.z:0.00}) type={e.Type} normal=({e.Normal.x:0.00},{e.Normal.y:0.00},{e.Normal.z:0.00}) parent={e.Parent} nearestDestructible={nearestText} dist={nearestDist}m explosionAssets {scale}{(cal<p.MinCalibreMm.Value?" -> below MinCalibreMm "+p.MinCalibreMm.Value+": ignored":"")}");
+            BLine($"[BLAST] calibre={snapCal}mm kind={(e.Kind==""?"native":e.Kind)}{ebTxt} pos=({e.Pos.x:0.00},{e.Pos.y:0.00},{e.Pos.z:0.00}) type={e.Type} normal=({e.Normal.x:0.00},{e.Normal.y:0.00},{e.Normal.z:0.00}) parent={e.Parent} nearestDestructible={nearestText} dist={nearestDist}m explosionAssets {scale}{(cal<p.MinCalibreMm.Value?" -> below MinCalibreMm "+p.MinCalibreMm.Value+": ignored":"")}");
         if(cal<p.MinCalibreMm.Value||filter.DamageScale<=0)return;
         foreach(var x in targets)
         {
@@ -1051,11 +1136,14 @@ public sealed partial class Runtime
             if(led.IsGone(x.T.Root,x.Vuid))continue;
             HandleCellBlast(x,e,filter.DamageScale);
         }
+        var breachedVehicles=new HashSet<long>();
         foreach(var x in holePlates)
         {
             if(led.IsGone(x.T.Root,x.Vuid))continue;
-            HandleHoleBlast(x.T,x.Comp,x.Vuid,x.Plate,x.Plan,x.PC,e,filter.DamageScale);
+            HandleHoleBlast(x.T,x.Comp,x.Vuid,x.Plate,x.Plan,x.PC,e,filter.DamageScale,breachedVehicles);
         }
+        Safe("strip era blast",()=>HandleEraBlastStrip(e,cal));
+        Safe("loose part blast",()=>HandleLoosePartBlast(e,effBase,reach));
     }
     private void ProcessDecals()
     {
@@ -1074,7 +1162,7 @@ public sealed partial class Runtime
     {
         if(!inSession||inPhotomode)return;
         var h=Target();if(h==null)return;
-        if(!IsDestructible(h.Comp)){Plugin.Info($"[BREAK] test key: vuid={h.Vuid} not destructible (tick Destructable in the plate editor first).");return;}
+        if(!IsDestructible(h.T,h.Comp)){Plugin.Info($"[BREAK] test key: vuid={h.Vuid} not destructible (vehicle disabled with {TankDestructionFlag.Token} or plate not marked destructible).");return;}
         long root=h.T.Root;
         var plan=PlanFor(h.T,h.Comp,h.Vuid);
         var side=SideOfPoint(h.Comp,plan,h.Pos);
@@ -1353,7 +1441,7 @@ public sealed partial class Runtime
         foreach(var pl in Plans.Values)SideOps.Restore(pl);
         Plans.Clear();
         foreach(var g in hiddenDecals)try{if(g!=null)g.SetActive(true);}catch{}
-        hiddenDecals.Clear();sweeps.Clear();breakQueue.Clear();decalQueue.Clear();stats.Clear();led.Clear();attached.Clear();Blasts.Clear();keepMeshes.Clear();keepCounts.Clear();torn.Clear();holeDmg.Clear();holeSeq=0;recentSimHits.Clear();scanAt=0;checkLines=0;activeRoots.Clear();
+        hiddenDecals.Clear();sweeps.Clear();breakQueue.Clear();decalQueue.Clear();stats.Clear();led.Clear();attached.Clear();Blasts.Clear();keepMeshes.Clear();keepCounts.Clear();torn.Clear();holeZoneDmg.Clear();solidBlockCache.Clear();BuilderPatches.SolidBlockVuids.Clear();holeSeq=0;recentSimHits.Clear();scanAt=0;checkLines=0;activeRoots.Clear();
         State.ClearAll();
         foreach(var t in tracked.Values)try{if(t.Handler!=null&&t.Model!=null)t.Model.remove_SimulationRan(t.Handler);}catch{}
         tracked.Clear();

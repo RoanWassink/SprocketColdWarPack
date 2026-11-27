@@ -1,5 +1,26 @@
 # Expanded Ballistics
 
+## 0.22.111 (Plate Destruction 1.0.2 blast back-channel & dedicated HE / HESH Combat Report and Forensic presentation)
+
+- Back-channel reporting on `public static class BallisticsEffectApi` (`RuntimeShellEffects.cs`, `RuntimeDamageFeed.cs`, `CombatReport.cs`):
+  - Added exception-safe `ReportBlastPlate(seq, plateVuid, localThicknessMm, breachCapacityMm, breached, holeRadiusM, isSolidBlock, isDirect)`, `ReportBlastEraStripped(seq, count, radiusM)`, and `ReportBlastBreachDamage(seq, plateVuid, entityVuid, componentType, distM, damageFraction, alive, crewAliveAfter, crewTotal)`.
+  - Wired `HeBlast.Begin`, `RuntimeShellEffects.Scale` (HE fallback), and `RuntimeShellEffects.Play` (HESH) to bind `BallisticsEffectApi.CurrentExplosionSeq` and record a `blastSummary` event on the active shot.
+  - Added a bounded 16-entry `blastSeq -> shotNumber` mapping and `Revision` counter on `CombatReportHistory` so post-commit blast events arriving from Plate Destruction in `Runtime.Update()` attach cleanly to the committed `CombatReportShot`, update `CrewTotal`/`CrewAlive`, reject exact duplicates, refresh the live Hit Panel buffer, and automatically refresh the open UI Kit Combat Report panel.
+- Dedicated HE / HESH presentation (`HitPanelModel.cs`, `CombatDamageSummary.cs`, `CombatReportView.cs`, `CombatReportPanel.cs`, `CombatReportHtml.cs`, `CombatForensics.cs`, `CombatForensicPanel.cs`, `CombatForensicHtml.cs`, `CombatReportLanguage.cs`):
+  - Recognized `blastPlate` breaches as a dedicated `BREACHED` outcome (with warm breach accent colour `#F39C52` and verified `ResultChipWidth`), overriding native oblique stops/ricochets when blast overpressure ruptured the plate.
+  - Added a dedicated **Blast assessment** display in Combat Report (card headline, expanded panel section, HTML export) and Forensic Investigation (top-of-Findings blast summary, plate breach/dent results, ERA stripping, compartment breach overpressure vs exterior/attenuated shock, and tailored HE/HESH advice).
+  - Updated `CombatDamageSummary` to parse `[breach overpressure]` crew and module damage cleanly without repeating anonymous seat IDs or truncating bracket tags.
+- 0 new Harmony hooks (stays at 48 `[HarmonyPatch` annotations).
+
+## 0.22.110 (Structured blast telemetry on `BallisticsEffectApi` for Plate Destruction 1.0.0 integration)
+
+- Extended `public static class BallisticsEffectApi` (`RuntimeShellEffects.cs`, `ShellBalance.cs`, `RuntimeDamageFeed.cs`) with 100% backwards-compatible primitive properties so downstream damage/destruction mods can inspect live explosion telemetry without new Harmony hooks:
+  - Kept existing `CurrentExplosionKind` and `CurrentExplosionVisualOnly`.
+  - Added `CurrentExplosionHasData`, `CurrentExplosionCalibreMm`, `CurrentExplosionPower`, `CurrentExplosionBreachMm`, `CurrentExplosionPerforated`, `CurrentExplosionSpaced`, `CurrentExplosionPerforatedRegister`, and monotonic `CurrentExplosionSeq` (preserved across `Clear()`).
+  - Pure `BlastTelemetryMath` (`ShellBalance.cs`) computes calibre-scaled `Power` and `BreachMm` cleanly for `he` (`HeRules.PerforationMm` breach, native `BlastPower`), `hesh` (`14 * (cal/100)^1.5` thin-plate breach, profile or fallback `15 * (cal/100)^3` power), `heat` (`4 * (cal/100)^2` power, `0` breach, `VisualOnly = true`), `aphe` (`0` power/breach, `VisualOnly = true`, `Perforated = true`), and `era` (`35 mm`, `0` power/breach, `VisualOnly = true`).
+  - Wired `HeBlast.Begin` / `HeBlast.End` (`RuntimeDamageFeed.cs`) to publish HE perforation/spaced/register telemetry for the full explosion scope, added a fallback in `RuntimeShellEffects.Scale` / `RestoreScale` when `HeSettings.BlastFilter` is disabled, and wired `RuntimeShellEffects.Play` for `era`, `aphe`, `heat`, and `hesh` with guaranteed `finally` cleanup via `BallisticsEffectApi.Clear()`.
+- 0 new Harmony hooks (stays at 48 `[HarmonyPatch` annotations).
+
 ## 0.22.109 (Full per-shell APHE configuration in the Shell Editor UI & live fragment preview)
 
 - Shell Editor (`ModularShellDraft.cs`, `ShellEditorModel.cs`, `ShellEditorText.cs`, `ShellProfiles.cs`, `ShellPayload.cs`, `ApheRules.cs`, `RuntimeSpall.cs`, `RuntimeShellEffects.cs`, `RuntimeShellSelection.cs`):

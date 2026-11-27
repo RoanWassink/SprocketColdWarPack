@@ -175,6 +175,39 @@ internal static class ProceduralTextureData
         return new ProceduralTextureSet(size, albedo, normal);
     }
 
+    internal static byte[] GenerateThermalRainbowRgba(int size = 128)
+    {
+        ValidateSize(size);
+        var rgba = new byte[size * size * 4];
+        const float twoPi = 2f * MathF.PI;
+
+        for (int y = 0; y < size; y++)
+        {
+            float v = (float)y / size;
+            for (int x = 0; x < size; x++)
+            {
+                float u = (float)x / size;
+                // Smooth diagonal + subtle optical ripple mimicking coated thermal/AR optics.
+                float ripple = 0.08f * MathF.Sin(twoPi * (u * 2f - v)) +
+                               0.05f * MathF.Cos(twoPi * (u + v * 2f));
+                float phase = (u * 0.85f + v * 0.65f + ripple) * twoPi;
+
+                float r = 0.56f + 0.38f * MathF.Cos(phase + 0.00f);
+                float g = 0.54f + 0.36f * MathF.Cos(phase - twoPi / 3f);
+                float b = 0.62f + 0.34f * MathF.Cos(phase + twoPi / 3f);
+
+                WritePixel(
+                    rgba,
+                    y * size + x,
+                    ToByte(r * 255f),
+                    ToByte(g * 255f),
+                    ToByte(b * 255f),
+                    255);
+            }
+        }
+        return rgba;
+    }
+
     private static byte[] HeightToNormal(float[] height, int size, float strength)
     {
         var normal = new byte[size * size * 4];

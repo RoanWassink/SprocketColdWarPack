@@ -15,9 +15,14 @@ public static class CarouselDatePolicy
     public static readonly DateTime RevolverDate = new(1952, 1, 1);
     public static readonly DateTime T64CarouselDate = new(1967, 1, 1);
     public static readonly DateTime T72CarouselDate = new(1973, 1, 1);
+    public static readonly DateTime StackedCarouselDate = new(1980, 1, 1);
 
-    public static DateTime ForLayout(CarouselLayout layout) =>
-        layout == CarouselLayout.VerticalCharge ? T64CarouselDate : T72CarouselDate;
+    public static DateTime ForLayout(CarouselLayout layout) => layout switch
+    {
+        CarouselLayout.VerticalCharge => T64CarouselDate,
+        CarouselLayout.StackedUnitary => StackedCarouselDate,
+        _ => T72CarouselDate
+    };
 
     public static DateTime For(LoaderKind kind) => kind switch
     {

@@ -588,3 +588,74 @@ internal static class HeSpaced
     internal static string Describe(HeSettings s)=>string.Create(C,$"spaced-armour rule {(s.SpacedArmourRule?"on":"off")} (armour within {s.SpacedArmourGapMm:0} mm behind a perforated plate: detonation in the gap, interior shock only)");
 }
 // 0.22.89 end
+
+// 0.22.110 begin: pure blast telemetry math for BallisticsEffectApi / Plate Destruction integration
+internal readonly record struct BlastTelemetry(
+    string Kind,
+    bool VisualOnly,
+    double CalibreMm,
+    double Power,
+    double BreachMm,
+    bool Perforated,
+    bool Spaced,
+    long PerforatedRegister);
+
+internal static class BlastTelemetryMath
+{
+    internal static bool IsVisualOnly(string kind)=>kind is not ("he" or "hesh");
+
+    internal static double BreachMm(string kind,double calibreMm,HeSettings? he=null)
+    {
+        if(!double.IsFinite(calibreMm)||calibreMm<=0)return 0.0;
+        return kind switch
+        {
+            "he"=>HeRules.PerforationMm(he??HeSettings.Default,calibreMm),
+            "hesh"=>14.0*Math.Pow(Math.Max(1.0,calibreMm)/100.0,1.5),
+            _=>0.0
+        };
+    }
+
+    internal static double EffectivePower(string kind,ShellProfile? profile,double calibreMm,double? knownPower=null)
+    {
+        if(kind=="he")
+        {
+            if(knownPower is {} p&&double.IsFinite(p)&&p>=0)return p;
+            return double.IsFinite(calibreMm)&&calibreMm>0&&profile!=null?ShellBalance.BlastPower(profile,calibreMm):0.0;
+        }
+        if(!double.IsFinite(calibreMm)||calibreMm<=0)return 0.0;
+        return kind switch
+        {
+            "hesh"=>profile!=null&&profile.NativeExplosivePower>0
+                ? ShellBalance.BlastPower(profile,calibreMm)
+                : Math.Clamp(15.0*Math.Pow(calibreMm/100.0,3.0),0.1,500.0),
+            "heat"=>4.0*Math.Pow(Math.Max(1.0,calibreMm)/100.0,2.0),
+            _=>0.0
+        };
+    }
+
+    internal static BlastTelemetry ForExplosion(
+        string kind,
+        ShellProfile? profile,
+        double calibreMm,
+        HeSettings? he=null,
+        double? knownPower=null,
+        bool perforated=false,
+        bool spaced=false,
+        long perforatedRegister=0)
+    {
+        var safeCal=double.IsFinite(calibreMm)&&calibreMm>0?calibreMm:0.0;
+        var isPerforated=kind=="aphe"||(kind=="he"&&perforated);
+        var isSpaced=kind=="he"&&spaced;
+        var reg=kind=="he"?perforatedRegister:0L;
+        return new(
+            kind,
+            IsVisualOnly(kind),
+            safeCal,
+            EffectivePower(kind,profile,safeCal,knownPower),
+            BreachMm(kind,safeCal,he),
+            isPerforated,
+            isSpaced,
+            reg);
+    }
+}
+// 0.22.110 end

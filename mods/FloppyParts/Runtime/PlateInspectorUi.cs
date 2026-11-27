@@ -57,9 +57,7 @@ internal static class PlateInspectorUi
         ColorPresetId.WinterWhite,
         ColorPresetId.FieldGrey,
         ColorPresetId.Charcoal,
-        ColorPresetId.RubberBlack,
-        ColorPresetId.ClearGlass,
-        ColorPresetId.TintedGlass
+        ColorPresetId.RubberBlack
     };
 
     private static readonly string[] ColorPresetLabels =
@@ -72,9 +70,29 @@ internal static class PlateInspectorUi
         "Winter White",
         "Field Grey",
         "Charcoal",
-        "Rubber Black",
+        "Rubber Black"
+    };
+
+    private static readonly ColorPresetId[] GlassPresets =
+    {
+        ColorPresetId.ClearGlass,
+        ColorPresetId.TintedGlass,
+        ColorPresetId.BrownTintedGlass,
+        ColorPresetId.YellowTintedGlass,
+        ColorPresetId.SmokeDarkGlass,
+        ColorPresetId.BlueAntiGlareGlass,
+        ColorPresetId.ThermalRainbowGlass
+    };
+
+    private static readonly string[] GlassPresetLabels =
+    {
         "Clear Glass",
-        "Tinted Glass"
+        "Green Tinted",
+        "Brown Tinted",
+        "Yellow Tinted",
+        "Smoke Dark",
+        "Blue Anti-Glare",
+        "Thermal Rainbow"
     };
 
     private static readonly MotionProfile[] MotionProfiles =
@@ -118,6 +136,7 @@ internal static class PlateInspectorUi
     private static Il2CppSystem.Collections.Generic.List<string>? lookList;
     private static Il2CppSystem.Collections.Generic.List<string>? modeList;
     private static Il2CppSystem.Collections.Generic.List<string>? presetList;
+    private static Il2CppSystem.Collections.Generic.List<string>? glassPresetList;
     private static Il2CppSystem.Collections.Generic.List<string>? motionList;
     private static Il2CppSystem.Collections.Generic.List<string>? pinModeList;
 
@@ -200,15 +219,34 @@ internal static class PlateInspectorUi
 
                     if (cfg.ColorMode == ColorMode.Preset)
                     {
-                        int presetIdx = Math.Max(0, Array.IndexOf(ColorPresets, cfg.ColorPreset));
+                        bool isGlass = cfg.Preset == LookPreset.Glass;
+                        var activePresets = isGlass ? GlassPresets : ColorPresets;
+                        var activeLabels = isGlass ? GlassPresetLabels : ColorPresetLabels;
+                        var activeList = isGlass
+                            ? ToIl2CppList(ref glassPresetList, activeLabels)
+                            : ToIl2CppList(ref presetList, activeLabels);
+                        int presetIdx = Math.Max(0, Array.IndexOf(activePresets, cfg.ColorPreset));
                         ui.Dropdown(
                             "Color preset",
-                            ToIl2CppList(ref presetList, ColorPresetLabels),
+                            activeList,
                             presetIdx,
                             IntCallback(idx =>
                             {
-                                if (idx < 0 || idx >= ColorPresets.Length) return;
-                                UpdateField(c => c.ColorPreset = ColorPresets[idx], geometryChanged: false, redrawUi: true);
+                                var cur = PlateConfigStore.Get(component);
+                                bool curGlass = cur.Preset == LookPreset.Glass;
+                                var presets = curGlass ? GlassPresets : ColorPresets;
+                                if (idx < 0 || idx >= presets.Length) return;
+                                var chosen = presets[idx];
+                                UpdateField(c =>
+                                {
+                                    c.ColorPreset = chosen;
+                                    if (curGlass)
+                                    {
+                                        c.Brightness = 1.0f;
+                                        c.Opacity = ColorMath.DefaultGlassOpacity(chosen);
+                                        c.Smoothness = ColorMath.DefaultGlassSmoothness(chosen);
+                                    }
+                                }, geometryChanged: false, redrawUi: true);
                             }),
                             "Preset dye or material tint.");
                     }
@@ -258,10 +296,11 @@ internal static class PlateInspectorUi
                             UpdateField(c => c.Smoothness = v, geometryChanged: false, redrawUi: false)));
 
                     string opacityLabel = cfg.Preset == LookPreset.CamoNet ? "Cutout" : "Opacity";
+                    float minOpacity = cfg.Preset == LookPreset.Glass ? 0.01f : 0.05f;
                     ui.Slider(
                         opacityLabel,
                         value: cfg.Opacity,
-                        min: 0.05f,
+                        min: minOpacity,
                         max: 1.0f,
                         onValueChange: FloatCallback(v =>
                             UpdateField(c => c.Opacity = v, geometryChanged: false, redrawUi: false)));

@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
-    <PlatformTarget>x64</PlatformTarget><Version>0.3.4</Version><AssemblyName>SprocketCarouselAutoloader</AssemblyName>
+    <PlatformTarget>x64</PlatformTarget><Version>0.3.6</Version><AssemblyName>SprocketCarouselAutoloader</AssemblyName>
     <Authors>Nero</Authors><Company>Nero</Company><Copyright>Nero</Copyright><Product>Sprocket Carousel Autoloader</Product>
     <DebugType>none</DebugType><DebugSymbols>false</DebugSymbols><Deterministic>true</Deterministic>
     <PathMap>$(MSBuildProjectDirectory)=/SprocketCarouselAutoloader/src</PathMap>

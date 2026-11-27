@@ -21,8 +21,11 @@ Check(!CarouselDatePolicy.Allows(new DateTime(1972, 12, 31), CarouselDatePolicy.
 Check(CarouselDatePolicy.Allows(new DateTime(1973, 1, 1), CarouselDatePolicy.T72CarouselDate), "T-72 carousel available on 1973.01.01");
 Check(CarouselDatePolicy.ForLayout(CarouselLayout.VerticalCharge) == CarouselDatePolicy.T64CarouselDate, "vertical layout uses T-64 date");
 Check(CarouselDatePolicy.ForLayout(CarouselLayout.HorizontalCassette) == CarouselDatePolicy.T72CarouselDate, "horizontal layout uses T-72 date");
+Check(!CarouselDatePolicy.Allows(new DateTime(1979, 12, 31), CarouselDatePolicy.StackedCarouselDate), "2S38 stacked carousel unavailable one day early");
+Check(CarouselDatePolicy.Allows(new DateTime(1980, 1, 1), CarouselDatePolicy.StackedCarouselDate), "2S38 stacked carousel available on 1980.01.01");
+Check(CarouselDatePolicy.ForLayout(CarouselLayout.StackedUnitary) == CarouselDatePolicy.StackedCarouselDate, "stacked unitary layout uses 1980 date");
 foreach (var kind in new[] { CarouselDatePolicy.BustleDate, CarouselDatePolicy.SemiAutoloaderDate,
-             CarouselDatePolicy.T64CarouselDate, CarouselDatePolicy.T72CarouselDate })
+             CarouselDatePolicy.T64CarouselDate, CarouselDatePolicy.T72CarouselDate, CarouselDatePolicy.StackedCarouselDate })
     Check(CarouselDatePolicy.Allows(new DateTime(9999, 12, 31), kind), "final-era sentinel makes every loader date available");
 Check(!CarouselDatePolicy.Allows(null, CarouselDatePolicy.BustleDate), "missing vehicle date fails closed");
 var savedLayout = CarouselLayout.VerticalCharge;
@@ -170,23 +173,62 @@ for (int propellant = 30; propellant <= 1500; propellant += 150)
 {
  var value = Size(diameter, 3000, caliber, propellant, layout: layout);
  if (layout == CarouselLayout.HorizontalCassette) Check(Math.Abs(value.StoredProjectileMm + value.StoredChargeMm - (caliber * 3 + propellant)) < 1e-8, "AZ conserves native allocation");
- else Check(Math.Abs(value.StoredProjectileMm - caliber * 680.0 / 125) < 1e-8, "MZ radial body remains fixed");
+ else if (layout == CarouselLayout.VerticalCharge) Check(Math.Abs(value.StoredProjectileMm - caliber * 680.0 / 125) < 1e-8, "MZ radial body remains fixed");
+ else Check(Math.Abs(value.StoredProjectileMm - (caliber * 3 + propellant)) < 1e-8 && value.StoredChargeMm == 0, "Stacked unitary keeps complete round with zero split charge");
  if (layout == CarouselLayout.HorizontalCassette) Check(value.StoredChargeMm <= caliber * (408.0 / 125) + 1e-8, "AZ scaled charge cap");
  Check(Size(value.RequiredDiameterMm, 3000, caliber, propellant, layout: layout).Capacity > 0, "Displayed minimum diameter fits");
  Check(Size(value.RequiredDiameterMm - 1, 3000, caliber, propellant, layout: layout).Capacity == 0, "One mm below minimum fails");
  if (value.Capacity == 0) continue;
- var width = caliber * 1.28 + 12;
+ var width = layout == CarouselLayout.StackedUnitary ? caliber * 1.18 + 8 : caliber * 1.28 + 12;
  var outer = diameter / 2.0 - 40;
  var end = Math.Sqrt(outer * outer - width * width / 4);
  var length = layout == CarouselLayout.HorizontalCassette ? Math.Max(value.StoredProjectileMm, value.StoredChargeMm) : value.StoredProjectileMm;
  var center = end - length / 2;
- var pitch = width * (layout == CarouselLayout.HorizontalCassette ? 1.4 : 1.12);
- Check(2 * center * Math.Sin(Math.PI / value.Capacity) + 1e-8 >= pitch, "Calibrated cassette pitch respected at mean radius");
+ var pitch = width * (layout == CarouselLayout.HorizontalCassette ? 1.4 : layout == CarouselLayout.StackedUnitary ? 1.08 : 1.12);
+ var ringCount = layout == CarouselLayout.StackedUnitary ? value.SlotsPerTier : value.Capacity;
+ Check(2 * center * Math.Sin(Math.PI / ringCount) + 1e-8 >= pitch, "Calibrated cassette pitch respected at mean radius");
  Check(end - length + 1e-8 >= Math.Max(180, diameter * .12), "Drive clearance respected");
  Check(value.RequiredDepthMm <= 3000, "Vertical clearance");
  var limit = Math.Floor(value.MaxChargeLengthMm);
- Check(Size(diameter, 3000, caliber, limit, layout: layout).Capacity > 0, "Displayed maximum native propellant fits");
- Check(Size(diameter, 3000, caliber, limit + 1, layout: layout).Capacity == 0, "One mm past maximum native propellant fails");
+ if (layout != CarouselLayout.StackedUnitary || limit >= 0)
+ {
+  Check(Size(diameter, 3000, caliber, limit, layout: layout).Capacity > 0, "Displayed maximum native propellant fits");
+  Check(Size(diameter, 3000, caliber, limit + 1, layout: layout).Capacity == 0, "One mm past maximum native propellant fails");
+ }
+}
+// 2S38-style stacked unitary carousel: no 2-piece split, vertical stacking, ~0.5 s / 120 rpm at 57 mm, open-ended calibres, max 256.
+{
+ var s57Shallow = Size(1600, 195, caliber: 57, nativePropellant: 348, mass: 6.5, layout: CarouselLayout.StackedUnitary);
+ var s57One = Size(1600, 196, caliber: 57, nativePropellant: 348, mass: 6.5, layout: CarouselLayout.StackedUnitary);
+ var s57Four = Size(1600, 450, caliber: 57, nativePropellant: 348, mass: 6.5, layout: CarouselLayout.StackedUnitary);
+ var s57Deep = Size(1600, 900, caliber: 57, nativePropellant: 348, mass: 6.5, layout: CarouselLayout.StackedUnitary);
+ Check(s57Shallow.Capacity == 0 && s57One.Capacity > 0 && s57One.Tiers == 1, "2S38 stacked exact 1-tier depth boundary");
+ Check(s57One.StoredProjectileMm == 519 && s57One.StoredChargeMm == 0, "2S38 stores complete 57x348 round without 2-piece split");
+ Check(s57Four.Tiers == 4 && s57Four.Capacity == s57Four.SlotsPerTier * 4 && s57Four.Capacity >= 140 && s57Four.Capacity <= 165,
+     "2S38 1.6m x 0.45m basket stacks 4 tiers (~152 rounds)");
+ Check(s57Four.ReloadSeconds >= .45 && s57Four.ReloadSeconds <= .55, "2S38 57 mm cycle calibrated around 0.5 s / 120 rpm");
+ Check(s57Deep.Capacity == CarouselGeometry.MaximumStackedCapacity, "Stacked carousel caps at 256 rounds");
+ var custom57 = CarouselGeometry.Calculate(new[] { new Segment(1600, 450) }, 57, 519, 6.5, CarouselLayout.StackedUnitary, 260, 259);
+ Check(custom57.StoredProjectileMm == 519 && custom57.StoredChargeMm == 0 && custom57.Capacity == s57Four.Capacity,
+     "Stacked unitary sums custom projectile + charge into one complete round");
+ var big120 = Size(2800, 766, caliber: 120, nativePropellant: 640, mass: 35, layout: CarouselLayout.StackedUnitary);
+ Check(big120.Capacity > 0 && big120.Tiers >= 3 && big120.ReloadSeconds > 1.5, "Stacked unitary is open-ended for large calibres");
+ var readout = LoaderFitReadout.Carousel(s57Four, CarouselLayout.StackedUnitary);
+ Check(readout.Any(l => l.Contains("(unitary)")) && readout.Any(l => l.Contains("tiers x")) && readout.Any(l => l.Contains("rpm")),
+     "Stacked unitary readout shows unitary round, tiers and rpm");
+ var meshes = StackedCarouselGeometry.Build(1.6, .45, s57Four.Capacity, s57Four.SlotsPerTier, .057, .519);
+ var proj = meshes.First(m => m.Material == "Projectile");
+ Check(proj.SlotPrefixIndexCounts.Length == s57Four.Capacity + 1 && CarouselModelGeometry.Triangles(meshes) < CarouselModelGeometry.TriangleBudget,
+     "Stacked procedural mesh has exact per-slot prefixes and stays well under triangle budget");
+ var maxMeshes = StackedCarouselGeometry.Build(1.6, .90, s57Deep.Capacity, s57Deep.SlotsPerTier, .057, .519);
+ Check(CarouselModelGeometry.Triangles(maxMeshes) < CarouselModelGeometry.TriangleBudget,
+     "256-round stacked procedural mesh stays under triangle budget");
+ var fullRanges = StackedCarouselGeometry.VisibleRanges(s57Four.Capacity, s57Four.SlotsPerTier, 0, s57Four.Capacity);
+ Check(fullRanges.Sum(r => r.Count) == s57Four.Capacity, "VisibleRanges covers all rounds when full");
+ var minusOne = StackedCarouselGeometry.VisibleRanges(s57Four.Capacity, s57Four.SlotsPerTier, 5, s57Four.Capacity - 1);
+ Check(minusOne.Sum(r => r.Count) == s57Four.Capacity - 1 && minusOne[0] == (0, s57Four.SlotsPerTier * 3),
+     "VisibleRanges empties top tier first while keeping lower tiers intact");
+ Check(StackedCarouselGeometry.VisibleRanges(s57Four.Capacity, s57Four.SlotsPerTier, 5, 0).Count == 0, "VisibleRanges empty at 0 stock");
 }
 var resolved = CarouselGeometry.ResolveBasket(new[] { new Segment(0, 606), new Segment(2657, 589) }, 2671);
 var screenshot = CarouselGeometry.Calculate(resolved, 125, 1341, 45.8, CarouselLayout.VerticalCharge);

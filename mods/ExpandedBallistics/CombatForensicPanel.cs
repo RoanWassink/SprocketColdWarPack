@@ -24,6 +24,11 @@ internal static class CombatForensicPanel
         var head=content.Row(8);head.Chip(model.Outcome,UiKit.Colour(model.Colour)).Width(CombatReportView.ResultChipWidth);
         head.Label(model.Explanation,TextStyle.Small).Wrap();
         content.Label(model.Context,TextStyle.Small).Wrap();
+        if(model.BlastSummary is {Count:>0} blast)
+        {
+            content.Label(ForensicModel.BlastTitle,TextStyle.Section);
+            foreach(var line in blast)content.Label("- "+line,TextStyle.Small).Colour(line.Contains("breached",StringComparison.OrdinalIgnoreCase)?"#ffac91":"#f3cf86").Wrap();
+        }
         bool heat=false;CanvasView? diagram=null;
         var mode=content.Row(8);mode.Label(ForensicModel.ModeLabel,TextStyle.Small);
         mode.Toggle(()=>heat,value=>{heat=value;diagram?.Invalidate();});

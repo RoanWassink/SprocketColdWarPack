@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Net;
 namespace SprocketExpandedBallistics;
 internal sealed record CombatLayerPart(int Entity,string Name,string? MaterialId,string? MaterialLabel,double? ThicknessMm,double? AngleDegrees,bool Armour);
@@ -12,13 +14,165 @@ internal sealed record CombatReportShot(int Number,string Direction,string Profi
 internal sealed class CombatReportHistory
 {
     internal const int MaximumShots=128;
+    internal const int MaximumBlastMappings=16;
     internal bool Playing {get;private set;}
     internal int Omitted {get;private set;}
+    internal int Revision {get;private set;}
     internal List<CombatReportShot> Shots {get;}=new();
-    internal void Begin(){if(Playing)return;Playing=true;Shots.Clear();Omitted=0;}
+    private readonly Dictionary<int,int> blastSeqToShotNumber=new();
+    private readonly Queue<int> blastSeqOrder=new();
+    internal void Begin(){if(Playing)return;Playing=true;Shots.Clear();Omitted=0;ClearBlastMappings();Revision++;}
     internal void End()=>Playing=false;
-    internal void Restore(IEnumerable<CombatReportShot> shots,int omitted){if(Playing)return;var list=shots.ToArray();var clean=list.Where(s=>s!=null).TakeLast(MaximumShots).Select(CombatReportTruth.Normalize).ToArray();Shots.Clear();Shots.AddRange(clean);Omitted=CombatReportTruth.Count(omitted,list.Length-clean.Length);}
-    internal void Add(CombatReportShot shot){if(!Playing)return;Shots.Add(CombatReportTruth.Normalize(shot));if(Shots.Count>MaximumShots){Shots.RemoveAt(0);Omitted=CombatReportTruth.Count(Omitted,1);}}
+    internal void ClearBlastMappings(){blastSeqToShotNumber.Clear();blastSeqOrder.Clear();}
+    internal void RegisterBlastSeq(int seq,int shotNumber)
+    {
+        if(seq<=0||shotNumber<=0)return;
+        if(blastSeqToShotNumber.ContainsKey(seq)){blastSeqToShotNumber[seq]=shotNumber;return;}
+        while(blastSeqOrder.Count>=MaximumBlastMappings){var oldest=blastSeqOrder.Dequeue();blastSeqToShotNumber.Remove(oldest);}
+        blastSeqToShotNumber[seq]=shotNumber;blastSeqOrder.Enqueue(seq);
+    }
+    internal bool TryFindShotIndexForBlast(int seq,out int index)
+    {
+        index=-1;
+        if(seq<=0||Shots.Count==0)return false;
+        if(blastSeqToShotNumber.TryGetValue(seq,out var shotNumber))
+        {
+            for(int i=Shots.Count-1;i>=0;i--)if(Shots[i].Number==shotNumber){index=i;return true;}
+            return false;
+        }
+        var last=Shots[^1];
+        if(CombatBlastReport.IsHeOrHeshShot(last)){index=Shots.Count-1;return true;}
+        return false;
+    }
+    internal CombatReportShot? ApplyBlastEvent(int seq,CombatReportEvent evt,int? crewAliveAfter=null,int? crewTotal=null)
+    {
+        if(evt==null||!TryFindShotIndexForBlast(seq,out var idx))return null;
+        var existing=Shots[idx];
+        var events=existing.Events?.ToList()??new List<CombatReportEvent>();
+        bool changed=false;
+        if(!CombatBlastReport.HasEvent(events,evt)&&events.Count<256){events.Add(evt);changed=true;}
+        int? nextTotal=existing.CrewTotal,nextAlive=existing.CrewAlive;
+        if(crewTotal is >0 and <=256)
+        {
+            int ct=crewTotal.Value;
+            int ca=Math.Clamp(crewAliveAfter??ct,0,ct);
+            int mergedAlive=nextAlive is {} prev?Math.Min(prev,ca):ca;
+            mergedAlive=Math.Clamp(mergedAlive,0,ct);
+            if(nextTotal!=ct||nextAlive!=mergedAlive){nextTotal=ct;nextAlive=mergedAlive;changed=true;}
+        }
+        if(!changed)return null;
+        var updated=CombatReportTruth.Normalize(existing with{Events=events,CrewTotal=nextTotal,CrewAlive=nextAlive});
+        Shots[idx]=updated;
+        Revision++;
+        return updated;
+    }
+    internal void Restore(IEnumerable<CombatReportShot> shots,int omitted){if(Playing)return;var list=shots.ToArray();var clean=list.Where(s=>s!=null).TakeLast(MaximumShots).Select(CombatReportTruth.Normalize).ToArray();Shots.Clear();Shots.AddRange(clean);Omitted=CombatReportTruth.Count(omitted,list.Length-clean.Length);ClearBlastMappings();Revision++;}
+    internal void Add(CombatReportShot shot){if(!Playing)return;Shots.Add(CombatReportTruth.Normalize(shot));if(Shots.Count>MaximumShots){Shots.RemoveAt(0);Omitted=CombatReportTruth.Count(Omitted,1);}Revision++;}
+}
+internal readonly record struct ParsedBlastPlate(int PlateVuid,bool IsSolidBlock,double ThicknessMm,bool Breached,double HoleDiameterM,double CapacityMm);
+internal readonly record struct ParsedBlastEra(int Count,double RadiusM);
+internal static class CombatBlastReport
+{
+    private static readonly CultureInfo C=CultureInfo.InvariantCulture;
+    private static readonly Regex PlateRegex=new(@"^Plate #(\d+)( \[Solid block\])? \(([\d.]+) mm\): (?:BREACHED — blast hole Ø ([\d.]+) m|resisted blast — dent only) \(capacity ([\d.]+) mm\)$",RegexOptions.CultureInvariant);
+    private static readonly Regex EraRegex=new(@"^Blast stripped (\d+) ERA blocks? within ([\d.]+) m$",RegexOptions.CultureInvariant);
+    private static double Safe(double value)=>double.IsFinite(value)&&value>=0?value:0;
+
+    internal static string SummaryText(string kind,double calibreMm,double power,double breachMm)
+    {
+        var label=string.Equals(kind,"hesh",StringComparison.OrdinalIgnoreCase)?"HESH":"HE";
+        return string.Create(C,$"{label} blast: {Safe(calibreMm):0.#} mm · power {Safe(power):0.#} · RHA breach budget {Safe(breachMm):0.#} mm");
+    }
+    internal static CombatReportEvent SummaryEvent(string kind,double calibreMm,double power,double breachMm,string stage="")
+        =>new("blastSummary",stage,SummaryText(kind,calibreMm,power,breachMm),CombatReportTruth.Value(breachMm));
+
+    internal static CombatReportEvent PlateEvent(int plateVuid,double localThicknessMm,double breachCapacityMm,bool breached,double holeRadiusM,bool isSolidBlock,bool isDirect)
+    {
+        double thick=Safe(localThicknessMm),cap=Safe(breachCapacityMm),diam=Safe(holeRadiusM)*2.0;
+        var solid=isSolidBlock?" [Solid block]":"";
+        var text=breached
+            ?string.Create(C,$"Plate #{plateVuid}{solid} ({thick:0.#} mm): BREACHED — blast hole Ø {diam:0.00} m (capacity {cap:0.#} mm)")
+            :string.Create(C,$"Plate #{plateVuid}{solid} ({thick:0.#} mm): resisted blast — dent only (capacity {cap:0.#} mm)");
+        return new("blastPlate","",text,CombatReportTruth.Value(cap),breached?CombatReportTruth.Value(Math.Max(0,cap-thick)):0,RelatedEntity:plateVuid);
+    }
+
+    internal static CombatReportEvent? EraStrippedEvent(int count,double radiusM)
+    {
+        if(count<=0)return null;
+        double r=Safe(radiusM);
+        return new("blastEra","",string.Create(C,$"Blast stripped {count} ERA block{(count==1?"":"s")} within {r:0.00} m"));
+    }
+
+    internal static string BreachModuleName(string? componentType)
+    {
+        var raw=(componentType??"").Trim();
+        if(raw.Length==0)return "module";
+        return raw.ToLowerInvariant() switch
+        {
+            "cannon"=>"main gun",
+            "layingdrive"=>"laying drive",
+            "traversemotor"=>"motor",
+            "fueltank"=>"fuel tank",
+            "ammorack"=>"ammunition stowage",
+            "combustionengine"=>"engine",
+            "transmissionblock"=>"transmission",
+            _=>CombatDamageSummary.PartLabel(CombatReportLanguage.Module(raw))
+        };
+    }
+
+    internal static CombatReportEvent BreachDamageEvent(int entityVuid,string componentType,bool alive)
+    {
+        var text=string.Equals(componentType?.Trim(),"CrewSeat",StringComparison.OrdinalIgnoreCase)
+            ?string.Create(C,$"Crew member #{entityVuid} [breach overpressure] {(alive?"wounded":"killed")}")
+            :string.Create(C,$"{BreachModuleName(componentType)} [breach overpressure] {(alive?"damaged":"destroyed")}");
+        return new("interaction","",text,RelatedEntity:entityVuid);
+    }
+
+    internal static bool IsHeOrHeshProfile(string? profile)
+    {
+        if(string.IsNullOrWhiteSpace(profile))return false;
+        var t=profile.Trim();
+        return Regex.IsMatch(t,@"(?:^|\b)(?:HE|HESH|HE-FRAG)(?:\b|$)",RegexOptions.IgnoreCase|RegexOptions.CultureInvariant);
+    }
+    internal static bool IsHeOrHeshShot(CombatReportShot shot)=>
+        IsHeOrHeshProfile(shot.Profile)||(shot.Events?.Any(e=>e?.Kind is "blastSummary" or "blastPlate" or "blastEra")??false);
+
+    internal static bool HasEvent(IReadOnlyList<CombatReportEvent> events,CombatReportEvent candidate)
+    {
+        for(int i=0;i<events.Count;i++)
+        {
+            var e=events[i];
+            if(e!=null&&e.Kind==candidate.Kind&&e.RelatedEntity==candidate.RelatedEntity&&string.Equals(e.Text,candidate.Text,StringComparison.Ordinal))
+                return true;
+        }
+        return false;
+    }
+
+    internal static bool TryParsePlate(CombatReportEvent? e,out ParsedBlastPlate parsed)
+    {
+        parsed=default;
+        if(e?.Kind!="blastPlate"||string.IsNullOrEmpty(e.Text))return false;
+        var m=PlateRegex.Match(e.Text);
+        if(!m.Success)return false;
+        int vuid=int.Parse(m.Groups[1].Value,C);
+        bool solid=m.Groups[2].Success;
+        double thick=double.Parse(m.Groups[3].Value,C);
+        bool breached=m.Groups[4].Success;
+        double diam=breached?double.Parse(m.Groups[4].Value,C):0;
+        double cap=double.Parse(m.Groups[5].Value,C);
+        parsed=new(vuid,solid,thick,breached,diam,cap);
+        return true;
+    }
+
+    internal static bool TryParseEra(CombatReportEvent? e,out ParsedBlastEra parsed)
+    {
+        parsed=default;
+        if(e?.Kind!="blastEra"||string.IsNullOrEmpty(e.Text))return false;
+        var m=EraRegex.Match(e.Text);
+        if(!m.Success)return false;
+        parsed=new(int.Parse(m.Groups[1].Value,C),double.Parse(m.Groups[2].Value,C));
+        return true;
+    }
 }
 internal static class CombatReportTruth
 {

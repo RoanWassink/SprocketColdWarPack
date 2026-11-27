@@ -162,6 +162,16 @@ internal static class CombatReportLanguage
         if(m.Success)return $"Composite plate #{m.Groups[1].Value} not engaged: the shot line ended before the next solid layer; no composite or passive resistance applied"+(m.Groups[2].Success?$" ({m.Groups[2].Value} occurrences).":".");
         return Scrub(t);
     }
+    /// <summary>Visible report wording for HE/HESH blast telemetry lines (removes game jargon such as "budget" or "blocks").</summary>
+    internal static string BlastLine(string? text)
+    {
+        var t=(text??"").Trim();
+        if(t.Length==0)return t;
+        t=t.Replace("RHA breach budget","RHA breach capacity",StringComparison.Ordinal);
+        t=Regex.Replace(t,@"\bERA blocks\b","ERA elements",RegexOptions.CultureInvariant);
+        t=Regex.Replace(t,@"\bERA block\b","ERA element",RegexOptions.CultureInvariant);
+        return t;
+    }
     /// <summary>Damage item "ammoRack destroyed" → "ammunition stowage destroyed"; crew items keep their role.</summary>
     internal static string Damage(string? text)
     {

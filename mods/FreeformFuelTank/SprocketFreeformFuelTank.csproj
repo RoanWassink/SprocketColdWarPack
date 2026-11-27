@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PlatformTarget>x64</PlatformTarget>
+    <Version>0.1.4</Version>
+    <GameDir Condition="'$(GameDir)' == ''">E:\SteamLibrary\steamapps\common\Sprocket</GameDir>
+    <Authors>Sprocket Freeform Fuel Tank</Authors>
+    <Company>Sprocket Freeform Fuel Tank</Company>
+    <Product>Sprocket Freeform Fuel Tank</Product>
+    <AssemblyName>SprocketFreeformFuelTank</AssemblyName>
+    <RootNamespace>SprocketFreeformFuelTank</RootNamespace>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <Deterministic>true</Deterministic>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <PathMap>$(MSBuildProjectDirectory)=/SprocketFreeformFuelTank/src</PathMap>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="tests\**\*.cs" />
+    <Compile Remove="checks\**\*.cs" />
+    <Reference Include="$(GameDir)\BepInEx\core\*.dll" Exclude="$(GameDir)\BepInEx\core\TerraFX*.dll;$(GameDir)\BepInEx\core\dobby.dll">
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="$(GameDir)\BepInEx\interop\*.dll">
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

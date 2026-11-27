@@ -25,6 +25,7 @@ internal static class FloppyOverlayRuntime
         GameObject Root,
         Mesh Mesh,
         MeshRenderer Renderer,
+        Material? OwnedMaterial,
         NVector[] CoverVertices,
         int CoverTriCount,
         int MinRequiredNativeTris,
@@ -32,6 +33,7 @@ internal static class FloppyOverlayRuntime
         string ConfigGeoSignature,
         string MaterialSignature,
         LookPreset Preset,
+        string CustomFolder,
         MotionProfile Motion,
         int MaterialGeneration,
         bool HasMaskMap,
@@ -277,18 +279,21 @@ internal static class FloppyOverlayRuntime
             view.Root != null &&
             view.Preset == cfg.Preset &&
             view.Motion == cfg.Motion &&
+            string.Equals(view.CustomFolder, cfg.CustomFolder, StringComparison.Ordinal) &&
+            (cfg.Preset == LookPreset.Native || view.OwnedMaterial != null) &&
             string.Equals(view.ConfigGeoSignature, cfg.GeometrySignature(), StringComparison.Ordinal))
         {
             var mat = ResolveOverlayMaterial(plate, cfg, out bool hasMask);
             if (mat != null)
             {
+                var activeMat = view.OwnedMaterial ?? mat;
                 if (!FloppyMotionController.PinPreviewEnabled || cfg.Motion == MotionProfile.Static || !wasDesigner)
                 {
-                    view.Renderer.sharedMaterial = mat;
-                    ApplyMaterialProperties(view.Renderer, plate, cfg, hasMask);
+                    view.Renderer.sharedMaterial = activeMat;
+                    ApplyViewMaterialProperties(view.OwnedMaterial, view.Renderer, plate, cfg, hasMask);
                 }
                 if (cfg.Motion != MotionProfile.Static)
-                    FloppyMotionController.UpdateMaterialReference(key, mat);
+                    FloppyMotionController.UpdateMaterialReference(key, activeMat);
 
                 var updatedView = view with
                 {
@@ -479,10 +484,12 @@ internal static class FloppyOverlayRuntime
                 if (syncPaint &&
                     cfg.Preset != LookPreset.Native &&
                     cfg.ColorMode == ColorMode.FollowTankPaint &&
+                    view.OwnedMaterial != null &&
                     !(designer && FloppyMotionController.PinPreviewEnabled && cfg.Motion != MotionProfile.Static))
                 {
                     var paint = TankPaintReader.Read(plate);
-                    MaterialLibrary.ApplyPropertyBlock(view.Renderer, cfg, paint, view.HasMaskMap);
+                    MaterialLibrary.ApplyMaterialProperties(view.OwnedMaterial, cfg, paint, view.HasMaskMap);
+                    view.Renderer.SetPropertyBlock(null);
                 }
             }
             catch (Exception ex)
@@ -590,19 +597,40 @@ internal static class FloppyOverlayRuntime
             old.Scene == plate.gameObject.scene.handle &&
             string.Equals(old.GeometrySignature, geoSig, StringComparison.Ordinal))
         {
+            Material? fastOwnedMat = old.OwnedMaterial;
+            if (cfg.Preset == LookPreset.Native)
+            {
+                if (fastOwnedMat != null)
+                {
+                    Object.DestroyImmediate(fastOwnedMat);
+                    fastOwnedMat = null;
+                }
+            }
+            else if (fastOwnedMat == null ||
+                     old.Preset != cfg.Preset ||
+                     old.MaterialGeneration != MaterialLibrary.Generation ||
+                     !string.Equals(old.CustomFolder, cfg.CustomFolder, StringComparison.Ordinal))
+            {
+                if (fastOwnedMat != null) Object.DestroyImmediate(fastOwnedMat);
+                fastOwnedMat = MaterialLibrary.CreateInstanceMaterial(mat);
+            }
+
+            Material fastActiveMat = fastOwnedMat ?? mat;
             if (!(designer && FloppyMotionController.PinPreviewEnabled && cfg.Motion != MotionProfile.Static))
             {
-                old.Renderer.sharedMaterial = mat;
-                ApplyMaterialProperties(old.Renderer, plate, cfg, hasMask);
+                old.Renderer.sharedMaterial = fastActiveMat;
+                ApplyViewMaterialProperties(fastOwnedMat, old.Renderer, plate, cfg, hasMask);
             }
             ConfigureRendererShadows(old.Renderer, cfg);
             if (cfg.Motion != MotionProfile.Static)
-                FloppyMotionController.UpdateMaterialReference(key, mat);
+                FloppyMotionController.UpdateMaterialReference(key, fastActiveMat);
             views[key] = old with
             {
+                OwnedMaterial = fastOwnedMat,
                 ConfigGeoSignature = configGeoSig,
                 MaterialSignature = cfg.MaterialSignature(),
                 Preset = cfg.Preset,
+                CustomFolder = cfg.CustomFolder,
                 Motion = cfg.Motion,
                 MaterialGeneration = MaterialLibrary.Generation,
                 HasMaskMap = hasMask
@@ -689,6 +717,7 @@ internal static class FloppyOverlayRuntime
 
         GameObject? root = null;
         Mesh? mesh = null;
+        Material? ownedMat = null;
         try
         {
             root = new GameObject($"FloppyParts {cfg.Preset}")
@@ -714,12 +743,16 @@ internal static class FloppyOverlayRuntime
             mesh.triangles = triangles;
             mesh.RecalculateBounds();
 
+            if (cfg.Preset != LookPreset.Native)
+                ownedMat = MaterialLibrary.CreateInstanceMaterial(mat);
+            Material activeMat = ownedMat ?? mat;
+
             root.AddComponent<MeshFilter>().sharedMesh = mesh;
             var renderer = root.AddComponent<MeshRenderer>();
-            renderer.sharedMaterial = mat;
-            renderer.receiveShadows = true;
+            renderer.sharedMaterial = activeMat;
+            renderer.receiveShadows = cfg.Preset != LookPreset.Glass;
             ConfigureRendererShadows(renderer, cfg);
-            ApplyMaterialProperties(renderer, plate, cfg, hasMask);
+            ApplyViewMaterialProperties(ownedMat, renderer, plate, cfg, hasMask);
 
             FloppyMotionController.Unregister(key);
             hidden.Restore(key);
@@ -729,6 +762,7 @@ internal static class FloppyOverlayRuntime
                 root,
                 mesh,
                 renderer,
+                ownedMat,
                 coverVertices,
                 coverTriCount,
                 minNativeTris,
@@ -736,6 +770,7 @@ internal static class FloppyOverlayRuntime
                 configGeoSig,
                 cfg.MaterialSignature(),
                 cfg.Preset,
+                cfg.CustomFolder,
                 cfg.Motion,
                 MaterialLibrary.Generation,
                 hasMask,
@@ -747,11 +782,12 @@ internal static class FloppyOverlayRuntime
             {
                 if (cfg.Motion == MotionProfile.Hinged)
                     MarkHingedChildrenDynamic(plate);
-                FloppyMotionController.Register(key, plate, sheet, shell, cfg, mesh, renderer, mat, designer);
+                FloppyMotionController.Register(key, plate, sheet, shell, cfg, mesh, renderer, activeMat, designer);
             }
 
             root = null;
             mesh = null;
+            ownedMat = null;
 
             Activate(key, plate, view);
 
@@ -761,6 +797,7 @@ internal static class FloppyOverlayRuntime
         }
         finally
         {
+            if (ownedMat != null) Object.DestroyImmediate(ownedMat);
             if (root != null) Object.DestroyImmediate(root);
             if (mesh != null) Object.DestroyImmediate(mesh);
         }
@@ -776,30 +813,35 @@ internal static class FloppyOverlayRuntime
         return MaterialLibrary.GetMaterial(cfg.Preset, cfg.CustomFolder, out hasMask);
     }
 
-    private static void ApplyMaterialProperties(
+    private static void ApplyViewMaterialProperties(
+        Material? ownedMat,
         MeshRenderer renderer,
         PlateStructure plate,
         PlateLookConfig cfg,
         bool hasMask)
     {
-        if (cfg.Preset == LookPreset.Native)
-        {
-            // Never apply MPB tint override onto native VehicleLit materials.
-            renderer.SetPropertyBlock(null);
+        // Never leave stale MaterialPropertyBlock overrides on overlay or native VehicleLit materials.
+        renderer.SetPropertyBlock(null);
+        if (cfg.Preset == LookPreset.Native || ownedMat == null)
             return;
-        }
         var paint = cfg.ColorMode == ColorMode.FollowTankPaint ? TankPaintReader.Read(plate) : null;
-        MaterialLibrary.ApplyPropertyBlock(renderer, cfg, paint, hasMask);
+        MaterialLibrary.ApplyMaterialProperties(ownedMat, cfg, paint, hasMask);
     }
 
     private static void ConfigureRendererShadows(MeshRenderer renderer, PlateLookConfig cfg)
     {
         if (cfg.Preset == LookPreset.Glass)
+        {
             renderer.shadowCastingMode = ShadowCastingMode.Off;
-        else if (cfg.Motion != MotionProfile.Static || cfg.Preset == LookPreset.CamoNet)
-            renderer.shadowCastingMode = ShadowCastingMode.On;
+            renderer.receiveShadows = false;
+        }
         else
-            renderer.shadowCastingMode = ShadowCastingMode.Off;
+        {
+            renderer.receiveShadows = true;
+            renderer.shadowCastingMode = (cfg.Motion != MotionProfile.Static || cfg.Preset == LookPreset.CamoNet)
+                ? ShadowCastingMode.On
+                : ShadowCastingMode.Off;
+        }
     }
 
     private static void Activate(long key, PlateStructure plate, View view)
@@ -1022,6 +1064,8 @@ internal static class FloppyOverlayRuntime
         }
         if (view.Mesh != null)
             Object.DestroyImmediate(view.Mesh);
+        if (view.OwnedMaterial != null)
+            Object.DestroyImmediate(view.OwnedMaterial);
     }
 
     private static bool IsPhotoModeActive() => SceneSurfaceActive(PhotoModeScene);

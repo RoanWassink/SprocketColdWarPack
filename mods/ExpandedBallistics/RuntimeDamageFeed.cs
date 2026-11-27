@@ -32,6 +32,7 @@ internal static class RuntimeDamageFeed
         internal void Record(CombatReportEvent row){if(Events.Count<256)Events.Add(row);else OmittedEvents=CombatReportTruth.Count(OmittedEvents,1);}
         internal Shot(int number,int nativeId,float spawnTime){Number=number;NativeId=nativeId;SpawnTime=spawnTime;}
         internal bool HeExplosive; // 0.22.86 HE
+        internal int BlastSeq;internal int? BlastCrewTotal,BlastCrewAlive;
         internal void Add(string key,string text,string stage,bool terminal=false,bool report=true,int? related=null){Timeline.Add(key,stage,text,terminal);if(report&&Seen.Add(stage+":"+key))Record(new(terminal?"outcome":"interaction",stage,text,HitId:active?.HitId,RelatedEntity:related));}
     }
     internal sealed record PendingLayer(short Index,string Label,string Stage,string? HitId,double? EntryBudget,string[]? Members);
@@ -153,7 +154,7 @@ internal static class RuntimeDamageFeed
                 // 0.22.16: a remembered skipped plate whose line never reaches
                 // another solid block still gets a concrete reason.
                 foreach(var row in CombatReportNoise.Collapse(NativeMaterialReactions.ClosePending().Select(p=>new CombatReportEvent("materialUnavailable","","Skipped composite plate #"+p.Entity+": line ended before another solid block; cassette and passive resistance not applied.",HitId:p.HitId,RelatedEntity:p.Entity))))shot.Record(row);
-                if(shot.Events.Count==0)shot.Events.Add(new("outcome","","Unknown: no resolved native armour interaction"));var crew=CrewCounts(shot.TargetRegister);var report=new CombatReportShot(shot.Number,shot.Direction,shot.Profile,shot.Speed,shot.Events.ToArray(),shot.OmittedEvents,shot.InitialPenetration,shot.Target,crew.Total,crew.Alive,shot.ShooterName);if(Enabled)Buffer.Add(Time.unscaledTime,HitBlockBuilder.Build(report));History.Add(report);if(ProbeEnabled)Probe("native="+shot.NativeId+" summary=2 rows");if(console.Value)foreach(var line in shot.Timeline.All.Select(t=>$"#{shot.Number} {t}"))if(ReleaseDiagnostics.Enabled)Plugin.ModLog.LogInfo("[Damage feed] native="+shot.NativeId+" spawn="+shot.SpawnTime+" "+line);}});current=__state;}
+                if(shot.Events.Count==0)shot.Events.Add(new("outcome","","Unknown: no resolved native armour interaction"));var crew=CrewCounts(shot.TargetRegister);var crewTotal=shot.BlastCrewTotal is >0?shot.BlastCrewTotal:crew.Total;var crewAlive=shot.BlastCrewTotal is >0?(crew.Alive is {} ca?Math.Min(ca,shot.BlastCrewAlive??shot.BlastCrewTotal.Value):shot.BlastCrewAlive):crew.Alive;var report=new CombatReportShot(shot.Number,shot.Direction,shot.Profile,shot.Speed,shot.Events.ToArray(),shot.OmittedEvents,shot.InitialPenetration,shot.Target,crewTotal,crewAlive,shot.ShooterName);if(Enabled)Buffer.Add(Time.unscaledTime,HitBlockBuilder.Build(report));History.Add(report);if(shot.BlastSeq>0)History.RegisterBlastSeq(shot.BlastSeq,report.Number);if(ProbeEnabled)Probe("native="+shot.NativeId+" summary=2 rows");if(console.Value)foreach(var line in shot.Timeline.All.Select(t=>$"#{shot.Number} {t}"))if(ReleaseDiagnostics.Enabled)Plugin.ModLog.LogInfo("[Damage feed] native="+shot.NativeId+" spawn="+shot.SpawnTime+" "+line);}});current=__state;}
     [HarmonyPrefix,HarmonyPatch(typeof(ExplosiveProjectileFunction),nameof(ExplosiveProjectileFunction.HitDamageModel))]
     private static void BeginExplosive(ref ProjectileInstance __0,out Shot? __state){if(HeResume(ref __0,out __state))return;BeginImpact(ref __0,out __state);if(current!=null)current.HeExplosive=true;} // 0.22.86 HE replaced
     [HarmonyFinalizer,HarmonyPatch(typeof(ExplosiveProjectileFunction),nameof(ExplosiveProjectileFunction.HitDamageModel))]
@@ -455,7 +456,44 @@ internal static class RuntimeDamageFeed
     /// <summary>The module that owns a pool, as the damage feed registered it (the fallback of the blast filter).</summary>
     internal static VehicleComponent? PoolOwner(IntPtr durable)=>pools.TryGetValue(durable,out var pool)?pool.Owner:null;
     // 0.22.86 HE end
-    internal static void Clear(){CombatReportMenu.Clear();DamageFeedKeys.Clear();Buffer.Clear();pools.Clear();launchOwners.Clear();playerVehicle=IntPtr.Zero;directDamageDepth=0;directDamageRegister=IntPtr.Zero;active=null;current=null;DamageFeedHud.Destroy();}
+    // 0.22.111 blast back-channel: link BallisticsEffectApi.CurrentExplosionSeq to live or committed HE/HESH shots.
+    internal static void RecordBlastTelemetry(int seq,BlastTelemetry telemetry)=>RecordBlastTelemetry(seq,telemetry.Kind,telemetry.CalibreMm,telemetry.Power,telemetry.BreachMm);
+    internal static void RecordBlastTelemetry(int seq,string kind,double calibreMm,double power,double breachMm)
+    {Safe(()=>{
+        if(seq<=0||kind is not ("he" or "hesh"))return;
+        var summary=CombatBlastReport.SummaryEvent(kind,calibreMm,power,breachMm,RuntimeTandem.DamageStage);
+        if(current is {} shot)
+        {
+            shot.BlastSeq=seq;
+            if(!CombatBlastReport.HasEvent(shot.Events,summary))shot.Record(summary);
+            return;
+        }
+        if(History.Shots.Count>0&&CombatBlastReport.IsHeOrHeshShot(History.Shots[^1]))
+        {
+            History.RegisterBlastSeq(seq,History.Shots[^1].Number);
+            var updated=History.ApplyBlastEvent(seq,summary);
+            if(updated!=null&&Enabled)Buffer.Replace(updated.Number,HitBlockBuilder.Build(updated));
+        }
+    });}
+    internal static void AcceptBlastEvent(int seq,CombatReportEvent evt,int? crewAliveAfter,int? crewTotal)
+    {Safe(()=>{
+        if(seq<=0||evt==null)return;
+        if(current is {} live&&live.BlastSeq==seq)
+        {
+            if(!CombatBlastReport.HasEvent(live.Events,evt))live.Record(evt);
+            if(crewTotal is >0 and <=256)
+            {
+                int ct=crewTotal.Value;
+                int ca=Math.Clamp(crewAliveAfter??ct,0,ct);
+                live.BlastCrewTotal=ct;
+                live.BlastCrewAlive=live.BlastCrewAlive is {} ex?Math.Min(ex,ca):ca;
+            }
+            return;
+        }
+        var updated=History.ApplyBlastEvent(seq,evt,crewAliveAfter,crewTotal);
+        if(updated!=null&&Enabled)Buffer.Replace(updated.Number,HitBlockBuilder.Build(updated));
+    });}
+    internal static void Clear(){CombatReportMenu.Clear();DamageFeedKeys.Clear();Buffer.Clear();History.ClearBlastMappings();pools.Clear();launchOwners.Clear();playerVehicle=IntPtr.Zero;directDamageDepth=0;directDamageRegister=IntPtr.Zero;active=null;current=null;DamageFeedHud.Destroy();}
 }
 
 [HarmonyPatch]
@@ -501,9 +539,13 @@ internal static class HeBlast
     internal static void Begin(int id,float spawn,Vector3 point,double power,double calibreMm,string guid,bool ground)
     {
         var scope=HeScopeState.Begin(id,spawn,point.x,point.y,point.z,power,calibreMm,guid,ground,RuntimeSpall.He);
+        long firstRegister=0;
+        foreach(var ptr in scope.Perforated){firstRegister=ptr.ToInt64();break;}
+        BallisticsEffectApi.Set(BlastTelemetryMath.ForExplosion("he",null,scope.CalibreMm,RuntimeSpall.He,scope.Power,scope.Perforated.Count>0,scope.Spaced!=null,firstRegister));
+        RuntimeDamageFeed.RecordBlastTelemetry(BallisticsEffectApi.CurrentExplosionSeq,"he",BallisticsEffectApi.CurrentExplosionCalibreMm,BallisticsEffectApi.CurrentExplosionPower,BallisticsEffectApi.CurrentExplosionBreachMm);
         if(ReleaseDiagnostics.Enabled&&probes++<48)Plugin.ModLog.LogInfo($"[HE] detonation at ({point.x:0.00}, {point.y:0.00}, {point.z:0.00}): P {power:0.0}, {calibreMm:0.#} mm, {(ground?"ground hit":"hit")}; armour perforated on {scope.Perforated.Count} vehicle(s); interior shock {HeRules.Percent(scope.Shock)} %.");
     }
-    internal static void End()=>HeScopeState.End();
+    internal static void End(){HeScopeState.End();BallisticsEffectApi.Clear();}
     private static void Warn(ref bool warned,string text){if(warned)return;warned=true;Plugin.ModLog.LogWarning(text);}
     internal static bool Filter(VehicleHealthRegister register,float value,DamageModelDamageModifiers modifiers)
     {

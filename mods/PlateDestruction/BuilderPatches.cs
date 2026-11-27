@@ -27,6 +27,8 @@ internal static class BuilderPatches
     internal static readonly ConcurrentDictionary<(long,int),SidePlan> Plans=new();
     /// <summary>0.4.1: cells (broken state and plan) of every adopted destructible plate; the armour prefix reads Broken from here.</summary>
     internal static readonly ConcurrentDictionary<(long,int),PlateCells> Cells=new();
+    /// <summary>1.0.1: plates built via AddMesh/6 (e.g. Expanded Ballistics [Solid block] native colliders).</summary>
+    internal static readonly ConcurrentDictionary<(long,int),byte> SolidBlockVuids=new();
     internal static int Calls,Skipped,Filtered,Logged;
     private const int MaxLogLines=400;
 
@@ -35,7 +37,10 @@ internal static class BuilderPatches
         Ctx=null;
         if(!Installed)return;
         var root=plate.VehicleRoot;if(root==null)return;
-        if(!DestructibleFlag.Has(plate.Blueprint?.Description))return;
+        bool ok=Plugin.Instance.WholeTankDestructible.Value
+            ?!TankDestructionFlag.IsDisabled(plate.Blueprint?.Description)
+            :DestructibleFlag.Has(plate.Blueprint?.Description);
+        if(!ok)return;
         Ctx=new PlateCtx{Root=root.Pointer.ToInt64(),Vuid=plate.VUID.Value};
     }
     private static void Log(string s){if(Logged<MaxLogLines){Logged++;Plugin.Info(s);}else if(Logged==MaxLogLines){Logged++;Plugin.Info("[ARMOUR] log limit reached ("+MaxLogLines+" lines); further calls are still processed.");}}
@@ -45,6 +50,7 @@ internal static class BuilderPatches
     [HarmonyPrefix,HarmonyPatch(typeof(VehicleDamageModelGeneration.DamageModelStructureBuilder),nameof(VehicleDamageModelGeneration.DamageModelStructureBuilder.AddMesh),new[]{typeof(VUID),typeof(Matrix4x4),typeof(int),typeof(Il2CppStructArray<Vector3>),typeof(Il2CppStructArray<int>),typeof(DamageModelParameters)},new[]{ArgumentType.Normal,ArgumentType.Ref,ArgumentType.Normal,ArgumentType.Normal,ArgumentType.Normal,ArgumentType.Ref})]
     private static bool AddMesh6(VUID __0,ref Matrix4x4 __1,int __2,Il2CppStructArray<Vector3> __3,ref Il2CppStructArray<int> __4)
     {
+        if(Ctx is {} c)SolidBlockVuids[(c.Root,c.Vuid)]=1;
         Il2CppStructArray<uint>? mk=null;Il2CppStructArray<byte>? mt=null;
         return Process("AddMesh/6",__0,__1,__2,__3,ref __4,ref mk,ref mt,-1);
     }

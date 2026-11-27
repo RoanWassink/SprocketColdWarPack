@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.6 - 2026-11-27
+- Fixed carousel ammo counter showing `1` (chambered round only) for T-72, T-80 and 2S38 carousels without a mixed loadout: `AmmoStorageApi.GetStorage` now returns the live native `state.Rack` when `!AmmoLoadoutBridge.HasLoadout(cannon)` instead of failing via `EnsureMixedStorage`. Zero new Harmony targets (41 unchanged).
+
+## 0.3.5 - 2026-11-27
+- 2S38-style stacked unitary carousel (`CarouselLayout.StackedUnitary`, available from `1980-01-01`):
+  - Stores complete 1-piece unitary rounds (no 2-piece projectile/charge split), stacked vertically in multiple tiers based on basket depth (`floor((depth - 120 mm) / (1.18*cal + 8 mm))`), up to 256 rounds, open-ended for any calibre that fits the basket.
+  - 2S38-calibrated fire cycle (`[Carousel] StackedCycleFactor = 0.57`, giving ~0.5 s / 120 rpm at 57 mm and scaling smoothly with calibre, length and mass) and calibre-scaled per-round mechanism mass.
+  - Dedicated procedural stacked drum/cage/elevator visual and native damage geometry (`StackedCarouselGeometry.cs`, keeping `CarouselVisualGeometry.cs` byte-identical). Empties from the top tier downward with per-tier ring rotation.
+  - Zero new Harmony targets (stays at 41).
+
 ## 0.3.4 - 2026-11-20
 - Mixed ammunition autoloader fixes (with Expanded Ballistics 0.22.99):
   - `BeltRuntime` and `MagazineRefill`: Belt feed boxes now load and refill mixed shell types via EB's typed stores instead of rejecting non-vanilla request IDs.

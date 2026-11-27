@@ -26,7 +26,7 @@ internal static class CombatReportPanel
     internal static bool IsOpen=>panel?.IsOpen==true;
     private static Panel? panel;
     private static IReadOnlyList<CombatImpactView> impacts=Array.Empty<CombatImpactView>();
-    private static (int Count,int Last) seen=(-1,-1);
+    private static (int Count,int Last,int Revision) seen=(-1,-1,-1);
     private static string countText="0";
     private static readonly HashSet<string> expanded=new(StringComparer.Ordinal);
     private static string[] Columns=>CombatReportView.Columns;
@@ -40,14 +40,14 @@ internal static class CombatReportPanel
     }
     internal static bool Open()
     {
-        try{Ensure();seen=(-1,-1);_=Current();if(impacts.Count>0&&expanded.Count==0)expanded.Add(impacts[0].Key);return panel!.Open();}
+        try{Ensure();seen=(-1,-1,-1);_=Current();if(impacts.Count>0&&expanded.Count==0)expanded.Add(impacts[0].Key);return panel!.Open();}
         catch(Exception ex){Plugin.ModLog.LogWarning("[Combat report] UI Kit panel unavailable: "+ex.Message);return false;}
     }
-    internal static void Clear(){CombatForensicPanel.Clear();try{if(panel!=null)UiKit.DestroyPanel(panel);}catch(Exception){}panel=null;expanded.Clear();impacts=Array.Empty<CombatImpactView>();seen=(-1,-1);}
-    /// <summary>Rebuilt only when the history changes (count or newest shot), never per frame.</summary>
+    internal static void Clear(){CombatForensicPanel.Clear();try{if(panel!=null)UiKit.DestroyPanel(panel);}catch(Exception){}panel=null;expanded.Clear();impacts=Array.Empty<CombatImpactView>();seen=(-1,-1,-1);}
+    /// <summary>Rebuilt only when the history changes (count, newest shot, or post-commit revision), never per frame.</summary>
     private static IReadOnlyList<CombatImpactView> Current()
     {
-        var shots=RuntimeDamageFeed.History.Shots;var key=(shots.Count,shots.Count>0?shots[^1].Number:-1);
+        var shots=RuntimeDamageFeed.History.Shots;var key=(shots.Count,shots.Count>0?shots[^1].Number:-1,RuntimeDamageFeed.History.Revision);
         if(key==seen)return impacts;
         seen=key;impacts=CombatReportView.Build(shots);countText=impacts.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
         return impacts;
@@ -96,10 +96,16 @@ internal static class CombatReportPanel
         head.Label(()=>expanded.Contains(key)?CombatReportView.HideLayers:CombatReportView.ShowLayers,TextStyle.Faint).Width(84).AlignRight();
         // One summary line of the damage (crew and parts, grouped by status); it wraps instead of being cut off.
         foreach(var line in impact.SummaryLines)st.Label(line,TextStyle.Small).Colour("#ffcbb3").Wrap();
+        if(impact.BlastHeadline.Length>0)st.Label(impact.BlastHeadline,TextStyle.Small).Colour(b.Result==HitBlockBuilder.Breached?"#ffac91":"#f3cf86").Wrap();
         if(b.Shooter.Length>0)st.Label(CombatReportPresentation.Escape(b.Shooter),TextStyle.Small).Wrap();
         var table=st.Stack(2);
         table.VisibleWhen(()=>expanded.Contains(key));
         table.Label(impact.Summary,TextStyle.Small).Colour("#b8ad94");
+        if(impact.BlastLines.Length>0)
+        {
+            table.Label("BLAST ASSESSMENT",TextStyle.Section);
+            foreach(var bl in impact.BlastLines)table.Label(bl,TextStyle.Small).Colour(bl.Contains("BREACHED",StringComparison.Ordinal)?"#ffac91":"#f3cf86").Wrap();
+        }
         var header=table.Row(6);
         for(int i=0;i<Columns.Length;i++)Cell(header,Columns[i],i,TextStyle.Small).Colour("#b8ad94");
         foreach(var l in impact.Layers)

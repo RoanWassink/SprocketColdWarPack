@@ -13,7 +13,7 @@ public sealed partial class Runtime
     private sealed class DentReq
     {
         internal Tracked T=null!;internal VehicleComponent Comp=null!;internal int Vuid;internal PlateSide Side;internal DentSrc Src;
-        internal DentStyle Style;internal int CalibreMm;internal bool IsNonDestructible,UseExplicitDir;internal double BlastDmg,DamageScale=1.0;
+        internal DentStyle Style;internal int CalibreMm;internal bool IsNonDestructible,UseExplicitDir,IsSolidBlock;internal double BlastDmg,DamageScale=1.0;
         internal Vector3 Pos,Dir;internal double DepthMm,RadiusM,Q,EnergyMJ,ThicknessMm;
     }
     private sealed class DebrisItem
@@ -157,7 +157,7 @@ public sealed partial class Runtime
             else{Plugin.Info("[DENT] test key: no shot on a plate yet (fire one shot at a plate first).");return;}
         }
         var p=Plugin.Instance;
-        bool nonDestr=!IsDestructible(h.Comp);
+        bool nonDestr=!IsDestructible(h.T,h.Comp);
         var plan=nonDestr?null:PlanFor(h.T,h.Comp,h.Vuid);
         var side=plan==null?PlateSide.Whole:SideOfPoint(h.Comp,plan,h.Pos);
         double th=QuickThicknessMm(h.T.Root,h.Comp,h.Vuid);
@@ -327,7 +327,7 @@ public sealed partial class Runtime
         long root=r.T.Root;
         if(led.IsGone(root,r.Vuid)||led.IsBroken(root,r.Vuid,r.Side)||(r.Side!=PlateSide.Whole&&State.IsSideBroken(root,r.Vuid,r.Side)))return;
         Plans.TryGetValue((root,r.Vuid),out var plan);
-        if(plan==null&&IsDestructible(r.Comp))plan=PlanFor(r.T,r.Comp,r.Vuid);
+        if(plan==null&&IsDestructible(r.T,r.Comp))plan=PlanFor(r.T,r.Comp,r.Vuid);
         var set=EnsureDents(r.T,r.Comp,r.Vuid,plan);
         if(set==null||set.Targets.Count==0)return;
 
@@ -531,14 +531,18 @@ public sealed partial class Runtime
 
         normal=DentMath.Orient(normal,away);
         double probeSpanMm=0;
-        var probeDir=r.Style==DentStyle.ExitBlowout?VM.Mul(normal,-1.0):normal;
-        if(tg.Accel.RayFirst(sm.FlatBasis,sm.FlatTris,sm.TopologyVersion,VM.Add(center,VM.Mul(probeDir,0.002/sc)),probeDir,6.0/sc,ok,out double bdist,out _,out _))
+        bool edgeOn=false;
+        if(!r.IsSolidBlock)
         {
-            double lm=bdist*sc+0.002;
-            probeSpanMm=lm*1000.0;
-            if(lm>=0.0025&&lm<=0.352)localThMm=probeSpanMm;
+            var probeDir=r.Style==DentStyle.ExitBlowout?VM.Mul(normal,-1.0):normal;
+            if(tg.Accel.RayFirst(sm.FlatBasis,sm.FlatTris,sm.TopologyVersion,VM.Add(center,VM.Mul(probeDir,0.002/sc)),probeDir,6.0/sc,ok,out double bdist,out _,out _))
+            {
+                double lm=bdist*sc+0.002;
+                probeSpanMm=lm*1000.0;
+                if(lm>=0.0025&&lm<=0.600)localThMm=probeSpanMm;
+            }
+            edgeOn=r.Src==DentSrc.Blast&&!r.UseExplicitDir&&DentMath.IsEdgeOnRim(probeSpanMm,r.ThicknessMm);
         }
-        bool edgeOn=r.Src==DentSrc.Blast&&!r.UseExplicitDir&&DentMath.IsEdgeOnRim(probeSpanMm,r.ThicknessMm);
 
         DentStyle style=r.Src==DentSrc.Kin?r.Style:DentStyle.Blast;
         double radiusM=r.RadiusM,depthMm=r.DepthMm;
@@ -555,10 +559,7 @@ public sealed partial class Runtime
                 double realDmg=BlastMath.Damage(p.BlastBase.Value*r.DamageScale,r.CalibreMm,actualDistM,p.BlastRadiusPer100mm.Value,p.MinCalibreMm.Value);
                 useDmg=Math.Min(useDmg,realDmg);
             }
-            double effTh=Math.Min(localThMm,55.0);
-            double strength=BlastMath.Strength(p.BlastStrengthPerMm.Value,effTh,p.DefaultPlateStrength.Value)/Math.Max(0.1,p.HullTurretBlastScale.Value);
-            effQ=DentMath.BlastRatio(useDmg,strength);
-            depthMm=DentMath.BlastDepthMm(effQ,p.BlastMaxDepthMm.Value);
+            depthMm=BlastBreachMath.RealisticBlastDentDepthMm(useDmg,localThMm,p.BlastStrengthPerMm.Value,p.DefaultPlateStrength.Value,p.HullTurretBlastScale.Value,p.BlastMaxDepthMm.Value,out effQ);
             if(edgeOn){depthMm*=0.15;if(how.Length==0)how=$"(edge-on rim span={probeSpanMm:0}mm)";}
             if(depthMm<1.0){how=$"(local {localThMm:0.0}mm too thick for blast depth)";return 0;}
         }

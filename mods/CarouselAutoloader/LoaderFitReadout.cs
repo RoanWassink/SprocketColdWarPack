@@ -5,10 +5,25 @@ namespace SprocketCarouselAutoloader;
 internal static class LoaderFitReadout
 {
     private static string Mm(double value) => Math.Ceiling(value).ToString("0",CultureInfo.CurrentCulture)+" mm";
-    internal static string[] Carousel(CarouselSize size)
+    internal static string[] Carousel(CarouselSize size, CarouselLayout layout = CarouselLayout.HorizontalCassette)
     {
         if(size.StoredProjectileMm<=0||size.RequiredDepthMm<=0||size.RequiredDiameterMm<=0)
             return new[]{"Ammunition unavailable"};
+        if(layout==CarouselLayout.StackedUnitary)
+        {
+            var unitary=new List<string>{"Round length: "+Mm(size.StoredProjectileMm)+" (unitary)",
+                "Required depth: "+Mm(size.RequiredDepthMm),"Required diameter: "+Mm(size.RequiredDiameterMm)};
+            if(size.DepthMm<size.RequiredDepthMm) unitary.Add("Depth insufficient");
+            if(size.DiameterMm<size.RequiredDiameterMm) unitary.Add("Diameter insufficient");
+            if(size.Capacity>0)
+            {
+                unitary.Add($"Shells: {size.Capacity} ({size.Tiers} tiers x {size.SlotsPerTier})");
+                if(size.ReloadSeconds>0)
+                    unitary.Add($"Fire cycle: {size.ReloadSeconds:0.00} s ({60.0/size.ReloadSeconds:0} rpm)");
+            }
+            else if(unitary.Count==3) unitary.Add("Ammunition does not fit");
+            return unitary.ToArray();
+        }
         var rows=new List<string>{"Shell length: "+Mm(size.StoredProjectileMm),"Charge length: "+Mm(size.StoredChargeMm),
             "Required depth: "+Mm(size.RequiredDepthMm),"Required diameter: "+Mm(size.RequiredDiameterMm)};
         if(size.DepthMm<size.RequiredDepthMm) rows.Add("Depth insufficient");
