@@ -1,5 +1,7 @@
 # Sprocket Cold War Pack
 
+![Sprocket Cold War Pack](docs/img/cover.jpg)
+
 > **Important:** Can't guarantee compatibility with other mods. No user support given if you don't read the instructions!
 
 A set of mods for the tank game **Sprocket** that brings the Cold War to the tank designer: new eras, realistic armour and ammunition, period sights, night vision, new turret and loader types, wheeled vehicles, and a few handy tools.
